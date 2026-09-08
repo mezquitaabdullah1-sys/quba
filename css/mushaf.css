@@ -1,0 +1,136 @@
+/* 📖 المصحف — القرآن صفحة كاملة (أوفلاين) */
+
+.msh-wrap {
+  direction: rtl;
+  padding-bottom: calc(var(--sp-md) + 70px);
+}
+
+.msh-top-bar .msh-title {
+  font-weight: 700;
+}
+
+.msh-pager-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px var(--sp-md);
+  position: sticky;
+  top: 56px;
+  z-index: 5;
+}
+
+.msh-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border, rgba(15, 76, 58, 0.25));
+  background: var(--glass-bg, #ffffff);
+  color: var(--primary, #0F4C3A);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.msh-nav-btn:active { transform: scale(0.95); }
+.msh-nav-btn:disabled { opacity: 0.35; pointer-events: none; }
+
+.msh-page-indicator {
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border, rgba(15, 76, 58, 0.25));
+  background: var(--primary, #0F4C3A);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(15, 76, 58, 0.25);
+}
+
+/* صفحة المصحف */
+.msh-page {
+  margin: 8px var(--sp-md) 0;
+  padding: 22px 18px 14px;
+  background: #FDFBF3;
+  border: 1px solid #E5DFC8;
+  border-radius: 16px;
+  box-shadow: 0 4px 18px rgba(60, 50, 20, 0.10), inset 0 0 40px rgba(212, 175, 55, 0.05);
+  color: #1F1B12;
+  position: relative;
+}
+
+.msh-flow {
+  font-family: 'Scheherazade New', 'Amiri', 'Noto Naskh Arabic', serif;
+  text-align: justify;
+  line-height: 2.15;
+  word-spacing: 1px;
+}
+
+.msh-page.font-small .msh-flow { font-size: 1.15rem; line-height: 1.95; }
+.msh-page.font-medium .msh-flow { font-size: 1.4rem; }
+.msh-page.font-large .msh-flow { font-size: 1.65rem; line-height: 2.3; }
+.msh-page.font-xlarge .msh-flow { font-size: 1.9rem; line-height: 2.45; }
+
+.msh-ayah { color: #1F1B12; }
+
+.msh-ayah-end {
+  color: #0F4C3A;
+  font-size: 0.85em;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+/* ترويسة السورة */
+.msh-surah-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 18px 0 10px;
+  padding: 10px 14px;
+  border: 2px solid #C9A227;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #FBF6E3, #F4EDCF);
+  color: #0F4C3A;
+}
+
+.msh-surah-name {
+  font-family: 'Amiri', 'Scheherazade New', serif;
+  font-size: 1.35em;
+  font-weight: 700;
+}
+
+.msh-surah-orn { color: #C9A227; font-size: 1.1em; }
+
+.msh-bismillah {
+  text-align: center;
+  font-family: 'Amiri', 'Scheherazade New', serif;
+  font-size: 1.15em;
+  color: #0F4C3A;
+  margin: 6px 0 8px;
+}
+
+.msh-page-footer {
+  text-align: center;
+  margin-top: 16px;
+  color: #8A7B4F;
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+}
+
+/* زر دخول المصحف من شاشة القرآن */
+.quran-mushaf-entry-btn {
+  background: linear-gradient(135deg, #0F4C3A, #17694F);
+  border-color: transparent;
+  color: #fff;
+}
+
+.quran-mushaf-entry-btn .quran-ayah-search-icon,
+.quran-mushaf-entry-btn .quran-ayah-search-badge { color: #E9D8A6; }
+
+@media (prefers-color-scheme: dark) {
+  .msh-page { background: #FDFBF3; color: #1F1B12; }
+}
