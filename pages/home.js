@@ -24,6 +24,14 @@ const HomePage = {
       AppState.timings = timings.timings;
       AppState.hijri = hijri;
 
+      // v35: reprogramar las alarmas del día al cargar la home — garantiza
+      // que el adhan suene a la hora de cada oración aunque no se abra la
+      // pestaña de oración, respetando el modo (completo / 2 takbeer).
+      if (typeof PrayerNotifications !== 'undefined' &&
+          (PrayerNotifications.isEnabled() || PrayerNotifications.isReminderEnabled())) {
+        PrayerNotifications.scheduleDay(AppState.timings, AppState.settings.locale || 'es');
+      }
+
       // Use curated famous verses with wisdom (not random)
       const verse = getFamousVerseOfTheDay();
       const dua = getDuaOfTheDay();
@@ -131,14 +139,24 @@ const HomePage = {
       </div>
 
       <div style="padding: var(--sp-md);">
-        <!-- Oraciones del día -->
-        <h2 class="section-title">${t('todayPrayers')}
-          <span class="prayer-checkin-progress" title="${t('prayerCheckinTitle')}">${doneCount}/${totalCount} ✔</span>
-        </h2>
+        <!-- Oraciones del día + ubicación y fechas (hijri / gregoriana) -->
+        <div class="prayers-header">
+          <h2 class="section-title">${t('todayPrayers')}
+            <span class="prayer-checkin-progress" title="${t('prayerCheckinTitle')}">${doneCount}/${totalCount} ✔</span>
+          </h2>
+          <div class="prayers-location"><i class="fas fa-location-dot"></i> ${escapeHtml([loc.city, loc.country].filter(Boolean).join(', '))}</div>
+          <div class="prayers-dates">
+            ${hijri ? `<span class="prayers-date hijri" dir="${currentLocale === 'ar' ? 'rtl' : 'ltr'}"><i class="fas fa-moon"></i> <b>${t('dateHijriLabel')}:</b> ${hijri.day} ${currentLocale === 'ar' ? (hijri.month?.ar || hijri.month?.en) : (hijri.month?.en || hijri.month?.ar)} ${hijri.year} هـ</span>` : ''}
+            <span class="prayers-date greg"><i class="fas fa-calendar-day"></i> <b>${t('dateGregorianLabel')}:</b> ${new Date().toLocaleDateString(currentLocale === 'ar' ? 'ar-EG' : currentLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+          </div>
+        </div>
         <div class="card prayers-card">
           ${dailyPrayers.map(p => {
             const canCheck = (typeof PrayerTracker !== 'undefined') && PrayerTracker.PRAYERS.includes(p.name);
             const isDone = canCheck && PrayerTracker.isDone(p.name);
+            // v35: la casilla solo se puede marcar a partir de la hora del adhan;
+            // antes aparece bloqueada (gris) y muestra un aviso al tocarla.
+            const passed = canCheck && this.isAdhanPassed(p.name);
             return `
             <div class="prayer-row ${nextPrayer?.name === p.name ? 'next' : ''} ${isDone ? 'prayer-done' : ''}">
               <span class="prayer-emoji">${getPrayerEmoji(p.name)}</span>
@@ -150,12 +168,16 @@ const HomePage = {
                 <div class="prayer-time">${formatTime12h(p.time)}</div>
               </div>
               ${canCheck ? `
-                <button class="prayer-check ${isDone ? 'checked' : ''}"
+                <button class="prayer-check ${isDone ? 'checked' : ''} ${passed ? '' : 'locked'}"
                         aria-label="${t('prayerCheckinTitle')}"
                         aria-pressed="${isDone}"
+                        title="${passed ? t('prayerCheckinTitle') : (t('prayerNotYetToast') || '')}"
                         onclick="HomePage.toggleCheckin('${p.name}', this)">
-                  <i class="fas fa-check"></i>
-                </button>` : ''}
+                  <i class="fas ${passed ? 'fa-check' : 'fa-lock'}"></i>
+                </button>`
+                // v35: Shuruk no tiene casilla — espaciador del mismo ancho
+                // para que su hora quede alineada con las demás oraciones.
+                : '<span class="prayer-check-spacer" aria-hidden="true"></span>'}
             </div>`;
           }).join('')}
         </div>
@@ -184,7 +206,7 @@ const HomePage = {
 
         <!-- Du'a del día -->
         <h2 class="section-title"><i class="fas fa-hands-praying"></i> ${t('duaOfDay')}</h2>
-        <div class="card">
+        <div class="card dua-day-card">
           <div class="dua-title">${dua.title}</div>
           <div class="dua-arabic">${dua.arabic}</div>
           <div class="dua-transliteration">${dua.transliteration}</div>
@@ -210,8 +232,27 @@ const HomePage = {
 
   // v26: marcar/desmarcar una oración como realizada (check-in diario).
   // El estado se guarda por fecha: mañana las casillas vuelven a estar vacías.
+  // v35: ¿ya pasó la hora del adhan de esta oración hoy?
+  // Sunrise no está en la lista de check-in; aquí solo llegan las 5 oraciones.
+  isAdhanPassed(name) {
+    const raw = (typeof AppState !== 'undefined' && AppState.timings) ? AppState.timings[name] : null;
+    if (!raw) return true; // sin horario disponible → no bloquear
+    const clean = String(raw).split(' ')[0];
+    const [h, m] = clean.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return true;
+    const adhanAt = new Date();
+    adhanAt.setHours(h, m, 0, 0);
+    return Date.now() >= adhanAt.getTime();
+  },
+
   toggleCheckin(name, btn) {
     if (typeof PrayerTracker === 'undefined') return;
+    // v35: no permitir marcar antes de la hora del adhan
+    if (!this.isAdhanPassed(name)) {
+      showToast('🕐 ' + (t('prayerNotYetToast') || 'Aún no ha llegado la hora del adhan'), 2200);
+      if (navigator.vibrate) navigator.vibrate(40);
+      return;
+    }
     const nowDone = PrayerTracker.toggle(name);
     if (btn) {
       btn.classList.toggle('checked', nowDone);

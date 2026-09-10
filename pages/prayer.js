@@ -294,6 +294,12 @@ const PrayerPage = {
     const isCurrentMonth = today.getMonth() + 1 === month && today.getFullYear() === year;
     const todayDay = today.getDate();
 
+    // v36: cabecera sobre el jadwal — ciudad + fecha hijri + fecha gregoriana
+    const loc = AppState.location || {};
+    const hijri = AppState.hijri;
+    const gregorianStr = today.toLocaleDateString(currentLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const hijriStr = hijri ? `${hijri.day} ${hijri.month?.ar || hijri.month?.en || ''} ${hijri.year} هـ` : '';
+
     // Prayer column headers
     const prayerLabels = {
       Fajr: t('prayers.Fajr') || 'Fajr',
@@ -329,6 +335,11 @@ const PrayerPage = {
     }).join('');
 
     container.innerHTML = `
+      <div class="monthly-loc-bar">
+        ${loc.city ? `<span class="monthly-loc-city"><i class="fas fa-location-dot"></i> ${escapeHtml(loc.city)}${loc.country ? ', ' + escapeHtml(loc.country) : ''}</span>` : ''}
+        ${hijriStr ? `<span class="monthly-loc-hijri"><i class="fas fa-moon"></i> ${hijriStr}</span>` : ''}
+        <span class="monthly-loc-greg"><i class="fas fa-calendar"></i> ${gregorianStr}</span>
+      </div>
       <div class="monthly-header">
         <div class="monthly-title"><i class="fas fa-calendar-days"></i> ${monthName} ${year}</div>
         <div class="monthly-subtitle">${data.length} ${t('days') || 'días'}</div>

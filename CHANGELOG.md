@@ -1,5 +1,48 @@
 # Quba Changelog
 
+## v1.0.35 — 2026-09-09 · Horarios EXACTOS de Muslim Pro en Jordania/Palestina + ajuste manual por oración (±60 min)
+
+### 🔗 Sincronización con Muslim Pro reparada (causa raíz de las diferencias)
+- Muslim Pro trasladó sus páginas de ciudad de `www.muslimpro.com/...` a
+  `app.muslimpro.com/prayer-times/<pais>/<ciudad>/<id>`; la URL antigua devuelve 404
+  ("Page not found") y la app estaba cayendo en silencio a Aladhan → de ahí las
+  diferencias reportadas (≈6 min en Isha de Jordania, ±5 min en Shuruk/Maghrib de Palestina).
+- `js/muslimpro-sync.js` y `backend/cloudflare-worker.js` actualizados al nuevo dominio
+  y al nuevo formato de slug (se aceptan también los formatos antiguos). CSP del
+  frontend y del Worker amplidas con `app.muslimpro.com`.
+- Verificado en vivo (09-09-2026): Muslim Pro Amman 04:52/06:16/12:34/16:07/18:51/**20:21**,
+  Nablus 04:56/06:19/12:36/16:09/18:53/20:12 → la app muestra los mismos números.
+
+### 🇯🇴 Jordania — regla oficial del Ministerio de Awqaf (Isha = Maghrib + 90 min)
+- Confirmado empíricamente: los horarios que publica Muslim Pro para Jordania cumplen
+  Isha = Maghrib + 90 min exactos (18:51 + 90 = 20:21), la convención oficial jordana.
+- Nuevo método de cálculo **19 "Min. de Awqaf de Jordania / وزارة الأوقاف الأردنية"**
+  (Fajr 18°, Isha = Maghrib+90) disponible en Perfil → Método de cálculo.
+- **Autodetección**: si la ubicación está en Jordania (por país o por coordenadas) y el
+  usuario no ha elegido método manualmente, se usa el método 19 automáticamente.
+- Red de seguridad: `PrayerCalc.applyRegionalCorrections()` fuerza Isha = Maghrib+90
+  sobre cualquier fuente (Aladhan u offline) cuando el país es Jordania — incluso sin
+  red ni Muslim Pro. Un ajuste manual del usuario sobre Isha tiene prioridad.
+
+### 🇵🇸 Palestina — Shuruk y Maghrib alineados
+- Con la sincronización reparada, Shuruk/Maghrib vuelven a ser los de Muslim Pro.
+- Además la geocodificación inversa ahora se pide siempre **en inglés** a Nominatim
+  (detección de país estable: "Jordan", "Palestinian Territory", …) independientemente
+  del idioma de la app.
+
+### 🎛️ Ajuste manual por oración (−60 … +60 min) — Perfil → "تعديل يدوي لمواقيت الصلاة"
+- Nuevo ajuste `settings.prayerOffsets` (Fajr, Sunrise, Dhuhr, Asr, Maghrib, Isha),
+  con botones **− / +** de 1 minuto por oración, tope duro ±60 y botón de restablecer.
+- Se aplica **encima de cualquier fuente** (Muslim Pro, Aladhan, cálculo offline) y de
+  timeShift; al cambiarlo se reprograman las alarmas de adhan/recordatorios del día.
+- Válido también en la vista mensual del calendario. i18n es/ar/en:
+  `prayerAdjust`, `prayerAdjustDesc`, `prayerAdjustReset`, `prayerAdjustSaved`.
+
+### ✅ Verificación (Node, TZ=Asia/Amman, 09-09-2026)
+- Offline Amman (método 19): 04:53/06:16/12:34/16:07/18:51/20:21 — Isha−Maghrib = 90 min ✅
+- Offline Nablus (MWL): 04:55/06:19/12:36/16:10/18:54/20:13 — ±1 min de Muslim Pro ✅
+- Tests: prioridad del ajuste manual, clamp ±60, Palestina sin tocar, sintaxis OK en todos los archivos.
+
 ## v1.0.34 — 2026-09-06 · Horario dual + iconos rápidos a mitad de tamaño (Qibla en imagen + Cursos)
 
 ### 🖼️ Accesos rápidos del inicio (ahora 5, a mitad de tamaño)

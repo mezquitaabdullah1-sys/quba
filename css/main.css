@@ -450,8 +450,9 @@ textarea:focus-visible,
   border-radius: 50%;
   transition: 0.3s;
 }
+/* v35: estado activo en VERDE claro e inequívoco; inactivo en gris (#ccc) */
 .toggle-switch input:checked + .toggle-slider {
-  background: var(--primary, #0F4C3A);
+  background: #1E9E6A;
 }
 .toggle-switch input:checked + .toggle-slider::before {
   transform: translateX(20px);

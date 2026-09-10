@@ -95,3 +95,6 @@
   border-color: rgba(15, 76, 58, 0.25);
 }
 .card .share-card-btn:hover { background: rgba(15, 76, 58, 0.16); }
+
+/* v36: vista previa de la shahaada (retrato 2:3) */
+.cert-share-preview img { max-height: 62vh; width: auto; max-width: 100%; }

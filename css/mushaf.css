@@ -131,6 +131,60 @@
 .quran-mushaf-entry-btn .quran-ayah-search-icon,
 .quran-mushaf-entry-btn .quran-ayah-search-badge { color: #E9D8A6; }
 
+/* ─── حركة التقليب السلسة ─── */
+.msh-clip {
+  overflow: hidden;
+  margin: 8px var(--sp-md) 0;
+}
+
+.msh-track {
+  display: flex;
+  will-change: transform;
+}
+
+.msh-track .msh-page-static {
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+/* ─── ☰ فهرس المصحف: التبويبات والأقسام ─── */
+.msh-picker-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 0 var(--sp-md) var(--sp-sm);
+  overflow-x: auto;
+}
+
+.msh-tab {
+  flex: 1 0 auto;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border, rgba(15, 76, 58, 0.25));
+  background: var(--glass-bg, #ffffff);
+  color: var(--primary, #0F4C3A);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.msh-tab.active {
+  background: var(--primary, #0F4C3A);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(15, 76, 58, 0.25);
+}
+
+.msh-picker-section {
+  padding: 8px 6px 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-secondary, #7A7A7A);
+  border-top: 1px dashed var(--glass-border, rgba(15, 76, 58, 0.2));
+  margin-top: 6px;
+}
+
 @media (prefers-color-scheme: dark) {
   .msh-page { background: #FDFBF3; color: #1F1B12; }
 }

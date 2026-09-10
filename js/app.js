@@ -13,7 +13,8 @@ function applyTheme() {
   // Cambiar theme-color
   const themeColor = document.querySelector('meta[name="theme-color"]');
   if (themeColor) {
-    themeColor.content = document.documentElement.dataset.theme === 'dark' ? '#0D1829' : '#0F4C3A';
+    const metaColors = { dark: '#0D1829', maroon: '#3A0C1B', brown: '#6B4F3A' };
+    themeColor.content = metaColors[document.documentElement.dataset.theme] || '#0F4C3A';
   }
 }
 
@@ -78,13 +79,19 @@ async function initApp() {
   // 1) Cargar settings y aplicar idioma + tema
   Storage.loadSettings();
 
-  // Sincronizar locale
-  if (AppState.settings.locale && AppState.settings.locale !== currentLocale) {
-    setLocale(AppState.settings.locale);
-  } else {
-    AppState.settings.locale = currentLocale;
-    Storage.saveSettings();
+  // Sincronizar locale — v36: SOLO si el usuario ya eligió idioma en la
+  // pantalla de selección (langChosen). Antes se llamaba setLocale() aquí y
+  // se guardaba 'quba_locale' sin que el usuario eligiera nada, con lo que la
+  // pantalla de selección nunca aparecía.
+  if (AppState.settings.langChosen) {
+    if (AppState.settings.locale && AppState.settings.locale !== currentLocale) {
+      setLocale(AppState.settings.locale);
+    } else {
+      AppState.settings.locale = currentLocale;
+      Storage.saveSettings();
+    }
   }
+  // else: primer uso — LanguagePicker.apply() guardará el idioma elegido.
 
   applyTheme();
   applyTranslations();
@@ -111,6 +118,12 @@ async function initApp() {
 
   // 3) Init Router (parsea hash inicial y setea popstate)
   if (typeof Router.init === 'function') Router.init();
+
+  // 3b) 🌐 Primera apertura: mostrar la pantalla de selección de idioma
+  // (por encima de todo). Al elegir, se aplica el idioma y se continúa.
+  if (typeof LanguagePicker !== 'undefined' && LanguagePicker.shouldShow()) {
+    LanguagePicker.show();
+  }
 
   // 4) Ir a Home si no hay ruta inicial en hash
   if (!location.hash || location.hash === '#' || location.hash === '#/') {

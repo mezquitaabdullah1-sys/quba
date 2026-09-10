@@ -102,6 +102,27 @@
   border-color: #2BB673;
   box-shadow: 0 2px 8px rgba(43, 182, 115, 0.4);
 }
+
+/* v35: casilla bloqueada antes de la hora del adhan (gris, con candado) */
+.prayer-check.locked {
+  border-color: #c7c7c7;
+  background: rgba(0, 0, 0, 0.05);
+  color: #9a9a9a;
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+[data-theme="dark"] .prayer-check.locked {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* v35: espaciador para el Shuruk (sin casilla) — mantiene la hora alineada */
+.prayer-check-spacer {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+}
 .prayer-row.prayer-done .prayer-name { text-decoration: line-through; opacity: 0.6; }
 .prayer-row.prayer-done .prayer-time { opacity: 0.6; }
 .prayer-checkin-progress {
@@ -1125,7 +1146,7 @@
   transition: 0.3s;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
-.toggle-switch input:checked + .toggle-slider { background: #0F4C3A; }
+.toggle-switch input:checked + .toggle-slider { background: #1E9E6A; }
 .toggle-switch input:checked + .toggle-slider::before { transform: translateX(22px); }
 [dir="rtl"] .toggle-switch input:checked + .toggle-slider::before { transform: translateX(-22px); }
 
@@ -1209,3 +1230,33 @@
 }
 [dir="rtl"] .quran-list-settings-btn { right: auto; left: 12px; }
 [data-theme="dark"] .quran-list-settings-btn { background: rgba(255,215,0,0.15); color: #FFD700; }
+
+/* v36: encabezado de "Oraciones de hoy" — ciudad + fechas hijri/gregoriana */
+.prayers-header {
+  margin: var(--sp-lg) var(--sp-md) var(--sp-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.prayers-header .section-title { margin: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.prayers-location {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--emerald-bright, #2e9e77);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.prayers-dates { display: flex; flex-direction: column; gap: 2px; }
+.prayers-date {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.prayers-date i { color: var(--gold, #d4af37); font-size: 11px; }
+.prayers-date b { color: var(--gold, #d4af37); font-weight: 700; }
+.prayers-date.hijri { font-weight: 600; }

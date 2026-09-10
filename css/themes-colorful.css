@@ -1,0 +1,242 @@
+/* ============================================================
+   🎨 Quba — Colorful Themes Layer
+   Two new themes on top of the glass system:
+   1) "maroon" — الأحمر الخمري مع خطوط ذهبية وبيضاء
+      (calligraphy texture bg-maroon.jpg behind hero / verse / dua)
+   2) "brown" — الأبيض والبني
+      (calligraphy texture bg-cream.jpg behind hero / verse / dua)
+   Loaded AFTER glass-theme.css so these tokens win when the
+   matching [data-theme] is active.
+   ============================================================ */
+
+/* ============================================================
+   1) 🍷 الخمري والذهبي — Maroon & Gold
+   ============================================================ */
+[data-theme="maroon"] {
+  --bg: #190710;
+  --surface: rgba(66, 16, 33, 0.55);
+  --surface-alt: rgba(90, 22, 44, 0.45);
+  --primary: #D4AF37;            /* ذهبي */
+  --primary-light: #E6C868;
+  --accent: #D4AF37;
+  --text: #F6EEDC;               /* أبيض عاجي */
+  --text-secondary: #CBB489;     /* ذهبي باهت */
+  --text-inverse: #2A0812;
+  --border: rgba(212, 175, 55, 0.22);
+  --card: rgba(60, 14, 30, 0.55);
+  --bg-card: var(--card);
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(212, 175, 55, 0.10);
+  --glass-highlight: inset 0 1px 0 rgba(230, 200, 104, 0.12);
+}
+
+/* الخلفية العامة — خمري عميق مع توهجات ذهبية */
+[data-theme="maroon"] body {
+  background:
+    radial-gradient(ellipse 60% 45% at 10% 0%, rgba(212, 175, 55, 0.16), transparent 60%),
+    radial-gradient(ellipse 55% 40% at 95% 15%, rgba(122, 21, 48, 0.45), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 25% 100%, rgba(74, 14, 32, 0.55), transparent 65%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+/* رأس الصفحة (خلف الصلاة القادمة) — نقوش الخط على الخمري */
+[data-theme="maroon"] .page-header {
+  background:
+    linear-gradient(160deg, rgba(64, 12, 28, 0.62), rgba(26, 5, 12, 0.86)),
+    url("../assets/themes/bg-maroon.jpg") center / cover no-repeat;
+  color: #F6EEDC;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+}
+
+[data-theme="maroon"] .home-hijri { color: var(--gold-light); }
+[data-theme="maroon"] .home-profile-btn { color: var(--gold-light); }
+
+/* بطاقة الصلاة القادمة داخل الرأس */
+[data-theme="maroon"] .next-prayer-card {
+  background: rgba(26, 5, 12, 0.45);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  box-shadow: inset 0 1px 0 rgba(230, 200, 104, 0.15);
+}
+[data-theme="maroon"] .next-prayer-label { color: var(--gold-light); }
+[data-theme="maroon"] .next-prayer-countdown { color: #FFFFFF; }
+
+/* آية اليوم — card-gradient فوق نقوش الخط */
+[data-theme="maroon"] .card-gradient {
+  background:
+    linear-gradient(160deg, rgba(70, 14, 32, 0.80), rgba(34, 6, 16, 0.90)),
+    url("../assets/themes/bg-maroon.jpg") center / cover no-repeat;
+  color: #F6EEDC;
+  border: 1px solid rgba(212, 175, 55, 0.38);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(230, 200, 104, 0.15);
+}
+[data-theme="maroon"] .card-gradient .verse-arabic { color: #FFFFFF; }
+[data-theme="maroon"] .card-gradient .verse-divider {
+  background: linear-gradient(90deg, transparent, var(--gold-soft), transparent);
+}
+[data-theme="maroon"] .card-gradient .verse-source { color: var(--gold-light); }
+
+/* دعاء اليوم — نفس النقوش بخفوت أكبر */
+[data-theme="maroon"] .dua-day-card {
+  background:
+    linear-gradient(160deg, rgba(60, 13, 29, 0.82), rgba(30, 6, 15, 0.90)),
+    url("../assets/themes/bg-maroon.jpg") center / cover no-repeat;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  color: #F6EEDC;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(230, 200, 104, 0.12);
+}
+[data-theme="maroon"] .dua-day-card .dua-title { color: var(--gold-light); }
+[data-theme="maroon"] .dua-day-card .dua-source { color: var(--text-secondary); }
+
+/* الأزرار — ذهبي على خمري */
+[data-theme="maroon"] .btn-primary {
+  background: linear-gradient(135deg, #C9A227, #E6C868);
+  color: #2A0812;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+[data-theme="maroon"] .btn-ghost {
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: var(--gold-light);
+}
+
+/* الشريط العلوي */
+[data-theme="maroon"] .top-bar {
+  background: linear-gradient(135deg, rgba(58, 12, 27, 0.88), rgba(34, 7, 17, 0.88));
+  border-bottom: 1px solid rgba(212, 175, 55, 0.22);
+}
+
+/* بطاقات عامة — حواف ذهبية خفيفة */
+[data-theme="maroon"] .card,
+[data-theme="maroon"] .modal-content,
+[data-theme="maroon"] .bottom-tabs {
+  border: 1px solid rgba(212, 175, 55, 0.18);
+}
+
+[data-theme="maroon"] .section-title { color: var(--gold-light); }
+
+[data-theme="maroon"] .modal-option.selected { background: rgba(212, 175, 55, 0.15); }
+
+[data-theme="maroon"] .toast {
+  background: rgba(34, 7, 17, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: #F6EEDC;
+}
+
+[data-theme="maroon"] .splash {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 30%, rgba(212, 175, 55, 0.22), transparent 65%),
+    #3A0C1B;
+}
+
+/* ============================================================
+   2) 🤎 الأبيض والبني — White & Brown
+   ============================================================ */
+[data-theme="brown"] {
+  --bg: #F6EFE3;
+  --surface: rgba(255, 251, 243, 0.65);
+  --surface-alt: rgba(250, 243, 231, 0.55);
+  --primary: #6B4F3A;            /* بني */
+  --primary-light: #8A6A52;
+  --accent: #8A5A44;
+  --text: #3B2C21;
+  --text-secondary: #7A6653;
+  --text-inverse: #FFF9EF;
+  --border: rgba(107, 79, 58, 0.20);
+  --card: rgba(255, 251, 243, 0.72);
+  --bg-card: var(--card);
+  --shadow: 0 8px 32px rgba(107, 79, 58, 0.16), 0 1px 2px rgba(107, 79, 58, 0.08);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+/* الخلفية العامة — كريمي دافئ */
+[data-theme="brown"] body {
+  background:
+    radial-gradient(ellipse 60% 45% at 8% 0%, rgba(138, 106, 82, 0.16), transparent 60%),
+    radial-gradient(ellipse 55% 40% at 95% 12%, rgba(212, 175, 55, 0.14), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 25% 100%, rgba(107, 79, 58, 0.12), transparent 65%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+/* رأس الصفحة — نقوش الخط البني على الأبيض الكريمي */
+[data-theme="brown"] .page-header {
+  background:
+    linear-gradient(160deg, rgba(247, 241, 230, 0.80), rgba(232, 220, 201, 0.90)),
+    url("../assets/themes/bg-cream.jpg") center / cover no-repeat;
+  color: #4A3426;
+  box-shadow: 0 12px 32px rgba(107, 79, 58, 0.22);
+  border-bottom: 1px solid rgba(107, 79, 58, 0.18);
+}
+
+[data-theme="brown"] .home-hijri { color: var(--accent); }
+[data-theme="brown"] .home-profile-btn { color: var(--accent); }
+
+/* بطاقة الصلاة القادمة */
+[data-theme="brown"] .next-prayer-card {
+  background: rgba(255, 251, 243, 0.55);
+  border: 1px solid rgba(107, 79, 58, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+[data-theme="brown"] .next-prayer-label { color: var(--accent); }
+[data-theme="brown"] .next-prayer-countdown { color: #3B2C21; }
+
+/* آية اليوم — بني غامق فوق النقوش الفاتحة */
+[data-theme="brown"] .card-gradient {
+  background:
+    linear-gradient(160deg, rgba(107, 79, 58, 0.88), rgba(74, 52, 38, 0.93)),
+    url("../assets/themes/bg-cream.jpg") center / cover no-repeat;
+  color: #FFF9EF;
+  border: 1px solid rgba(107, 79, 58, 0.45);
+  box-shadow: 0 8px 32px rgba(107, 79, 58, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+[data-theme="brown"] .card-gradient .verse-arabic { color: #FFFFFF; }
+[data-theme="brown"] .card-gradient .verse-divider {
+  background: linear-gradient(90deg, transparent, var(--gold-soft), transparent);
+}
+[data-theme="brown"] .card-gradient .verse-source { color: var(--gold-light); }
+
+/* دعاء اليوم — بطاقة فاتحة بنقوش خفيفة */
+[data-theme="brown"] .dua-day-card {
+  background:
+    linear-gradient(160deg, rgba(255, 252, 245, 0.88), rgba(248, 240, 227, 0.92)),
+    url("../assets/themes/bg-cream.jpg") center / cover no-repeat;
+  border: 1px solid rgba(107, 79, 58, 0.30);
+  color: #3B2C21;
+  box-shadow: 0 8px 32px rgba(107, 79, 58, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+[data-theme="brown"] .dua-day-card .dua-title { color: var(--accent); }
+[data-theme="brown"] .dua-day-card .dua-source { color: var(--text-secondary); }
+
+/* الأزرار — بني */
+[data-theme="brown"] .btn-primary {
+  background: linear-gradient(135deg, #6B4F3A, #8A6A52);
+  color: #FFF9EF;
+  box-shadow: 0 6px 20px rgba(107, 79, 58, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+[data-theme="brown"] .btn-ghost {
+  border: 1px solid rgba(107, 79, 58, 0.35);
+  color: var(--primary);
+}
+
+/* الشريط العلوي */
+[data-theme="brown"] .top-bar {
+  background: linear-gradient(135deg, rgba(107, 79, 58, 0.92), rgba(74, 52, 38, 0.92));
+  border-bottom: 1px solid rgba(255, 249, 239, 0.15);
+}
+
+[data-theme="brown"] .section-title { color: var(--accent); }
+
+[data-theme="brown"] .modal-option.selected { background: rgba(107, 79, 58, 0.12); }
+
+[data-theme="brown"] .toast {
+  background: rgba(74, 52, 38, 0.88);
+  border: 1px solid rgba(255, 249, 239, 0.2);
+  color: #FFF9EF;
+}
+
+[data-theme="brown"] .splash {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 30%, rgba(212, 175, 55, 0.18), transparent 65%),
+    #6B4F3A;
+}

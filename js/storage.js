@@ -54,6 +54,10 @@ const Storage = {
     const settings = Storage.get('settings');
     if (settings) {
       Object.assign(AppState.settings, settings);
+      // v28: los ajustes guardados antes de v28 no tienen prayerOffsets
+      if (!AppState.settings.prayerOffsets) {
+        AppState.settings.prayerOffsets = { Fajr: 0, Sunrise: 0, Dhuhr: 0, Asr: 0, Maghrib: 0, Isha: 0 };
+      }
     } else {
       // Primer uso: selección automática de Maher Al-Muaiqly como recitador base
       AppState.settings.reciter = 'ar.mahermuaiqly';

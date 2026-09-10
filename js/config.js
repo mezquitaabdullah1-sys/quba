@@ -26,6 +26,10 @@ const CONFIG = {
     12: { es: 'UOIF (Europa)',                  ar: 'UOIF (أوروبا)',               en: 'UOIF (Europe)' },
     13: { es: 'Diyanet (Turquía)',              ar: 'الشؤون الدينية (تركيا)',      en: 'Diyanet (Türkiye)' },
     14: { es: 'Espiritualidad Islámica España', ar: 'الروحانية الإسلامية (إسبانيا)', en: 'Islamic Spirituality Spain' },
+    // v28: Jordania — Ministerio de Awqaf: Fajr 18° y Isha = Maghrib + 90 min.
+    // El ID 19 se reserva también en Aladhan; al usarlo se aplica tune para
+    // reproducir los horarios oficiales jordanos minuto a minuto.
+    19: { es: 'Min. de Awqaf de Jordania',      ar: 'وزارة الأوقاف الأردنية',    en: 'Jordan Ministry of Awqaf' },
   },
 
   /** Nombre del método de cálculo según el idioma activo (fallback ES). */
@@ -102,6 +106,9 @@ const AppState = {
     // v26: ajuste de horario — 'auto' (el sistema aplica DST automáticamente),
     //      'summer' (+1h) o 'winter' (-1h) a petición manual del usuario
     timeShift: 'auto',
+    // v28: ajuste manual por oración, en minutos (−60 … +60). 0 = sin ajuste.
+    // Se aplica DESPUÉS de timeShift y de las correcciones regionales.
+    prayerOffsets: { Fajr: 0, Sunrise: 0, Dhuhr: 0, Asr: 0, Maghrib: 0, Isha: 0 },
     // Default reciter: Maher Al-Muaiqly (selección automática en el primer uso)
     reciter: 'ar.mahermuaiqly',
     // v29: traducción ES predeterminada = Isa García (del PDF autorizado,

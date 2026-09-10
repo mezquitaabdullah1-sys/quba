@@ -22,6 +22,7 @@ const PrayerCalc = {
     12: { fajr: 12,   isha: 12,   ishaMinutes: null }, // UOIF (Europa)
     13: { fajr: 18,   isha: 17,   ishaMinutes: null }, // Diyanet (Turquía)
     14: { fajr: 18,   isha: 17,   ishaMinutes: null }, // Aprox. (sin espec. pública offline)
+    19: { fajr: 18,   isha: null, ishaMinutes: 90 },   // Jordania (Awqaf) — Isha = Maghrib+90min
   },
   ASR_SHADOW_FACTOR: 1, // Shafi'i/estándar (igual que el default de Aladhan)
 
@@ -123,10 +124,70 @@ const PrayerCalc = {
   },
 
   /**
+   * v28: Ajuste MANUAL por oración (en minutos, −60…+60).
+   * Lee `AppState.settings.prayerOffsets` (objeto {Fajr, Sunrise, Dhuhr,
+   * Asr, Maghrib, Isha} en minutos). Devuelve un NUEVO objeto de horarios;
+   * si todos los ajustes son 0 devuelve el objeto original sin copiar.
+   */
+  applyPrayerOffsets(timings) {
+    try {
+      if (!timings) return timings;
+      const o = (typeof AppState !== 'undefined' && AppState.settings && AppState.settings.prayerOffsets) || null;
+      if (!o) return timings;
+      let any = false;
+      const out = Object.assign({}, timings);
+      for (const name of ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']) {
+        let d = Math.round(Number(o[name]) || 0);
+        d = Math.max(-60, Math.min(60, d)); // límite duro: ±60 minutos
+        if (!d) continue;
+        const v = timings[name];
+        if (typeof v !== 'string' || !v.includes(':')) continue;
+        const suffix = v.includes(' ') ? v.slice(v.indexOf(' ')) : '';
+        const [hh, mm] = v.split(' ')[0].split(':').map(Number);
+        if (isNaN(hh) || isNaN(mm)) continue;
+        const total = ((hh * 60 + mm + d) % 1440 + 1440) % 1440;
+        out[name] = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}${suffix}`;
+        any = true;
+      }
+      if (any) out._manualAdjusted = true; // la UI puede mostrar un aviso
+      return any ? out : timings;
+    } catch (e) { return timings; }
+  },
+
+  /**
+   * v28: Correcciones REGIONALES automáticas (red de seguridad cuando la
+   * sincronización directa con Muslim Pro no está disponible).
+   *  • Jordania → Isha = Maghrib + 90 min (regla oficial del Ministerio de
+   *    Awqaf jordano; verificado con los horarios publicados por Muslim Pro).
+   * @param {object} timings - horarios "HH:MM"
+   * @param {string} country - país en inglés (Nominatim, accept-language=en)
+   * @param {number|null} lat
+   * @param {number|null} lng
+   */
+  applyRegionalCorrections(timings, country, lat, lng) {
+    try {
+      if (!timings || !timings.Maghrib || !timings.Isha) return timings;
+      const c = (country || '').toString().toLowerCase();
+      const isJordan = c.includes('jordan') || c.includes('الأردن') || c.includes('اردن');
+      if (!isJordan) return timings;
+      // No pisar un ajuste manual explícito del usuario sobre Isha
+      const o = (typeof AppState !== 'undefined' && AppState.settings && AppState.settings.prayerOffsets) || {};
+      if (Math.round(Number(o.Isha) || 0) !== 0) return timings;
+      const [hh, mm] = timings.Maghrib.split(' ')[0].split(':').map(Number);
+      if (isNaN(hh) || isNaN(mm)) return timings;
+      const total = ((hh * 60 + mm + 90) % 1440 + 1440) % 1440;
+      const out = Object.assign({}, timings);
+      out.Isha = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+      out._regionFixed = 'JO';
+      return out;
+    } catch (e) { return timings; }
+  },
+
+  /**
    * Calcula los horarios de oración para una fecha/ubicación/método dados.
    * @returns {{Fajr,Sunrise,Dhuhr,Asr,Maghrib,Isha}} en formato "HH:MM" (hora local del dispositivo)
    */
-  getTimings(lat, lon, date = new Date(), methodId = 3) {
+  getTimings(lat, lon, date = new Date(), methodId = 3, country = '') {
     const params = this.METHOD_PARAMS[methodId] || this.METHOD_PARAMS[3];
     const jd = this._julian(date.getFullYear(), date.getMonth() + 1, date.getDate());
     const timezone = -date.getTimezoneOffset() / 60; // huso horario local en horas
@@ -154,7 +215,7 @@ const PrayerCalc = {
       isha = dhuhr + ishaHA;
     }
 
-    return {
+    let timings = {
       Fajr: this._timeToStr(fajr),
       Sunrise: this._timeToStr(sunrise),
       Dhuhr: this._timeToStr(dhuhr),
@@ -162,6 +223,11 @@ const PrayerCalc = {
       Maghrib: this._timeToStr(maghrib),
       Isha: this._timeToStr(isha),
     };
+    // v28: corrección regional (p. ej. Jordania: Isha = Maghrib + 90 min)
+    // y luego el ajuste manual por oración del usuario (±60 min).
+    timings = this.applyRegionalCorrections(timings, country, lat, lon);
+    timings = this.applyPrayerOffsets(timings);
+    return timings;
   },
 };
 

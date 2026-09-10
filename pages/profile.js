@@ -10,6 +10,8 @@ const ProfilePage = {
       light: '<i class="fas fa-sun"></i> ' + t('themeLight'),
       dark: '<i class="fas fa-moon"></i> ' + t('themeDark'),
       auto: '<i class="fas fa-arrows-rotate"></i> ' + t('themeAuto'),
+      maroon: '<i class="fas fa-wine-glass"></i> ' + t('themeMaroon'),
+      brown: '<i class="fas fa-mug-hot"></i> ' + t('themeBrown'),
     }[AppState.settings.theme];
 
     // Adhan settings (with defaults)
@@ -158,6 +160,46 @@ const ProfilePage = {
             <i class="fas fa-circle-info"></i> ${t('timeShiftDesc')}
           </div>
         </div>
+
+        <!-- v28: Ajuste manual por oración (±60 min) -->
+        ${(() => {
+          if (!AppState.settings.prayerOffsets) {
+            AppState.settings.prayerOffsets = { Fajr: 0, Sunrise: 0, Dhuhr: 0, Asr: 0, Maghrib: 0, Isha: 0 };
+          }
+          const PO = AppState.settings.prayerOffsets;
+          const fmt = v => (v > 0 ? '+' + v : v < 0 ? '−' + Math.abs(v) : '0') + ' ' + (t('minShort') || 'min');
+          const anySet = ['Fajr','Sunrise','Dhuhr','Asr','Maghrib','Isha'].some(k => (Number(PO[k]) || 0) !== 0);
+          const row = (name, icon) => `
+          <div class="list-row" style="cursor:default;">
+            <div class="list-row-icon"><i class="fas fa-${icon}"></i></div>
+            <div class="list-row-info">
+              <div class="list-row-label">${t('prayers.' + name)}</div>
+              <div class="list-row-value" id="offset-value-${name}">${fmt(Number(PO[name]) || 0)}</div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <button class="list-row-btn" onclick="ProfilePage.adjustOffset('${name}', -1)" aria-label="-1 min" style="width:34px;height:34px;"><i class="fas fa-minus"></i></button>
+              <button class="list-row-btn" onclick="ProfilePage.adjustOffset('${name}', 1)" aria-label="+1 min" style="width:34px;height:34px;"><i class="fas fa-plus"></i></button>
+            </div>
+          </div>`;
+          return `
+        <div class="section-label"><i class="fas fa-sliders"></i> ${t('prayerAdjust') || 'Ajuste manual de horarios'}</div>
+        <div class="card" style="padding:0;overflow:hidden;">
+          ${row('Fajr', 'cloud-moon')}
+          ${row('Sunrise', 'sun')}
+          ${row('Dhuhr', 'sun')}
+          ${row('Asr', 'cloud-sun')}
+          ${row('Maghrib', 'moon')}
+          ${row('Isha', 'star-and-crescent')}
+          ${anySet ? `
+          <div class="list-row" onclick="ProfilePage.resetOffsets()">
+            <div class="list-row-icon"><i class="fas fa-rotate-left"></i></div>
+            <div class="list-row-info"><div class="list-row-label">${t('prayerAdjustReset') || 'Restablecer ajustes'}</div></div>
+          </div>` : ''}
+          <div style="padding: 0 var(--sp-md) 12px; font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
+            <i class="fas fa-circle-info"></i> ${t('prayerAdjustDesc') || 'Adelanta o retrasa cada oración entre −60 y +60 minutos. Se aplica sobre cualquier método de cálculo y sobre los horarios de Muslim Pro.'}
+          </div>
+        </div>`;
+        })()}
 
         <!-- ADHAN settings -->
         <div class="section-label"><i class="fas fa-mosque"></i> ${t('adhanSettings') || 'Adhan (Llamada a la oración)'}</div>
@@ -409,6 +451,8 @@ const ProfilePage = {
     const options = [
       { id: 'light', label: '<i class="fas fa-sun"></i> ' + t('themeLight') },
       { id: 'dark', label: '<i class="fas fa-moon"></i> ' + t('themeDark') },
+      { id: 'maroon', label: '<i class="fas fa-wine-glass"></i> ' + t('themeMaroon') },
+      { id: 'brown', label: '<i class="fas fa-mug-hot"></i> ' + t('themeBrown') },
       { id: 'auto', label: '<i class="fas fa-arrows-rotate"></i> ' + t('themeAuto') },
     ];
     showModal(t('theme'), options, AppState.settings.theme, id => {
@@ -426,6 +470,7 @@ const ProfilePage = {
     }));
     showModal(t('calculationMethod'), options, AppState.settings.calculationMethod, id => {
       AppState.settings.calculationMethod = id;
+      AppState.settings._calcMethodManual = true; // v28: no pisar la elección del usuario
       Storage.saveSettings();
       AppState.timings = null;
       this.render(document.getElementById('main-content'));
@@ -465,6 +510,45 @@ const ProfilePage = {
         : id === 'winter' ? '❄️ ' + t('timeShiftWinterApplied')
         : '✔️ ' + t('timeShiftAuto'), 2200);
     });
+  },
+
+  // v28: ajuste manual por oración — botones −1/+1 minuto, límite ±60.
+  // Tras cambiar un valor se reprograman las alarmas (adhan/recordatorios).
+  adjustOffset(name, delta) {
+    if (!['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].includes(name)) return;
+    if (!AppState.settings.prayerOffsets) {
+      AppState.settings.prayerOffsets = { Fajr: 0, Sunrise: 0, Dhuhr: 0, Asr: 0, Maghrib: 0, Isha: 0 };
+    }
+    const cur = Math.round(Number(AppState.settings.prayerOffsets[name]) || 0);
+    const next = Math.max(-60, Math.min(60, cur + delta));
+    if (next === cur) return; // ya está en el límite ±60
+    AppState.settings.prayerOffsets[name] = next;
+    this._afterOffsetsChanged(next === 0 ? '0 ' + (t('minShort') || 'min') : null);
+  },
+
+  resetOffsets() {
+    AppState.settings.prayerOffsets = { Fajr: 0, Sunrise: 0, Dhuhr: 0, Asr: 0, Maghrib: 0, Isha: 0 };
+    this._afterOffsetsChanged();
+  },
+
+  // Persiste, invalida horarios en memoria y reprograma las alarmas del día.
+  _afterOffsetsChanged() {
+    Storage.saveSettings();
+    AppState.timings = null;
+    if (typeof PrayerNotifications !== 'undefined' &&
+        (PrayerNotifications.isEnabled() || PrayerNotifications.isReminderEnabled()) &&
+        typeof API !== 'undefined' && AppState.location) {
+      API.getPrayerTimes(AppState.location.latitude, AppState.location.longitude,
+        new Date(), AppState.settings.calculationMethod)
+        .then(r => {
+          if (r && r.timings) {
+            AppState.timings = r.timings;
+            PrayerNotifications.scheduleDay(r.timings, AppState.settings.locale || 'es');
+          }
+        }).catch(() => {});
+    }
+    this.render(document.getElementById('main-content'));
+    showToast('✔️ ' + (t('prayerAdjustSaved') || 'Ajuste guardado'), 1500);
   },
 
   // ============ ADHAN ============

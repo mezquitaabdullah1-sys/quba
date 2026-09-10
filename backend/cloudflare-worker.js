@@ -47,7 +47,7 @@ const CORS_HEADERS = (origin) => ({
   Vary: 'Origin',
 });
 
-const CSP_POLICY = "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https:; media-src 'self' https: data: blob:; connect-src 'self' https://api.aladhan.com https://www.muslimpro.com https://html.duckduckgo.com https://api.alquran.cloud https://cdn.islamic.network https://api.mymemory.translated.net https://nominatim.openstreetmap.org https://ummahapi.com https://lingva.ml https://libretranslate.com https://libretranslate.de https://download.quranicaudio.com https://everyayah.com; object-src 'none'; base-uri 'self'; manifest-src 'self'; worker-src 'self'; frame-ancestors 'none'";
+const CSP_POLICY = "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https:; media-src 'self' https: data: blob:; connect-src 'self' https://api.aladhan.com https://www.muslimpro.com https://app.muslimpro.com https://html.duckduckgo.com https://api.alquran.cloud https://cdn.islamic.network https://api.mymemory.translated.net https://nominatim.openstreetmap.org https://ummahapi.com https://lingva.ml https://libretranslate.com https://libretranslate.de https://download.quranicaudio.com https://everyayah.com; object-src 'none'; base-uri 'self'; manifest-src 'self'; worker-src 'self'; frame-ancestors 'none'";
 
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
@@ -288,7 +288,8 @@ async function handlePrayerTimes({ lat, lng, date }, env, ctx) {
     if (cached) return { ...cached, cached: true };
   }
 
-  const res = await fetch(`https://www.muslimpro.com/${slug}`, {
+  // v28: las páginas oficiales viven en app.muslimpro.com
+  const res = await fetch(`https://app.muslimpro.com/${slug}`, {
     headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36' },
   });
   if (!res.ok) throw new Error('muslimpro_' + res.status);
@@ -355,7 +356,9 @@ async function resolveMpSlug(lat, lng) {
     if (!r.ok) return null;
     let html = await r.text();
     try { html = decodeURIComponent(html); } catch (_) { /* usar html crudo */ }
-    const m = html.match(/muslimpro\.com\/((?:[a-z]{2}\/prayer-times\/[a-z0-9-]+(?:\/[a-z0-9-]+)*\/\d+)|(?:Prayer-times-[A-Za-z0-9-]+-\d+))/i);
+    // v28: formato actual app.muslimpro.com/prayer-times/<pais>/<slug>/<id>
+    // (se aceptan también los formatos antiguos de www.muslimpro.com)
+    const m = html.match(/muslimpro\.com\/((?:prayer-times\/[a-z0-9-]+\/[a-z0-9-]+\/\d+)|(?:[a-z]{2}\/prayer-times\/[a-z0-9-]+(?:\/[a-z0-9-]+)*\/\d+)|(?:Prayer-times-[A-Za-z0-9-]+-\d+))/i);
     return m ? m[1] : null;
   } catch (_) { return null; }
 }

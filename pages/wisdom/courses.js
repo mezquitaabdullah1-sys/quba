@@ -930,15 +930,22 @@ const CoursesPage = {
     showToast((t('nameSaved') || 'Nombre guardado'), 1500);
   },
 
+  // v36: compartir/descargar la shahaada como IMAGEN (plantilla ornamental)
+  // en lugar del antiguo texto plano. Delega en CertShare (js/cert-share.js).
   shareCertificate(courseId) {
     const course = this.getAllCourses().find(c => c.id === courseId);
     const lang = currentLocale === 'ar' ? 'ar' : (currentLocale === 'en' ? 'en' : 'es');
-    const text = `<i class="fas fa-trophy"></i> ${t('justCompleted') || 'Acabo de completar el curso'}: ${course.title[lang]} en Quba app! <i class="fas fa-moon"></i>`;
-    if (navigator.share) {
-      navigator.share({ title: 'Quba — ' + course.title[lang], text }).catch(() => {});
-    } else if (navigator.clipboard) {
-      navigator.clipboard.writeText(text);
-      showToast((t('copied') || 'Copiado'), 1500);
+    const userName = (AppState.settings && AppState.settings.userName)
+      || AppState.userName
+      || (lang === 'ar' ? 'الطالب' : (lang === 'en' ? 'Student' : 'Estudiante'));
+    if (typeof CertShare !== 'undefined') {
+      CertShare.open(course, userName, lang);
+    } else {
+      // Fallback mínimo (texto) si el módulo de imagen no cargó
+      const courseTitle = course.title[lang] || course.title.es;
+      const text = `🏆 ${t('justCompleted')}: ${courseTitle} — Quba`;
+      if (navigator.share) navigator.share({ title: 'Quba — ' + courseTitle, text }).catch(() => {});
+      else if (navigator.clipboard) { navigator.clipboard.writeText(text); showToast(t('copied'), 1500); }
     }
   },
 

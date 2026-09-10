@@ -7,6 +7,18 @@ const API = {
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     const yyyy = date.getFullYear();
 
+    // v28: Jordania → método 19 (Awqaf: Isha = Maghrib + 90 min) por defecto,
+    // para igualar los horarios oficiales (los mismos que publica Muslim Pro).
+    // Solo aplica cuando el usuario no ha elegido otro método manualmente.
+    try {
+      const loc = (typeof AppState !== 'undefined' && AppState.location) || null;
+      if (!AppState.settings._calcMethodManual && loc &&
+          Math.abs(loc.latitude - lat) < 0.5 && Math.abs(loc.longitude - lng) < 0.5 &&
+          LocationService.isJordan(loc)) {
+        method = 19;
+      }
+    } catch (_) { /* nunca romper la carga por la autodetección */ }
+
     const cacheKey = `prayer_${lat.toFixed(2)}_${lng.toFixed(2)}_${dd}-${mm}-${yyyy}_${method}`;
     const cached = Storage.get(cacheKey);
     if (cached) return this._applyTimeShift(cached);
@@ -31,12 +43,16 @@ const API = {
       }
 
       // v18: If online, fetch + also prefetch next 14 days in background
+      // v28: la regla jordana (Isha = Maghrib+90) se aplica SIEMPRE del lado
+      // cliente en _postProcessPrayerData (Aladhan no la calcula fielmente).
       const url = `${CONFIG.API.ALADHAN}/timings/${dd}-${mm}-${yyyy}?latitude=${lat}&longitude=${lng}&method=${method}`;
       const res = await this._fetchWithTimeout(url, 8000);
       if (!res.ok) throw new Error('Prayer API error');
       const json = await res.json();
       if (json.code !== 200) throw new Error('Prayer API error');
 
+      // v28: corrección regional (Jordania) + ajuste manual por oración
+      json.data = this._postProcessPrayerData(json.data, lat, lng);
       Storage.set(cacheKey, json.data, CONFIG.CACHE_TTL * 14); // 14 days cache
 
       // Background prefetch: next 14 days so app works offline for 2 weeks
@@ -65,12 +81,43 @@ const API = {
     } catch (e) { return data; }
   },
 
+  // v28: país detectado para correcciones regionales (AppState → caché → Nominatim)
+  _countryFor(lat, lng) {
+    try {
+      const loc = (typeof AppState !== 'undefined' && AppState.location) || null;
+      if (loc && Math.abs(loc.latitude - lat) < 0.5 && Math.abs(loc.longitude - lng) < 0.5) {
+        if (loc.countryEn) return loc.countryEn;
+        if (loc.country) return loc.country;
+      }
+      const last = (typeof Storage !== 'undefined' && Storage.get('last_location')) || null;
+      if (last && Math.abs(last.latitude - lat) < 0.5 && Math.abs(last.longitude - lng) < 0.5) {
+        return last.countryEn || last.country || '';
+      }
+    } catch (_) { /* ignorar */ }
+    return '';
+  },
+
+  // v28: corrección regional (Jordania: Isha = Maghrib+90) + ajuste manual
+  // por oración (±60 min) sobre una respuesta con forma Aladhan.
+  _postProcessPrayerData(data, lat, lng) {
+    try {
+      if (!data || !data.timings || typeof PrayerCalc === 'undefined') return data;
+      const country = this._countryFor(lat, lng);
+      let t = PrayerCalc.applyRegionalCorrections(data.timings, country, lat, lng);
+      t = PrayerCalc.applyPrayerOffsets(t);
+      if (t === data.timings) return data;
+      return Object.assign({}, data, { timings: t });
+    } catch (e) { return data; }
+  },
+
   // v21: respaldo 100% local (sin red) usando PrayerCalc — precisión ±1-2 min
   // v26: PrayerCalc.getTimings ya aplica internamente el ajuste manual
   //      verano/invierno (AppState.settings.timeShift).
   _offlinePrayerTimes(lat, lng, date, method) {
     if (typeof PrayerCalc === 'undefined') throw new Error('Prayer API error');
-    const timings = PrayerCalc.getTimings(lat, lng, date, method);
+    // v28: el país permite a PrayerCalc aplicar la regla jordana (Isha=Maghrib+90)
+    const country = this._countryFor(lat, lng);
+    const timings = PrayerCalc.getTimings(lat, lng, date, method, country);
     // _estimated se duplica DENTRO de timings porque varias pantallas hacen
     // `AppState.timings = resultado.timings` (pierden el nivel exterior).
     timings._estimated = true;
@@ -295,6 +342,16 @@ const API = {
 
   // Monthly prayer times table for a given lat/lon, method, month, year
   async getPrayerTimesMonth(lat, lon, month, year, method = 3) {
+    // v28: misma autodetección de Jordania que en getPrayerTimes (método 19)
+    try {
+      const loc = (typeof AppState !== 'undefined' && AppState.location) || null;
+      if (!AppState.settings._calcMethodManual && loc &&
+          Math.abs(loc.latitude - lat) < 0.5 && Math.abs(loc.longitude - lon) < 0.5 &&
+          LocationService.isJordan(loc)) {
+        method = 19;
+      }
+    } catch (_) { /* ignorar */ }
+
     const cacheKey = `prayer_month_${lat.toFixed(2)}_${lon.toFixed(2)}_${month}_${year}_${method}`;
     const cached = Storage.get(cacheKey);
     if (cached) return this._applyTimeShiftMonth(cached);
@@ -306,8 +363,15 @@ const API = {
       const res = await this._fetchWithTimeout(url, 8000);
       if (!res.ok) throw new Error('Prayer month error');
       const json = await res.json();
-      const data = json.data || [];
+      let data = json.data || [];
       if (!Array.isArray(data) || data.length === 0) throw new Error('Prayer month empty');
+      // v28: corrección regional + ajuste manual por oración, día a día
+      if (typeof PrayerCalc !== 'undefined') {
+        const country = this._countryFor(lat, lon);
+        data = data.map(d => d && d.timings
+          ? Object.assign({}, d, { timings: PrayerCalc.applyPrayerOffsets(PrayerCalc.applyRegionalCorrections(d.timings, country, lat, lon)) })
+          : d);
+      }
       // Cache for 7 days
       Storage.set(cacheKey, data, CONFIG.CACHE_TTL * 7);
       return this._applyTimeShiftMonth(data);
@@ -339,7 +403,7 @@ const API = {
     const result = [];
     for (let d = 1; d <= daysInMonth; d++) {
       const greg = new Date(year, month - 1, d);
-      const timings = PrayerCalc.getTimings(lat, lon, greg, method);
+      const timings = PrayerCalc.getTimings(lat, lon, greg, method, this._countryFor(lat, lon));
       const hijri = this._gregorianToHijri(greg);
       const hijriMonths = this._hijriMonthName(hijri.month);
       const weekdayNames = this._weekdayName(greg.getDay());
@@ -734,13 +798,16 @@ const LocationService = {
   async reverseGeocode(lat, lon) {
     try {
       const res = await fetch(
+        // v28: siempre en inglés → detección de país estable ('Jordan',
+        // 'Palestinian Territory', …) independiente del idioma de la app.
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`,
-        { headers: { 'Accept-Language': currentLocale || 'es' } }
+        { headers: { 'Accept-Language': 'en' } }
       );
       const data = await res.json();
       return {
         city: data.address?.city || data.address?.town || data.address?.village || data.address?.county || '',
         country: data.address?.country || '',
+        countryCode: (data.address?.country_code || '').toUpperCase(),
       };
     } catch (e) {
       return { city: '', country: '' };
@@ -836,6 +903,8 @@ const LocationService = {
       longitude: lon,
       city: city || '',
       country: country || '',
+      // v28: versión en inglés (para las correcciones regionales por país)
+      countryEn: this.countryEnOf(lat, lon, country),
       manual: true,
     };
     Storage.set('last_location', coords, CONFIG.CACHE_TTL * 30);
@@ -846,6 +915,23 @@ const LocationService = {
   useDefault() {
     Storage.set('last_location', this.DEFAULT_LOCATION, CONFIG.CACHE_TTL * 7);
     return { ...this.DEFAULT_LOCATION };
+  },
+
+  // v28: detección de Jordania (nombre EN/ES/AR o bounding box aproximado)
+  isJordan(loc) {
+    if (!loc) return false;
+    const hay = [loc.countryEn, loc.country].filter(Boolean).join(' ').toLowerCase();
+    if (hay.includes('jordan') || hay.includes('jordania') ||
+        hay.includes('الأردن') || hay.includes('اردن')) return true;
+    const la = Number(loc.latitude), lo = Number(loc.longitude);
+    return la >= 29.0 && la <= 33.4 && lo >= 34.9 && lo <= 39.4;
+  },
+
+  // v28: nombre de país en inglés según coordenadas (sin depender de la red).
+  // Solo normaliza los países con corrección regional activa (de momento JO).
+  countryEnOf(lat, lon, country) {
+    if (this.isJordan({ latitude: lat, longitude: lon, country })) return 'Jordan';
+    return country || '';
   },
 
   getCached() {

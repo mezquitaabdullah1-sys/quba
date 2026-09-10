@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0F4C3A">
 
   <!-- 🔒 Content Security Policy — relaxed (inline handlers/scripts aún permitidos, se irán eliminando) -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https:; media-src 'self' https: data: blob: https://cdn.aladhan.com https://www.islamcan.com; connect-src 'self' https://api.aladhan.com https://www.muslimpro.com https://html.duckduckgo.com https://api.alquran.cloud https://cdn.islamic.network https://api.mymemory.translated.net https://nominatim.openstreetmap.org https://ummahapi.com https://lingva.ml https://libretranslate.com https://libretranslate.de https://cdn.jsdelivr.net https://download.quranicaudio.com https://everyayah.com; manifest-src 'self'; worker-src 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https:; media-src 'self' https: data: blob: https://cdn.aladhan.com https://www.islamcan.com; connect-src 'self' https://api.aladhan.com https://www.muslimpro.com https://app.muslimpro.com https://html.duckduckgo.com https://api.alquran.cloud https://cdn.islamic.network https://api.mymemory.translated.net https://nominatim.openstreetmap.org https://ummahapi.com https://lingva.ml https://libretranslate.com https://libretranslate.de https://cdn.jsdelivr.net https://download.quranicaudio.com https://everyayah.com; manifest-src 'self'; worker-src 'self';">
 
   <!-- 🧹 FIX: limpieza de Service Worker heredado — CAUSA RAÍZ de que la
        traducción/tafsir de Isa García (y cualquier otro fix de este build)
@@ -72,6 +72,7 @@
   <link rel="stylesheet" href="css/quran-reader.css">
   <link rel="stylesheet" href="css/mushaf.css">
   <link rel="stylesheet" href="css/glass-theme.css">
+  <link rel="stylesheet" href="css/themes-colorful.css">
   <link rel="stylesheet" href="css/restyle-layout.css">
   <link rel="stylesheet" href="css/offline.css">
   <link rel="stylesheet" href="css/share-card.css">
@@ -171,6 +172,7 @@
   <!-- v28: índice de texto completo del Corán + buscador inteligente de aleyas (sin tashkeel) -->
   <!-- 📕 المصحف كاملًا بالعربية (٦٠٤ صفحات، أوفلاين داخل ملفات التطبيق) -->
   <script src="data/quran_full_ar.js"></script>
+  <script src="data/mushaf_divisions.js"></script>
   <script src="data/quran_search_index.js"></script>
   <script src="data/quran_transliteration.js"></script>
   <script src="js/quran-search.js"></script>
@@ -224,12 +226,14 @@
   <script src="js/mascot.js"></script>
   <script src="data/famous_verses.js"></script>
   <script src="js/share-card.js"></script>
+  <script src="js/cert-share.js"></script>
   <script src="data/calendar2026.js"></script>
 
   <!-- Phase 2: Gamification -->
   <script src="js/gamification.js"></script>
 
   <!-- Pages -->
+  <script src="pages/language.js"></script>
   <script src="pages/home.js"></script>
   <script src="pages/quran.js"></script>
   <script src="pages/quran-mushaf.js"></script>

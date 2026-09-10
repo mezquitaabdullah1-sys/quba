@@ -26,7 +26,9 @@
 // horarios EXACTOS de Muslim Pro aunque el usuario pierda conexión.
 
 const MuslimProSync = {
-  MP_BASE: 'https://www.muslimpro.com',
+  // v28: las páginas oficiales viven ahora en app.muslimpro.com (el dominio
+  // www redirige o devuelve 404). El regex de _resolveSlug acepta ambos.
+  MP_BASE: 'https://app.muslimpro.com',
   NAMES: ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'],
   SLUG_TTL: 30 * 24 * 60 * 60 * 1000, // 30 días
 
@@ -134,8 +136,10 @@ const MuslimProSync = {
     if (!r.ok) return null;
     let html = await r.text();
     try { html = decodeURIComponent(html); } catch (_) { /* usar html crudo */ }
+    // v28: formato actual app.muslimpro.com/prayer-times/<pais>/<slug>/<id>
+    // (se aceptan también los formatos antiguos de www.muslimpro.com)
     const m = html.match(
-      /muslimpro\.com\/((?:[a-z]{2}\/prayer-times\/[a-z0-9-]+(?:\/[a-z0-9-]+)*\/\d+)|(?:Prayer-times-[A-Za-z0-9-]+-\d+))/i
+      /muslimpro\.com\/((?:prayer-times\/[a-z0-9-]+\/[a-z0-9-]+\/\d+)|(?:[a-z]{2}\/prayer-times\/[a-z0-9-]+(?:\/[a-z0-9-]+)*\/\d+)|(?:Prayer-times-[A-Za-z0-9-]+-\d+))/i
     );
     const slug = m ? m[1] : null;
     if (slug && typeof Storage !== 'undefined') Storage.set(ck, slug, this.SLUG_TTL);
