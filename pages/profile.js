@@ -10,8 +10,9 @@ const ProfilePage = {
       light: '<i class="fas fa-sun"></i> ' + t('themeLight'),
       dark: '<i class="fas fa-moon"></i> ' + t('themeDark'),
       auto: '<i class="fas fa-arrows-rotate"></i> ' + t('themeAuto'),
-      maroon: '<i class="fas fa-wine-glass"></i> ' + t('themeMaroon'),
+      maroon: '<i class="fas fa-crown"></i> ' + t('themeMaroon'),
       brown: '<i class="fas fa-mug-hot"></i> ' + t('themeBrown'),
+      emerald: '<i class="fas fa-mosque"></i> ' + t('themeEmerald'),
     }[AppState.settings.theme];
 
     // Adhan settings (with defaults)
@@ -451,7 +452,8 @@ const ProfilePage = {
     const options = [
       { id: 'light', label: '<i class="fas fa-sun"></i> ' + t('themeLight') },
       { id: 'dark', label: '<i class="fas fa-moon"></i> ' + t('themeDark') },
-      { id: 'maroon', label: '<i class="fas fa-wine-glass"></i> ' + t('themeMaroon') },
+      { id: 'emerald', label: '<i class="fas fa-mosque"></i> ' + t('themeEmerald') },
+      { id: 'maroon', label: '<i class="fas fa-crown"></i> ' + t('themeMaroon') },
       { id: 'brown', label: '<i class="fas fa-mug-hot"></i> ' + t('themeBrown') },
       { id: 'auto', label: '<i class="fas fa-arrows-rotate"></i> ' + t('themeAuto') },
     ];

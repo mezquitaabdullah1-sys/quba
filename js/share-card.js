@@ -23,8 +23,8 @@ const ShareCard = {
     const verse = (typeof getFamousVerseOfTheDay === 'function') ? getFamousVerseOfTheDay() : null;
     const dua = (typeof getDuaOfTheDay === 'function') ? getDuaOfTheDay() : null;
     const locale = (typeof AppState !== 'undefined' && AppState.settings && AppState.settings.locale) || 'es';
-    const trKey = (locale === 'en') ? 'translation_en' : 'translation_es';
-    const wisKey = (locale === 'en') ? 'wisdom_en' : 'wisdom_es';
+    const trKey = 'translation_' + locale;
+    const wisKey = 'wisdom_' + locale;
 
     let data;
     if (type === 'verse' && verse) {
@@ -121,12 +121,13 @@ const ShareCard = {
     const dua = (typeof getDuaOfTheDay === 'function') ? getDuaOfTheDay() : null;
     const isVerse = host && host.querySelector('.sc-toggle button.active i.fa-book-open-reader');
     const locale = (typeof AppState !== 'undefined' && AppState.settings && AppState.settings.locale) || 'es';
-    const trKey = (locale === 'en') ? 'translation_en' : 'translation_es';
-    const wisKey = (locale === 'en') ? 'wisdom_en' : 'wisdom_es';
+    const trKey = 'translation_' + locale;
+    const wisKey = 'wisdom_' + locale;
     const data = isVerse && verse
       ? { type: 'verse', arabic: verse.arabic, translation: verse[trKey] || verse.translation_es,
           source: `${verse.surahName} ${verse.surahNumber}:${verse.ayahNumber}`, wisdom: verse[wisKey] || '' }
-      : { type: 'dua', arabic: dua ? dua.arabic : '', translation: dua ? dua.translation : '',
+      : { type: 'dua', arabic: dua ? dua.arabic : '',
+          translation: dua ? (dua[trKey] || dua.translation_es || dua.translation) : '',
           source: dua ? dua.source : '', wisdom: '' };
     this._renderImage(data, i);
   },

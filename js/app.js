@@ -13,8 +13,8 @@ function applyTheme() {
   // Cambiar theme-color
   const themeColor = document.querySelector('meta[name="theme-color"]');
   if (themeColor) {
-    const metaColors = { dark: '#0D1829', maroon: '#3A0C1B', brown: '#6B4F3A' };
-    themeColor.content = metaColors[document.documentElement.dataset.theme] || '#0F4C3A';
+    const metaColors = { dark: '#0D1829', maroon: '#3A0C1B', brown: '#6B4F3A', emerald: '#0E3B2E' };
+    themeColor.content = metaColors[document.documentElement.dataset.theme] || '#0E3B2E';
   }
 }
 

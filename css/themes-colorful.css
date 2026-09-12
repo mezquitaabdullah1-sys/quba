@@ -240,3 +240,301 @@
     radial-gradient(ellipse 70% 50% at 50% 30%, rgba(212, 175, 55, 0.18), transparent 65%),
     #6B4F3A;
 }
+
+/* ============================================================
+   3) 🌿 الأخضر الملكي والذهبي — Royal Emerald & Gold (الأساسي)
+   ============================================================ */
+[data-theme="emerald"] {
+  --bg: #F2ECDC;                 /* بيجي فاتح — خلفية عامة */
+  --surface: rgba(255, 252, 244, 0.70);
+  --surface-alt: rgba(250, 244, 232, 0.60);
+  --primary: #0E3B2E;            /* أخضر داكن فخم */
+  --primary-light: #1B5B45;
+  --accent: #C9A227;             /* ذهبي خفيف ناعم */
+  --text: #17352B;
+  --text-secondary: #6B6151;
+  --text-inverse: #FFFDF6;
+  --border: rgba(14, 59, 46, 0.18);
+  --card: rgba(255, 252, 244, 0.78);
+  --bg-card: var(--card);
+  --shadow: 0 8px 28px rgba(14, 59, 46, 0.14), 0 1px 2px rgba(201, 162, 39, 0.08);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+/* الخلفية العامة — بيجي مع زخرفة المشربية الذهبية بشفافية خفيفة */
+[data-theme="emerald"] body {
+  background:
+    radial-gradient(ellipse 60% 45% at 10% 0%, rgba(201, 162, 39, 0.10), transparent 60%),
+    radial-gradient(ellipse 55% 40% at 95% 12%, rgba(14, 59, 46, 0.08), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+}
+[data-theme="emerald"] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: url("../assets/themes/bg-gold-lattice.png") center / 420px repeat;
+  opacity: 0.10;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* رأس الصفحة — نقوش الداماسك الأخضر الداكن */
+[data-theme="emerald"] .page-header,
+[data-theme="emerald"] .home-header,
+[data-theme="emerald"] .wisdom-header,
+[data-theme="emerald"] .profile-header {
+  background:
+    linear-gradient(160deg, rgba(10, 44, 34, 0.72), rgba(7, 30, 23, 0.88)),
+    url("../assets/themes/bg-emerald-damask.png") center / cover no-repeat;
+  color: #FFFDF6;
+  box-shadow: 0 12px 32px rgba(7, 30, 23, 0.45);
+  border-bottom: 1px solid rgba(201, 162, 39, 0.30);
+}
+[data-theme="emerald"] .home-hijri { color: var(--gold-light); }
+[data-theme="emerald"] .home-profile-btn { color: var(--gold-light); }
+
+/* بطاقة الصلاة القادمة */
+[data-theme="emerald"] .next-prayer-card {
+  background: rgba(7, 30, 23, 0.45);
+  border: 1px solid rgba(201, 162, 39, 0.45);
+  box-shadow: inset 0 1px 0 rgba(230, 200, 104, 0.15);
+}
+[data-theme="emerald"] .next-prayer-label { color: var(--gold-light); }
+[data-theme="emerald"] .next-prayer-countdown { color: #FFFFFF; }
+
+/* آية اليوم — لوحة الأخضر مع الشريط الذهبي المزخرف */
+[data-theme="emerald"] .card-gradient {
+  background:
+    linear-gradient(160deg, rgba(14, 59, 46, 0.86), rgba(7, 30, 23, 0.93)),
+    url("../assets/themes/bg-emerald-damask.png") center / cover no-repeat;
+  color: #FFFDF6;
+  border: 1px solid rgba(201, 162, 39, 0.40);
+  box-shadow: 0 8px 32px rgba(7, 30, 23, 0.45), inset 0 1px 0 rgba(230, 200, 104, 0.15);
+}
+[data-theme="emerald"] .card-gradient .verse-arabic { color: #FFFFFF; }
+[data-theme="emerald"] .card-gradient .verse-divider {
+  background: linear-gradient(90deg, transparent, var(--gold-soft), transparent);
+}
+[data-theme="emerald"] .card-gradient .verse-source { color: var(--gold-light); }
+
+/* دعاء اليوم — ذهبي ناعم فوق زخرفة المشربية */
+[data-theme="emerald"] .dua-day-card {
+  background:
+    linear-gradient(160deg, rgba(224, 190, 90, 0.90), rgba(184, 148, 31, 0.92)),
+    url("../assets/themes/bg-gold-lattice.png") center / cover no-repeat;
+  border: 1px solid rgba(122, 90, 10, 0.35);
+  color: #2A1F05;
+  box-shadow: 0 8px 32px rgba(122, 90, 10, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+[data-theme="emerald"] .dua-day-card .dua-title { color: #5A4408; }
+[data-theme="emerald"] .dua-day-card .dua-source { color: #6B520C; }
+
+/* الأزرار — أخضر داكن مع ذهبي */
+[data-theme="emerald"] .btn-primary {
+  background: linear-gradient(135deg, #C9A227, #E6C868);
+  color: #12291F;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgba(201, 162, 39, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+[data-theme="emerald"] .btn-ghost {
+  border: 1px solid rgba(14, 59, 46, 0.35);
+  color: var(--primary);
+}
+
+/* الشريط العلوي */
+[data-theme="emerald"] .top-bar {
+  background: linear-gradient(135deg, rgba(14, 59, 46, 0.94), rgba(7, 30, 23, 0.94));
+  border-bottom: 1px solid rgba(201, 162, 39, 0.25);
+}
+
+/* بطاقات عامة — حواف ذهبية خفيفة */
+[data-theme="emerald"] .card,
+[data-theme="emerald"] .modal-content,
+[data-theme="emerald"] .bottom-tabs {
+  border: 1px solid rgba(201, 162, 39, 0.22);
+}
+
+[data-theme="emerald"] .section-title { color: var(--primary); }
+
+[data-theme="emerald"] .modal-option.selected { background: rgba(201, 162, 39, 0.15); }
+
+[data-theme="emerald"] .toast {
+  background: rgba(7, 30, 23, 0.92);
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  color: #FFFDF6;
+}
+
+[data-theme="emerald"] .splash {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 30%, rgba(201, 162, 39, 0.20), transparent 65%),
+    url("../assets/themes/bg-emerald-damask.png") center / cover no-repeat,
+    #0E3B2E;
+}
+
+/* ============================================================
+   🔧 إصلاحات عامة للمظاهر الجديدة (خمري / بني / أخضر ملكي)
+   كل الأركان التي بقيت خضراء تتبع ألوان المظهر الآن
+   ============================================================ */
+
+/* ---- الخمري والذهبي ---- */
+[data-theme="maroon"] .home-header,
+[data-theme="maroon"] .wisdom-header,
+[data-theme="maroon"] .profile-header {
+  background:
+    linear-gradient(160deg, rgba(64, 12, 28, 0.62), rgba(26, 5, 12, 0.86)),
+    url("../assets/themes/bg-maroon.jpg") center / cover no-repeat;
+  color: #F6EEDC;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+}
+[data-theme="maroon"] .mosque-footer {
+  background:
+    linear-gradient(160deg, rgba(64, 12, 28, 0.80), rgba(26, 5, 12, 0.90)),
+    url("../assets/themes/bg-maroon.jpg") center / cover no-repeat;
+  border: 1px solid rgba(212, 175, 55, 0.30);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+[data-theme="maroon"] .monthly-header {
+  background: linear-gradient(135deg, #4A0E20, #2A0812);
+  color: #F6EEDC;
+}
+[data-theme="maroon"] .monthly-table th { color: #5A162C; border-bottom-color: #D4AF37; }
+[data-theme="maroon"] .prayer-check.checked {
+  background: #D4AF37;
+  border-color: #D4AF37;
+  color: #2A0812;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.40);
+}
+[data-theme="maroon"] .prayer-checkin-progress { color: #C9A227; background: rgba(212, 175, 55, 0.14); }
+[data-theme="maroon"] .home-cta-row .prayer-table-cta-btn {
+  background: linear-gradient(135deg, #5A162C 0%, #3A0C1B 100%);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+}
+/* دعاء اليوم — ذهبي ناعم بدل الخمري */
+[data-theme="maroon"] .dua-day-card {
+  background: linear-gradient(160deg, #E9CE7E, #D9B64E);
+  border: 1px solid rgba(122, 90, 10, 0.35);
+  color: #2A1F05;
+  box-shadow: 0 8px 32px rgba(122, 90, 10, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+[data-theme="maroon"] .dua-day-card .dua-title { color: #5A4408; }
+[data-theme="maroon"] .dua-day-card .dua-source { color: #6B520C; }
+
+/* ---- الأبيض والبني ---- */
+[data-theme="brown"] .home-header,
+[data-theme="brown"] .wisdom-header,
+[data-theme="brown"] .profile-header {
+  background:
+    linear-gradient(160deg, rgba(247, 241, 230, 0.80), rgba(232, 220, 201, 0.90)),
+    url("../assets/themes/bg-cream.jpg") center / cover no-repeat;
+  color: #4A3426;
+  box-shadow: 0 12px 32px rgba(107, 79, 58, 0.22);
+  border-bottom: 1px solid rgba(107, 79, 58, 0.18);
+}
+[data-theme="brown"] .mosque-footer {
+  background: linear-gradient(135deg, #6B4F3A 0%, #4A3426 100%);
+  border: 1px solid rgba(107, 79, 58, 0.40);
+  box-shadow: 0 6px 18px rgba(107, 79, 58, 0.30);
+}
+[data-theme="brown"] .monthly-header {
+  background: linear-gradient(135deg, #6B4F3A, #4A3426);
+  color: #FFF9EF;
+}
+[data-theme="brown"] .monthly-table th { color: #6B4F3A; border-bottom-color: #C9A227; }
+[data-theme="brown"] .prayer-check.checked {
+  background: #8A5A44;
+  border-color: #8A5A44;
+  color: #FFF9EF;
+  box-shadow: 0 2px 8px rgba(138, 90, 68, 0.40);
+}
+[data-theme="brown"] .prayer-checkin-progress { color: #8A5A44; background: rgba(138, 90, 68, 0.12); }
+[data-theme="brown"] .home-cta-row .prayer-table-cta-btn {
+  background: linear-gradient(135deg, #6B4F3A 0%, #4A3426 100%);
+  border: 1px solid rgba(255, 249, 239, 0.25);
+}
+
+/* ---- الأخضر الملكي والذهبي ---- */
+[data-theme="emerald"] .mosque-footer {
+  background:
+    linear-gradient(160deg, rgba(14, 59, 46, 0.88), rgba(7, 30, 23, 0.94)),
+    url("../assets/themes/bg-emerald-damask.png") center / cover no-repeat;
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  box-shadow: 0 6px 18px rgba(7, 30, 23, 0.40);
+}
+[data-theme="emerald"] .monthly-header {
+  background:
+    linear-gradient(135deg, rgba(14, 59, 46, 0.95), rgba(7, 30, 23, 0.95)),
+    url("../assets/themes/bg-emerald-damask.png") center / cover no-repeat;
+  color: #FFFDF6;
+}
+[data-theme="emerald"] .monthly-table th { color: #0E3B2E; border-bottom-color: #C9A227; }
+[data-theme="emerald"] .prayer-check.checked {
+  background: #C9A227;
+  border-color: #C9A227;
+  color: #12291F;
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.40);
+}
+[data-theme="emerald"] .prayer-checkin-progress { color: #0E3B2E; background: rgba(201, 162, 39, 0.15); }
+[data-theme="emerald"] .home-cta-row .prayer-table-cta-btn {
+  background:
+    linear-gradient(135deg, rgba(14, 59, 46, 0.95), rgba(7, 30, 23, 0.95)),
+    url("../assets/themes/bg-emerald-damask.png") center / cover no-repeat;
+  border: 1px solid rgba(201, 162, 39, 0.40);
+}
+[data-theme="emerald"] .home-cta-row .hijri-cta-btn {
+  border: 1px solid rgba(122, 90, 10, 0.30);
+}
+
+/* ============================================================
+   قواعد عامة لكل المظاهر
+   ============================================================ */
+
+/* نص دعاء اليوم: بالمنتصف وبنفس حجم آية اليوم في كل المظاهر */
+.dua-day-card .dua-arabic {
+  text-align: center;
+  font-size: 26px;
+  line-height: 1.8;
+  font-weight: 500;
+  color: #FFFFFF;
+}
+
+/* زر المشاركة: أبيض واضح في كل المظاهر */
+.dua-day-card .share-card-btn,
+.card .share-card-btn,
+.virtue-card .share-card-btn,
+.card-gradient .share-card-btn {
+  color: #FFFFFF !important;
+  background: rgba(255, 255, 255, 0.16) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+}
+.dua-day-card .share-card-btn:hover,
+.card .share-card-btn:hover,
+.virtue-card .share-card-btn:hover,
+.card-gradient .share-card-btn:hover {
+  background: rgba(255, 255, 255, 0.28) !important;
+}
+
+/* نص دعاء اليوم على البطاقات الذهبية/الفاتحة يبقى داكناً وواضحاً */
+[data-theme="maroon"] .dua-day-card .dua-arabic,
+[data-theme="emerald"] .dua-day-card .dua-arabic { color: #2A1F05; }
+[data-theme="brown"] .dua-day-card .dua-arabic { color: #3B2C21; }
+
+/* مفاتيح التبديل تتبع لون المظهر */
+[data-theme="maroon"] .toggle-switch input:checked + .toggle-slider { background: #C9A227; }
+[data-theme="brown"] .toggle-switch input:checked + .toggle-slider { background: #8A5A44; }
+[data-theme="emerald"] .toggle-switch input:checked + .toggle-slider { background: #C9A227; }
+
+/* عناوين الأيقونات على الرؤوس الفاتحة (الثيم البني) */
+[data-theme="brown"] .quick-access-btn,
+[data-theme="brown"] .quick-access-label {
+  color: #4A3426;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55);
+}
+
+/* شريط المستوى في صفحة الحكمة يتبع المظهر */
+[data-theme="maroon"] .xp-bar-container { background: rgba(230, 200, 104, 0.15); }
+[data-theme="maroon"] .stat-pill { background: rgba(230, 200, 104, 0.12); }
+[data-theme="brown"] .xp-bar-container { background: rgba(107, 79, 58, 0.15); }
+[data-theme="brown"] .stat-pill { background: rgba(107, 79, 58, 0.12); color: #3B2C21; }
+[data-theme="emerald"] .xp-bar-container { background: rgba(255, 255, 255, 0.15); }

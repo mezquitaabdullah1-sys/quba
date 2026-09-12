@@ -617,3 +617,69 @@
   margin: -6px auto 14px;
   max-width: 90%;
 }
+
+/* ============ v36: تجميع الآيات حسب رقم الصفحة (القرآن المترجم) ============ */
+.reader-page-section {
+  margin-bottom: var(--sp-lg);
+  padding-top: 4px;
+}
+.reader-page-section + .reader-page-section {
+  border-top: 1px dashed rgba(212,175,55,0.35);
+  padding-top: var(--sp-md);
+  margin-top: var(--sp-md);
+}
+.reader-page-header {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 10px 14px; margin: 4px auto var(--sp-md);
+  background: linear-gradient(90deg, rgba(212,175,55,0.05), rgba(212,175,55,0.18), rgba(212,175,55,0.05));
+  border: 1px solid rgba(212,175,55,0.35);
+  border-radius: var(--r-pill);
+  color: var(--primary);
+  font-weight: 700; font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  max-width: 360px;
+}
+.reader-page-header:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(212,175,55,0.25);
+}
+.reader-page-orn {
+  color: var(--gold-soft, #D4AF37);
+  font-size: 18px; line-height: 1;
+}
+.reader-page-label { letter-spacing: 0.5px; }
+.reader-page-num {
+  font-family: var(--font-arabic); font-size: 18px;
+  color: var(--emerald-deep, #0F4C3A); font-weight: 800;
+  padding: 0 4px;
+}
+[data-theme="dark"] .reader-page-header {
+  background: linear-gradient(90deg, rgba(212,175,55,0.05), rgba(255,215,0,0.18), rgba(212,175,55,0.05));
+  color: var(--gold-soft);
+}
+[data-theme="dark"] .reader-page-num { color: var(--gold-soft); }
+
+/* v36: تكبير أرقام الآيات ليسهل التفريق بينها */
+.ayah-end-marker-lg {
+  font-size: 1.35em !important;
+  margin: 0 8px !important;
+  padding: 2px 4px;
+  color: var(--gold-soft, #D4AF37) !important;
+  font-weight: 800 !important;
+}
+.ayah-end-marker-lg .ayah-end-num {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0 4px;
+  font-family: var(--font-arabic);
+  font-size: 1.05em;
+  color: var(--emerald-deep, #0F4C3A);
+  font-weight: 900;
+  text-shadow: 0 0 0.5px currentColor;
+}
+[data-theme="dark"] .ayah-end-marker-lg .ayah-end-num { color: var(--gold-soft, #FFD700); }
+.font-small .ayah-end-marker-lg { font-size: 1.4em !important; }
+.font-medium .ayah-end-marker-lg { font-size: 1.5em !important; }
+.font-large .ayah-end-marker-lg { font-size: 1.65em !important; }
+.font-xlarge .ayah-end-marker-lg { font-size: 1.8em !important; }

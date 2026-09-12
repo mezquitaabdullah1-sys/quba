@@ -101,7 +101,7 @@ const AppState = {
   hijri: null,
   settings: {
     locale: 'es',
-    theme: 'auto',
+    theme: 'emerald',
     calculationMethod: 3,
     // v26: ajuste de horario — 'auto' (el sistema aplica DST automáticamente),
     //      'summer' (+1h) o 'winter' (-1h) a petición manual del usuario

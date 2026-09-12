@@ -58,6 +58,16 @@ const Storage = {
       if (!AppState.settings.prayerOffsets) {
         AppState.settings.prayerOffsets = { Fajr: 0, Sunrise: 0, Dhuhr: 0, Asr: 0, Maghrib: 0, Isha: 0 };
       }
+      // v38: ترحيل لمرة واحدة — المظهر الأساسي الجديد (الأخضر الملكي والذهبي)
+      // يطبق على من كان على الوضع التلقائي أو الفاتح الافتراضي فقط؛
+      // من اختار مظهراً صراحة (داكن/خمري/بني) يبقى على اختياره.
+      if (!AppState.settings._v38ThemeMigrated) {
+        AppState.settings._v38ThemeMigrated = true;
+        if (AppState.settings.theme === 'auto' || AppState.settings.theme === 'light') {
+          AppState.settings.theme = 'emerald';
+        }
+        Storage.saveSettings();
+      }
     } else {
       // Primer uso: selección automática de Maher Al-Muaiqly como recitador base
       AppState.settings.reciter = 'ar.mahermuaiqly';

@@ -69,6 +69,9 @@ const QuranPage = {
     this.loadReaderSettings();
     this.loadRepeatMode();
 
+    // v36: فلتر العرض في قائمة القرآن الرئيسية: سور | أجزاء | أحزاب | أرباع
+    this.listFilter = Storage.get('quran_list_filter') || 'surah';
+
     container.innerHTML = `
       <div class="page-header quran-list-header">
         <button class="quran-list-settings-btn" onclick="QuranPage.openReaderSettings()" title="${t('settings_reader') || 'Ajustes'}" aria-label="${t('settings_reader') || 'Ajustes'}">
@@ -80,19 +83,16 @@ const QuranPage = {
         <div class="page-title">📖 ${t('tabQuran')}</div>
         <div class="page-subtitle">القرآن الكريم</div>
         <div class="page-meta">114 ${t('surahs').toLowerCase()}</div>
-        <div class="search-box">
+        <div class="search-box quran-unified-search">
           <i class="fas fa-search"></i>
-          <input type="text" id="surah-search" placeholder="${t('searchSurah')}" autocomplete="off">
+          <input type="text" id="quran-unified-search" placeholder="${t('mushafSearchGo')}" autocomplete="off">
+          <button class="qus-clear-btn hidden" id="qus-clear" onclick="QuranPage.clearUnifiedSearch()" aria-label="×"><i class="fas fa-xmark"></i></button>
         </div>
+        <div class="quran-unified-results hidden" id="quran-unified-results"></div>
         <button class="quran-ayah-search-btn quran-mushaf-entry-btn" onclick="QuranPage.openMushaf()" aria-label="${t('mushafOpenBtn')}">
           <i class="fas fa-book-open quran-ayah-search-icon"></i>
           <span>${t('mushafOpenBtn')}</span>
           <span class="quran-ayah-search-badge">📖</span>
-        </button>
-        <button class="quran-ayah-search-btn" onclick="QuranPage.openQuranSearch()" aria-label="${t('quranSearchTitle')}">
-          <i class="fas fa-magnifying-glass quran-ayah-search-icon"></i>
-          <span>${t('searchAyahInQuran')}</span>
-          <span class="quran-ayah-search-badge">﴿ ﴾</span>
         </button>
         <button class="quran-ayah-search-btn quran-duas-entry-btn" onclick="QuranPage.openReadingDuas()" aria-label="${t('readingDuasTitle')}">
           <i class="fas fa-hands-praying quran-ayah-search-icon"></i>
@@ -102,6 +102,12 @@ const QuranPage = {
       </div>
       <div id="offline-download-banner"></div>
       <div id="bookmarks-entry"></div>
+      <div class="quran-list-filter-bar">
+        <div class="quran-list-filter-label" id="quran-list-filter-label"></div>
+        <button class="quran-list-filter-btn" onclick="QuranPage.openListFilter(event)" title="${t('mushafIndex')}" aria-label="${t('mushafIndex')}">
+          <i class="fas fa-filter"></i>
+        </button>
+      </div>
       <div id="surah-list" style="padding: var(--sp-md);">
         ${Skeleton.quranList()}
       </div>
@@ -117,20 +123,28 @@ const QuranPage = {
         this._downloadedNumbers = await QuranOfflineService.getDownloadedNumbers(tr, rc);
       }
       if (isStale()) return;
-      this.renderList(this.surahs);
+      this.renderFilteredList();
       this.renderOfflineBanner();
       this.renderBookmarksEntry();
       this._attachAudioEvents();
       this.updateAudioDownloadBadge();
       this.maybeShowAudioPermission();
 
-      const search = document.getElementById('surah-search');
+      // v36: بحث موحّد — رقم صفحة أو رقم سورة أو اسم سورة أو نص آية
+      const search = document.getElementById('quran-unified-search');
       if (search) {
         search.addEventListener('input', e => {
-          const query = e.target.value.trim();
-          if (!query) return this.renderList(this.surahs);
-          const filtered = this.surahs.filter(s => QuranHelpers.surahMatches(s, query));
-          this.renderList(filtered);
+          const q = e.target.value;
+          document.getElementById('qus-clear')?.classList.toggle('hidden', !q);
+          clearTimeout(this._unifiedSearchTimer);
+          this._unifiedSearchTimer = setTimeout(() => this._runUnifiedSearch(q.trim()), 180);
+        });
+        document.addEventListener('click', this._unifiedOutsideHandler = (ev) => {
+          const box = document.getElementById('quran-unified-results');
+          const inp = document.getElementById('quran-unified-search');
+          if (!box || !inp) return;
+          if (box.contains(ev.target) || inp.contains(ev.target)) return;
+          box.classList.add('hidden');
         });
       }
     } catch (e) {
@@ -201,6 +215,281 @@ const QuranPage = {
         card.insertAdjacentHTML('beforeend', '<div class="surah-offline-badge"><i class="fas fa-circle-check"></i></div>');
       }
     });
+  },
+
+  // v36: تحويل الأرقام الغربية إلى عربية-مشرقية للعرض
+  _arDigits(n) {
+    return String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+  },
+
+  // v36: تحويل الأرقام العربية-المشرقية إلى غربية (لتحليل مدخل البحث)
+  _toWesternDigits(str) {
+    return String(str || '').replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
+  },
+
+  clearUnifiedSearch() {
+    const inp = document.getElementById('quran-unified-search');
+    if (inp) { inp.value = ''; inp.focus(); }
+    document.getElementById('qus-clear')?.classList.add('hidden');
+    const box = document.getElementById('quran-unified-results');
+    if (box) { box.classList.add('hidden'); box.innerHTML = ''; }
+  },
+
+  // v36: البحث الموحّد — رقم صفحة (١-٦٠٤)، رقم/اسم سورة، سورة:آية، أو نص آية
+  // النتائج تظهر في قائمة منسدلة منفصلة، دون التأثير على قائمة السور الثابتة
+  _runUnifiedSearch(q) {
+    const box = document.getElementById('quran-unified-results');
+    if (!box) return;
+    if (!q) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+
+    const qw = this._toWesternDigits(q);
+    const parts = [];
+    const TOTAL_PAGES = 604;
+
+    // 1) رقم صفحة
+    if (/^\d+$/.test(qw)) {
+      const n = parseInt(qw, 10);
+      if (n >= 1 && n <= TOTAL_PAGES) {
+        parts.push(`
+          <div class="qus-section">${t('mushafPage')}</div>
+          <div class="picker-item qus-item" onclick="QuranPage.jumpToPage(${n})">
+            <div class="picker-num">${n}</div>
+            <div class="picker-info">
+              <div class="picker-name">${t('mushafPage')} ${n} / ${TOTAL_PAGES}</div>
+              <div class="picker-meta">${t('mushafOpenBtn')} · ${this._pageMeta(n)}</div>
+            </div>
+            <i class="fas fa-book-open" style="color:var(--primary);"></i>
+          </div>
+        `);
+      }
+      // 2) رقم سورة
+      if (n >= 1 && n <= 114) {
+        const surah = (this.surahs || []).find(x => x.number === n);
+        if (surah) {
+          parts.push(`
+            <div class="qus-section">${t('surahs')}</div>
+            <div class="picker-item qus-item" onclick="QuranPage.pickSurah(${surah.number})">
+              <div class="picker-num">${surah.number}</div>
+              <div class="picker-info">
+                <div class="picker-name">${Validate.escapeHTML(QuranHelpers.surahDisplayName(surah))}</div>
+                <div class="picker-meta">${surah.numberOfAyahs} ${t('ayah').toLowerCase()}s</div>
+              </div>
+              <div class="picker-arabic">${Validate.escapeHTML(QuranHelpers.removeTashkeel(surah.name))}</div>
+            </div>
+          `);
+        }
+      }
+    }
+
+    // 3) مرجع آية (سورة:آية)
+    const m = qw.match(/^(\d+)\s*[:：]\s*(\d+)$/);
+    if (m) {
+      const sn = parseInt(m[1], 10);
+      const an = parseInt(m[2], 10);
+      const surah = (this.surahs || []).find(x => x.number === sn);
+      if (surah && an >= 1 && an <= surah.numberOfAyahs) {
+        parts.push(`
+          <div class="qus-section">${t('ayah')}</div>
+          <div class="picker-item qus-item" onclick="QuranPage.goToSearchResult(${sn}, ${an})">
+            <div class="picker-num">${sn}:${an}</div>
+            <div class="picker-info">
+              <div class="picker-name">${Validate.escapeHTML(QuranHelpers.surahDisplayName(surah))} · ${t('ayah')} ${an}</div>
+            </div>
+          </div>
+        `);
+      }
+    }
+
+    // 4) سور مطابقة بالاسم
+    if (!/^\d+$/.test(qw) || qw.length <= 3) {
+      const matches = (this.surahs || []).filter(s => QuranHelpers.surahMatches(s, q)).slice(0, 8);
+      if (matches.length) {
+        parts.push(`<div class="qus-section">${t('surahs')}</div>`);
+        parts.push(matches.map(s => `
+          <div class="picker-item qus-item" onclick="QuranPage.pickSurah(${s.number})">
+            <div class="picker-num">${s.number}</div>
+            <div class="picker-info">
+              <div class="picker-name">${Validate.escapeHTML(QuranHelpers.surahDisplayName(s))}</div>
+              <div class="picker-meta">${s.numberOfAyahs} ${t('ayah').toLowerCase()}s</div>
+            </div>
+            <div class="picker-arabic">${Validate.escapeHTML(QuranHelpers.removeTashkeel(s.name))}</div>
+          </div>
+        `).join(''));
+      }
+    }
+
+    // 5) بحث في نصوص الآيات
+    if (q.length >= 2 && !/^\d+$/.test(qw) && typeof QuranSearch !== 'undefined') {
+      const hits = QuranSearch.search(q, 20);
+      if (hits.length) {
+        parts.push(`<div class="qus-section">${t('mushafAyahMatches') || t('quranSearchResults')}</div>`);
+        parts.push(hits.map(r => {
+          const meta = (typeof QuranOfflineService !== 'undefined') ? QuranOfflineService.getSurahMeta(r.s) : null;
+          const surahName = meta ? QuranHelpers.surahDisplayName(meta) : String(r.s);
+          return `
+            <div class="picker-item qus-item qus-ayah-hit" onclick="QuranPage.goToSearchResult(${r.s}, ${r.a})">
+              <div class="picker-info">
+                <div class="picker-name"><i class="fas fa-book-open"></i> ${r.s}. ${Validate.escapeHTML(surahName)} · ${t('ayah')} ${r.a}</div>
+                <div class="qus-ayah-text" dir="rtl">${QuranSearch.highlight(r.text, q)}</div>
+              </div>
+            </div>
+          `;
+        }).join(''));
+      }
+    }
+
+    const head = `
+      <div class="qus-sheet-head">
+        <span class="qus-sheet-title"><i class="fas fa-magnifying-glass"></i> ${Validate.escapeHTML(q)}</span>
+        <button class="qus-sheet-close" onclick="QuranPage.clearUnifiedSearch()" aria-label="×"><i class="fas fa-xmark"></i></button>
+      </div>`;
+    if (!parts.length) {
+      box.innerHTML = head + `<div class="qus-empty">🔎 ${Validate.escapeHTML((t('quranSearchEmpty') || 'No results: %s').replace('%s', q))}</div>`;
+    } else {
+      box.innerHTML = head + parts.join('');
+    }
+    box.classList.remove('hidden');
+    // v37: الورقة تغطي أغلب الشاشة بنفسها (صفحة شبه كاملة) — تُغلق بزر × أو باختيار نتيجة
+  },
+
+  // v37: اسم السورة/الآية لأول آية في صفحة المصحف (يظهر في نتيجة البحث عن رقم صفحة)
+  _pageMeta(pageNum) {
+    const all = (typeof window !== 'undefined') && window.QURAN_FULL_AR;
+    const pg = all && all.pages ? all.pages.find(x => x.n === pageNum) : null;
+    const first = pg && pg.ayahs && pg.ayahs[0];
+    if (!first) return '';
+    return `${Validate.escapeHTML(this._surahNameByNumber(first[0]))} · ${t('ayah')} ${first[1]}`;
+  },
+
+  jumpToPage(pageNum) {
+    this.clearUnifiedSearch();
+    Router.push('mushaf', { page: pageNum });
+  },
+
+  // v36: قائمة الفلتر المنسدلة (سور / أجزاء / أحزاب / أرباع)
+  openListFilter(ev) {
+    if (ev && ev.stopPropagation) ev.stopPropagation();
+    const existing = document.getElementById('quran-list-filter-menu');
+    if (existing) { existing.remove(); return; }
+    const modes = [
+      { id: 'surah', label: t('mushafTabSurahs'), icon: 'fa-book' },
+      { id: 'juz',   label: t('mushafTabJuz'),    icon: 'fa-layer-group' },
+      { id: 'hizb',  label: t('mushafTabHizb'),   icon: 'fa-bookmark' },
+      { id: 'rub',   label: t('mushafTabRub'),    icon: 'fa-star-half-alt' },
+    ];
+    const menu = document.createElement('div');
+    menu.id = 'quran-list-filter-menu';
+    menu.className = 'quran-list-filter-menu';
+    menu.innerHTML = modes.map(m => `
+      <button class="qlf-item ${this.listFilter === m.id ? 'active' : ''}" onclick="QuranPage.setListFilter('${m.id}')">
+        <i class="fas ${m.icon}"></i>
+        <span>${m.label}</span>
+        ${this.listFilter === m.id ? '<i class="fas fa-check qlf-check"></i>' : ''}
+      </button>`).join('');
+    const bar = document.querySelector('.quran-list-filter-bar');
+    if (bar) bar.appendChild(menu);
+    setTimeout(() => {
+      document.addEventListener('click', this._filterOutside = (e) => {
+        if (!menu.contains(e.target)) {
+          menu.remove();
+          document.removeEventListener('click', this._filterOutside);
+        }
+      });
+    }, 20);
+  },
+
+  setListFilter(mode) {
+    this.listFilter = mode;
+    Storage.set('quran_list_filter', mode);
+    const menu = document.getElementById('quran-list-filter-menu');
+    if (menu) menu.remove();
+    this.renderFilteredList();
+  },
+
+  renderFilteredList() {
+    const label = document.getElementById('quran-list-filter-label');
+    const map = {
+      surah: t('mushafTabSurahs'),
+      juz:   t('mushafTabJuz'),
+      hizb:  t('mushafTabHizb'),
+      rub:   t('mushafTabRub'),
+    };
+    if (label) label.textContent = map[this.listFilter] || map.surah;
+
+    if (this.listFilter === 'juz')   return this.renderJuzList();
+    if (this.listFilter === 'hizb')  return this.renderHizbList();
+    if (this.listFilter === 'rub')   return this.renderRubList();
+    return this.renderList(this.surahs);
+  },
+
+  _divs() {
+    return ((typeof window !== 'undefined') && window.MUSHAF_DIVISIONS) || { juzs: [], rubs: [] };
+  },
+
+  _surahNameByNumber(num) {
+    const s = (this.surahs || []).find(x => x.number === num);
+    if (s) return QuranHelpers.surahDisplayName(s);
+    if (typeof QuranOfflineService !== 'undefined') {
+      const m = QuranOfflineService.getSurahMeta(num);
+      if (m) return QuranHelpers.removeTashkeel(m.name);
+    }
+    return String(num);
+  },
+
+  renderJuzList() {
+    const container = document.getElementById('surah-list');
+    if (!container) return;
+    const juzs = this._divs().juzs || [];
+    if (!juzs.length) return this.renderList(this.surahs);
+    container.innerHTML = juzs.map(j => `
+      <div class="surah-card" onclick="QuranPage.goToSearchResult(${j.s}, ${j.a})">
+        <div class="surah-number"><span>${j.juz}</span></div>
+        <div class="surah-info">
+          <div class="surah-name">${t('mushafJuz')} ${j.juz}</div>
+          <div class="surah-meta">${Validate.escapeHTML(this._surahNameByNumber(j.s))} · ${t('ayah')} ${j.a} · ${t('mushafPage')} ${j.page}</div>
+        </div>
+        <div class="surah-arabic-name">جزء ${this._arDigits(j.juz)}</div>
+      </div>
+    `).join('');
+  },
+
+  renderHizbList() {
+    const container = document.getElementById('surah-list');
+    if (!container) return;
+    const rubs = this._divs().rubs || [];
+    const hizbs = rubs.filter(r => ((r.q - 1) % 4) === 0);
+    if (!hizbs.length) return this.renderList(this.surahs);
+    container.innerHTML = hizbs.map(r => `
+      <div class="surah-card" onclick="QuranPage.goToSearchResult(${r.s}, ${r.a})">
+        <div class="surah-number"><span>${r.hizb}</span></div>
+        <div class="surah-info">
+          <div class="surah-name">${t('mushafHizb')} ${r.hizb}</div>
+          <div class="surah-meta">${t('mushafJuz')} ${r.juz} · ${Validate.escapeHTML(this._surahNameByNumber(r.s))} · ${t('mushafPage')} ${r.page}</div>
+        </div>
+        <div class="surah-arabic-name">حزب ${this._arDigits(r.hizb)}</div>
+      </div>
+    `).join('');
+  },
+
+  renderRubList() {
+    const container = document.getElementById('surah-list');
+    if (!container) return;
+    const rubs = this._divs().rubs || [];
+    if (!rubs.length) return this.renderList(this.surahs);
+    const names = [t('mushafRub1'), t('mushafRub2'), t('mushafRub3'), t('mushafRub4')];
+    container.innerHTML = rubs.map(r => {
+      const nm = names[(r.q - 1) % 4] || '';
+      return `
+        <div class="surah-card" onclick="QuranPage.goToSearchResult(${r.s}, ${r.a})">
+          <div class="surah-number"><span>${r.id}</span></div>
+          <div class="surah-info">
+            <div class="surah-name">${nm} — ${t('mushafHizb')} ${r.hizb}</div>
+            <div class="surah-meta">${t('mushafJuz')} ${r.juz} · ${Validate.escapeHTML(this._surahNameByNumber(r.s))} · ${t('mushafPage')} ${r.page}</div>
+          </div>
+          <div class="surah-arabic-name">ربع ${this._arDigits(r.id)}</div>
+        </div>
+      `;
+    }).join('');
   },
 
   renderList(surahs) {
@@ -324,6 +613,41 @@ const QuranPage = {
     }
   },
 
+  // v36: agrupar آيات السورة حسب رقم الصفحة (مصحف المدينة)، مع الاحتفاظ
+  // بجميع الخصائص (تلاوة، ترجمة، ترنسليتريشن، تفسير، مفضلة). يستخدم بيانات
+  // window.QURAN_FULL_AR (نفس مصدر صفحة المصحف الكامل).
+  _computeAyahPages(surahNum) {
+    const all = (typeof window !== 'undefined') && window.QURAN_FULL_AR;
+    if (!all || !all.pages) return null;
+    const map = new Map(); // ayahNumber -> pageNumber
+    for (const pg of all.pages) {
+      for (const row of pg.ayahs) {
+        if (row[0] === surahNum) map.set(row[1], pg.n);
+      }
+    }
+    return map;
+  },
+
+  // v36: ترجع قائمة صفحات مرتبة، كل صفحة = { page, ayahs: [...] }
+  _groupAyahsByPage(surah) {
+    const pageMap = this._computeAyahPages(surah.number);
+    if (!pageMap || !pageMap.size) return null;
+    const groups = new Map();
+    for (const a of surah.ayahs) {
+      const p = pageMap.get(a.number);
+      if (!p) continue;
+      if (!groups.has(p)) groups.set(p, []);
+      groups.get(p).push(a);
+    }
+    // بعض الآيات النادرة قد لا تُطابق مباشرة (اختلاف بسيط) — نضعها في آخر صفحة
+    const missing = surah.ayahs.filter(a => !pageMap.has(a.number));
+    if (missing.length && groups.size) {
+      const lastP = Math.max(...groups.keys());
+      groups.get(lastP).push(...missing);
+    }
+    return Array.from(groups.keys()).sort((a, b) => a - b).map(p => ({ page: p, ayahs: groups.get(p) }));
+  },
+
   renderReader(container, surah) {
     const cleanArName = QuranHelpers.cleanArabicSurahName(surah.name);
     const showBismillah = QuranHelpers.shouldShowBismillah(surah.number);
@@ -337,6 +661,9 @@ const QuranPage = {
     const repeatLabel = this.repeatMode === 'off' ? t('repeatOff') :
                        this.repeatMode === 'ayah' ? t('repeatAyah') : t('repeatSurah');
     const bookmarkCount = this.getBookmarks().length;
+
+    // v36: تجميع الآيات حسب رقم الصفحة (مصحف المدينة ٦٠٤)
+    const pageGroups = this._groupAyahsByPage(surah);
 
     container.innerHTML = `
       <div class="top-bar reader-top-bar">
@@ -398,8 +725,20 @@ const QuranPage = {
           ` : ''}
         ` : ''}
 
-        <div class="ayahs-container" id="ayahs-container">
-          ${surah.ayahs.map((a, idx) => this.renderAyah(a, idx, surah)).join('')}
+        <div class="ayahs-container reader-paged" id="ayahs-container">
+          ${pageGroups
+            ? pageGroups.map(g => `
+                <div class="reader-page-section" data-page="${g.page}" id="reader-page-${g.page}">
+                  <div class="reader-page-header" onclick="QuranPage.openMushafPage(${g.page})" title="${t('mushafPage')} ${g.page}">
+                    <span class="reader-page-orn">۞</span>
+                    <span class="reader-page-label">${t('mushafPage')} <span class="reader-page-num">${this._arDigits(g.page)}</span> / ${this._arDigits(604)}</span>
+                    <span class="reader-page-orn">۞</span>
+                  </div>
+                  ${g.ayahs.map((a, idx) => this.renderAyah(a, idx, surah)).join('')}
+                </div>
+              `).join('')
+            : surah.ayahs.map((a, idx) => this.renderAyah(a, idx, surah)).join('')
+          }
         </div>
 
         <div class="surah-nav-footer">
@@ -428,6 +767,48 @@ const QuranPage = {
         <i class="fas fa-search"></i>
       </button>
     `;
+
+    // v36: تفعيل السحب الأفقي للتنقل بين السور مثل صفحة المصحف الكامل
+    this._bindReaderSwipe(surah);
+  },
+
+  // v36: يفتح المصحف الكامل على الصفحة المحددة
+  openMushafPage(pageNum) {
+    Router.push('mushaf', { page: pageNum });
+  },
+
+  // v36: السحب الأفقي في القرآن المترجم — للتنقل بين السور (كامل السورة
+  // في اتجاه، والسابقة/التالية في الاتجاه المعاكس)، متوافق مع اتجاه RTL
+  _bindReaderSwipe(surah) {
+    const mc = document.getElementById('main-content');
+    if (!mc) return;
+    // نظّف المعالجات السابقة إن وُجدت
+    if (this._readerSwipeHandlers) {
+      const h = this._readerSwipeHandlers;
+      try { mc.removeEventListener('touchstart', h.ts); } catch (e) {}
+      try { mc.removeEventListener('touchend', h.te); } catch (e) {}
+      this._readerSwipeHandlers = null;
+    }
+    let x = null, y = null;
+    const ts = e => {
+      const tt = e.touches[0];
+      x = tt.clientX; y = tt.clientY;
+    };
+    const te = e => {
+      if (x === null) return;
+      const tt = e.changedTouches[0];
+      const dx = tt.clientX - x;
+      const dy = tt.clientY - y;
+      x = null;
+      if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        // اتجاه القرآن (RTL): السحب لليمين ⇐ التالية، لليسار ⇐ السابقة
+        if (dx > 0 && surah.number < 114) this.goToSurah(surah.number + 1);
+        else if (dx < 0 && surah.number > 1) this.goToSurah(surah.number - 1);
+      }
+    };
+    mc.addEventListener('touchstart', ts, { passive: true });
+    mc.addEventListener('touchend', te, { passive: true });
+    this._readerSwipeHandlers = { ts, te };
   },
 
   renderAyah(a, idx, surah) {
@@ -440,7 +821,7 @@ const QuranPage = {
       <div class="ayah-block ${bm ? `bookmarked bm-${bm.c}` : ''}" id="ayah-${a.number}" data-ayah="${a.number}">
         <div class="ayah-arabic-line" dir="rtl">
           <span class="ayah-arabic-text">${Validate.escapeHTML(a.arabicDisplay || a.arabic)}</span>
-          <span class="ayah-end-marker">﴿${a.number}﴾</span>
+          <span class="ayah-end-marker ayah-end-marker-lg">﴿<span class="ayah-end-num">${this._arDigits(a.number)}</span>﴾</span>
         </div>
 
         ${showTranslit ? `
@@ -603,6 +984,10 @@ const QuranPage = {
 
   goToSearchResult(surahNum, ayahNum) {
     closeModal();
+    // v36: إغلاق قائمة البحث الموحد المنسدلة إن كانت مفتوحة
+    if (typeof this.clearUnifiedSearch === 'function') {
+      try { this.clearUnifiedSearch(); } catch (e) {}
+    }
     if (this.currentSurah && this.currentSurah.number === surahNum) {
       this.scrollToAyah(ayahNum, true);
     } else {
@@ -694,6 +1079,10 @@ const QuranPage = {
 
   pickSurah(num) {
     closeModal();
+    // v36: إغلاق قائمة البحث المنسدلة إن كانت مفتوحة
+    if (typeof this.clearUnifiedSearch === 'function') {
+      try { this.clearUnifiedSearch(); } catch (e) {}
+    }
     this.goToSurah(num);
   },
 

@@ -748,6 +748,12 @@ const API = {
    * Get a single random dua.
    */
   async getRandomDua() {
+    // v36: preferir el dataset local revisado — devuelve la traducción ya
+    // localizada (es/ar/en) en lugar del texto inglés crudo de la API.
+    if (CONFIG.USE_LOCAL_DUAS && typeof LocalDuasService !== 'undefined') {
+      const lang = AppState.settings.locale || 'es';
+      return await LocalDuasService.getRandom(lang);
+    }
     try {
       const res = await fetch(`${CONFIG.API.UMMAH}/duas/random`);
       const json = await res.json();
@@ -762,6 +768,12 @@ const API = {
    */
   async searchDuas(query) {
     if (!query || query.length < 2) return [];
+    // v36: búsqueda local sobre el dataset revisado (traducciones ya
+    // localizadas) — evita resultados en inglés sin traducir.
+    if (CONFIG.USE_LOCAL_DUAS && typeof LocalDuasService !== 'undefined') {
+      const lang = AppState.settings.locale || 'es';
+      return await LocalDuasService.search(query, lang);
+    }
     try {
       const res = await fetch(`${CONFIG.API.UMMAH}/duas/search?q=${encodeURIComponent(query)}`);
       const json = await res.json();

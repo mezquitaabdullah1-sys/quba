@@ -207,10 +207,10 @@ const HomePage = {
         <!-- Du'a del día -->
         <h2 class="section-title"><i class="fas fa-hands-praying"></i> ${t('duaOfDay')}</h2>
         <div class="card dua-day-card">
-          <div class="dua-title">${dua.title}</div>
+          <div class="dua-title">${escapeHtml(dua['title_' + (AppState.settings.locale || 'es')] || dua.title)}</div>
           <div class="dua-arabic">${dua.arabic}</div>
           <div class="dua-transliteration">${dua.transliteration}</div>
-          <div class="dua-translation">"${dua.translation}"</div>
+          <div class="dua-translation">"${escapeHtml(dua['translation_' + (AppState.settings.locale || 'es')] || dua.translation_es || dua.translation)}"</div>
           <div class="dua-source">— ${dua.source}</div>
           <button class="share-card-btn" onclick="ShareCard.open('dua')">
             <i class="fas fa-share-nodes"></i> ${t('shareCardBtn')}
