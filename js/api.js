@@ -7,24 +7,26 @@ const API = {
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     const yyyy = date.getFullYear();
 
-    // v28: Jordania → método 19 (Awqaf: Isha = Maghrib + 90 min) por defecto,
-    // para igualar los horarios oficiales (los mismos que publica Muslim Pro).
+    // v36: método EFECTIVO por ubicación (ver _effectiveMethod): Jordania →
+    // 19 (Awqaf), Turquía → 13 (Diyanet), EE.UU./Canadá → 2 (ISNA),
+    // Francia → 12 (UOIF)… igualando el convenio por defecto de Muslim Pro.
     // Solo aplica cuando el usuario no ha elegido otro método manualmente.
-    try {
-      const loc = (typeof AppState !== 'undefined' && AppState.location) || null;
-      if (!AppState.settings._calcMethodManual && loc &&
-          Math.abs(loc.latitude - lat) < 0.5 && Math.abs(loc.longitude - lng) < 0.5 &&
-          LocationService.isJordan(loc)) {
-        method = 19;
-      }
-    } catch (_) { /* nunca romper la carga por la autodetección */ }
+    method = this._effectiveMethod(lat, lng, method);
 
     const cacheKey = `prayer_${lat.toFixed(2)}_${lng.toFixed(2)}_${dd}-${mm}-${yyyy}_${method}`;
     const cached = Storage.get(cacheKey);
-    if (cached) return this._applyTimeShift(cached);
+    // v36: la caché Muslim Pro es exacta → se sirve directo. La caché de
+    // Aladhan/cálculo local (±1-3 min de desfase en Shuruk/Maghrib/Isha) YA
+    // NO cortocircuita: se reintenta Muslim Pro en cada carga con red para
+    // autocurar datos antiguos, y solo se usa como último respaldo.
+    if (cached && cached._source === 'muslimpro') return this._applyTimeShift(cached);
 
-    // v21: sin red y sin caché → calcular localmente (offline) en vez de fallar
-    if (!navigator.onLine) return this._offlinePrayerTimes(lat, lng, date, method);
+    // v21: sin red → respaldo: caché local (aunque no sea Muslim Pro) y,
+    // en su defecto, el cálculo astronómico local.
+    if (!navigator.onLine) {
+      if (cached) return this._applyTimeShift(cached);
+      return this._offlinePrayerTimes(lat, lng, date, method);
+    }
 
     try {
       // v27: fuente PRIMARIA = Muslim Pro (espejo exacto, minuto a minuto).
@@ -42,6 +44,11 @@ const API = {
         }
       }
 
+      // v36: Muslim Pro inalcanzable pero ya hay un dato Muslim Pro cacheado
+      // de este día (p. ej. la página semanal se cargó antes): úsalo aunque
+      // sea viejo antes de degradar a Aladhan — sigue siendo EXACTO.
+      if (cached && cached._source === 'muslimpro') return this._applyTimeShift(cached);
+
       // v18: If online, fetch + also prefetch next 14 days in background
       // v28: la regla jordana (Isha = Maghrib+90) se aplica SIEMPRE del lado
       // cliente en _postProcessPrayerData (Aladhan no la calcula fielmente).
@@ -52,7 +59,7 @@ const API = {
       if (json.code !== 200) throw new Error('Prayer API error');
 
       // v28: corrección regional (Jordania) + ajuste manual por oración
-      json.data = this._postProcessPrayerData(json.data, lat, lng);
+      json.data = this._postProcessPrayerData(json.data, lat, lng, method, date);
       Storage.set(cacheKey, json.data, CONFIG.CACHE_TTL * 14); // 14 days cache
 
       // Background prefetch: next 14 days so app works offline for 2 weeks
@@ -71,11 +78,18 @@ const API = {
   _applyTimeShift(data) {
     try {
       if (!data || !data.timings) return data;
+      let t = data.timings;
+      // v38: los datos Muslim Pro (y su caché) se guardan CRUDOS — aplicar
+      // aquí la corrección regional (Jordania/Palestina) y el ajuste manual
+      // por oración, en TODOS los caminos (caché, red, offline).
+      if (typeof PrayerCalc !== 'undefined') {
+        t = PrayerCalc.applyPrayerOffsets(t);
+      }
       const mode = (typeof AppState !== 'undefined' && AppState.settings && AppState.settings.timeShift) || 'auto';
-      if (mode === 'auto' || typeof PrayerCalc === 'undefined') return data;
+      if (mode === 'auto' || typeof PrayerCalc === 'undefined') return t === data.timings ? data : Object.assign({}, data, { timings: t });
       const delta = mode === 'summer' ? 1 : (mode === 'winter' ? -1 : 0);
-      if (!delta) return data;
-      const shifted = PrayerCalc.shiftTimings(data.timings, delta);
+      if (!delta) return t === data.timings ? data : Object.assign({}, data, { timings: t });
+      const shifted = PrayerCalc.shiftTimings(t, delta);
       shifted._timeShifted = mode;
       return Object.assign({}, data, { timings: shifted, _timeShifted: mode });
     } catch (e) { return data; }
@@ -97,13 +111,38 @@ const API = {
     return '';
   },
 
-  // v28: corrección regional (Jordania: Isha = Maghrib+90) + ajuste manual
-  // por oración (±60 min) sobre una respuesta con forma Aladhan.
-  _postProcessPrayerData(data, lat, lng) {
+  // v39: elevación (metros) detectada para corregir Shuruq/Maghrib/Isha —
+  // mismo patrón que _countryFor (AppState → última ubicación cacheada).
+  // Devuelve 0 si aún no se resolvió (LocationService la obtiene de forma
+  // asíncrona vía Open-Meteo): en ese caso simplemente no se corrige nada,
+  // igual que el comportamiento anterior a esta versión.
+  _elevationFor(lat, lng) {
+    try {
+      const loc = (typeof AppState !== 'undefined' && AppState.location) || null;
+      if (loc && Math.abs(loc.latitude - lat) < 0.5 && Math.abs(loc.longitude - lng) < 0.5 &&
+          typeof loc.elevation === 'number') {
+        return loc.elevation;
+      }
+      const last = (typeof Storage !== 'undefined' && Storage.get('last_location')) || null;
+      if (last && Math.abs(last.latitude - lat) < 0.5 && Math.abs(last.longitude - lng) < 0.5 &&
+          typeof last.elevation === 'number') {
+        return last.elevation;
+      }
+    } catch (_) { /* ignorar */ }
+    return 0;
+  },
+
+  // v28: corrección regional (Jordania: Isha = Maghrib+90) + v39: corrección
+  // por ELEVACIÓN (Aladhan no la aplica — su API no acepta ese parámetro,
+  // ver PrayerCalc.applyElevationAdjustment) + ajuste manual por oración
+  // (±60 min) sobre una respuesta con forma Aladhan.
+  _postProcessPrayerData(data, lat, lng, method, date = new Date()) {
     try {
       if (!data || !data.timings || typeof PrayerCalc === 'undefined') return data;
       const country = this._countryFor(lat, lng);
-      let t = PrayerCalc.applyRegionalCorrections(data.timings, country, lat, lng);
+      const elevation = this._elevationFor(lat, lng);
+      let t = PrayerCalc.applyElevationAdjustment(data.timings, lat, lng, date, elevation, method);
+      t = PrayerCalc.applyRegionalCorrections(t, country, lat, lng);
       t = PrayerCalc.applyPrayerOffsets(t);
       if (t === data.timings) return data;
       return Object.assign({}, data, { timings: t });
@@ -117,7 +156,9 @@ const API = {
     if (typeof PrayerCalc === 'undefined') throw new Error('Prayer API error');
     // v28: el país permite a PrayerCalc aplicar la regla jordana (Isha=Maghrib+90)
     const country = this._countryFor(lat, lng);
-    const timings = PrayerCalc.getTimings(lat, lng, date, method, country);
+    // v39: la elevación corrige Shuruq/Maghrib/Isha (ver applyElevationAdjustment)
+    const elevation = this._elevationFor(lat, lng);
+    const timings = PrayerCalc.getTimings(lat, lng, date, method, country, elevation);
     // _estimated se duplica DENTRO de timings porque varias pantallas hacen
     // `AppState.timings = resultado.timings` (pierden el nivel exterior).
     timings._estimated = true;
@@ -342,15 +383,15 @@ const API = {
 
   // Monthly prayer times table for a given lat/lon, method, month, year
   async getPrayerTimesMonth(lat, lon, month, year, method = 3) {
-    // v28: misma autodetección de Jordania que en getPrayerTimes (método 19)
-    try {
-      const loc = (typeof AppState !== 'undefined' && AppState.location) || null;
-      if (!AppState.settings._calcMethodManual && loc &&
-          Math.abs(loc.latitude - lat) < 0.5 && Math.abs(loc.longitude - lon) < 0.5 &&
-          LocationService.isJordan(loc)) {
-        method = 19;
-      }
-    } catch (_) { /* ignorar */ }
+    // v36: MISMA fuente que el horario principal (Muslim Pro exacto). El
+    // cálculo offline antes usaba SIEMPRE el método global del usuario
+    // (p. ej. MWL 18/17) incluso en Jordania → la tabla mensual y la franja
+    // secundaria no coincidían con el horario principal (Isha = Maghrib+90
+    // del Ministerio de Awqaf). Ahora el método efectivo se resuelve por
+    // ciudad: Jordania → 19, Turquía → 13, EE.UU./Canadá → 2, Francia → 12…
+    // (los mismos convenios que publica Muslim Pro por país), salvo elección
+    // manual explícita del usuario.
+    method = this._effectiveMethod(lat, lon, method);
 
     const cacheKey = `prayer_month_${lat.toFixed(2)}_${lon.toFixed(2)}_${month}_${year}_${method}`;
     const cached = Storage.get(cacheKey);
@@ -358,37 +399,111 @@ const API = {
 
     if (!navigator.onLine) return this._computePrayerMonthOffline(lat, lon, month, year, method);
 
+    // v36: días cubiertos por la semana Muslim Pro (ya cacheados por la
+    // carga del horario principal) → exactos, sin petición extra. El resto
+    // del mes: Aladhan con el método efectivo de la ciudad.
     try {
-      const url = `${CONFIG.API.ALADHAN}/calendar/${year}/${month}?latitude=${lat}&longitude=${lon}&method=${method}`;
-      const res = await this._fetchWithTimeout(url, 8000);
-      if (!res.ok) throw new Error('Prayer month error');
-      const json = await res.json();
-      let data = json.data || [];
-      if (!Array.isArray(data) || data.length === 0) throw new Error('Prayer month empty');
-      // v28: corrección regional + ajuste manual por oración, día a día
-      if (typeof PrayerCalc !== 'undefined') {
-        const country = this._countryFor(lat, lon);
-        data = data.map(d => d && d.timings
-          ? Object.assign({}, d, { timings: PrayerCalc.applyPrayerOffsets(PrayerCalc.applyRegionalCorrections(d.timings, country, lat, lon)) })
-          : d);
+      const aladhan = await this._fetchAladhanMonth(lat, lon, month, year, method);
+      if (aladhan && aladhan.length) {
+        const merged = aladhan.map(day => {
+          try {
+            const gd = day.date && day.date.gregorian && day.date.gregorian.date; // DD-MM-YYYY
+            if (!gd) return day;
+            const key = `prayer_${lat.toFixed(2)}_${lon.toFixed(2)}_${gd}_${method}`;
+            const mp = Storage.get(key);
+            if (mp && mp._source === 'muslimpro' && mp.timings && mp.timings.Fajr) {
+              return Object.assign({}, day, { timings: mp.timings, _source: 'muslimpro' });
+            }
+          } catch (_) { /* día sin cambios */ }
+          return day;
+        });
+        Storage.set(cacheKey, merged, CONFIG.CACHE_TTL * 7);
+        return this._applyTimeShiftMonth(merged);
       }
-      // Cache for 7 days
-      Storage.set(cacheKey, data, CONFIG.CACHE_TTL * 7);
-      return this._applyTimeShiftMonth(data);
+      throw new Error('Prayer month empty');
     } catch (e) {
       console.warn('Prayer month API offline, calculando localmente:', e.message);
       return this._computePrayerMonthOffline(lat, lon, month, year, method);
     }
   },
 
+  // v36: mes completo desde Aladhan (método efectivo ya resuelto por el
+  // llamador) + corrección regional (Jordania) + ajuste manual por oración.
+  async _fetchAladhanMonth(lat, lon, month, year, method) {
+    const url = `${CONFIG.API.ALADHAN}/calendar/${year}/${month}?latitude=${lat}&longitude=${lon}&method=${method}`;
+    const res = await this._fetchWithTimeout(url, 8000);
+    if (!res.ok) throw new Error('Prayer month error');
+    const json = await res.json();
+    let data = json.data || [];
+    if (!Array.isArray(data) || data.length === 0) return null;
+    if (typeof PrayerCalc !== 'undefined') {
+      const country = this._countryFor(lat, lon);
+      const elevation = this._elevationFor(lat, lon); // v39
+      // v39: elevación (Shuruq/Maghrib/Isha) día a día, con la fecha real de
+      // cada fila (la declinación solar cambia ligeramente de un día a otro).
+      data = data.map((d, idx) => {
+        if (!d || !d.timings) return d;
+        let t = PrayerCalc.applyElevationAdjustment(d.timings, lat, lon, new Date(year, month - 1, idx + 1), elevation, method);
+        t = PrayerCalc.applyRegionalCorrections(t, country, lat, lon);
+        t = PrayerCalc.applyPrayerOffsets(t);
+        return Object.assign({}, d, { timings: t });
+      });
+    }
+    return data;
+  },
+
+  /**
+   * v36: método de cálculo EFECTIVO por ubicación — reproduce el convenio
+   * por defecto que usa Muslim Pro en cada país (verificado contra sus
+   * páginas oficiales, 2026-09-11): Jordania → 19 (Awqaf: Isha = Maghrib+90),
+   * Turquía → 13 (Diyanet), EE. UU./Canadá → 2 (ISNA), Francia → 12 (UOIF).
+   * Si el usuario eligió un método manualmente, se respeta siempre.
+   */
+  _effectiveMethod(lat, lon, method) {
+    try {
+      if (typeof AppState !== 'undefined' && AppState.settings && AppState.settings._calcMethodManual) {
+        return method; // elección explícita del usuario: intocable
+      }
+      const loc = (typeof AppState !== 'undefined' && AppState.location) || null;
+      const near = loc && Math.abs(loc.latitude - lat) < 0.5 && Math.abs(loc.longitude - lon) < 0.5;
+      if (near && typeof LocationService !== 'undefined') {
+        if (LocationService.isJordan(loc)) return 19;      // Awqaf Jordania
+        if (LocationService.isPalestine && LocationService.isPalestine(loc)) return 3; // MWL (Muslim Pro)
+      }
+      // Ciudades conocidas de la lista: convenio oficial de su país
+      if (typeof Cities !== 'undefined' && Cities.match) {
+        const c = Cities.match(lat, lon);
+        if (c) {
+          const country = (c.country || '').toLowerCase();
+          if (country.includes('turqu') || country.includes('turkey')) return 13; // Diyanet
+          if (country.includes('ee. uu') || country.includes('canad')) return 2;  // ISNA
+          if (country.includes('francia') || country.includes('france')) return 12; // UOIF
+          if (country.includes('jordan')) return 19; // Awqaf Jordania
+          if (country.includes('palestin')) return 3;  // MWL (convención MP de Palestina)
+          if (country.includes('arabia saud')) return 4; // Umm Al-Qura
+        }
+      }
+      // Bounding boxes cuando la ubicación no está en la lista
+      if (typeof LocationService !== 'undefined') {
+        if (LocationService.isJordan({ latitude: lat, longitude: lon })) return 19;
+        if (LocationService.isPalestine && LocationService.isPalestine({ latitude: lat, longitude: lon })) return 3;
+      }
+    } catch (_) { /* nunca romper por la autodetección */ }
+    return method;
+  },
+
   // v26: aplica ±1h verano/invierno a la tabla mensual (API o caché)
   _applyTimeShiftMonth(data) {
     try {
+      if (typeof PrayerCalc === 'undefined' || !Array.isArray(data)) return data;
+      // v38: ajuste manual por oración SIEMPRE (incluye días Muslim Pro de
+      // la caché, que están guardados en crudo).
+      let out = data.map(d => Object.assign({}, d, { timings: PrayerCalc.applyPrayerOffsets(d.timings) }));
       const mode = (typeof AppState !== 'undefined' && AppState.settings && AppState.settings.timeShift) || 'auto';
-      if (mode === 'auto' || typeof PrayerCalc === 'undefined') return data;
+      if (mode === 'auto') return out;
       const delta = mode === 'summer' ? 1 : (mode === 'winter' ? -1 : 0);
-      if (!delta || !Array.isArray(data)) return data;
-      return data.map(d => Object.assign({}, d, { timings: PrayerCalc.shiftTimings(d.timings, delta) }));
+      if (!delta) return out;
+      return out.map(d => Object.assign({}, d, { timings: PrayerCalc.shiftTimings(d.timings, delta) }));
     } catch (e) { return data; }
   },
 
@@ -400,10 +515,11 @@ const API = {
       ar: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'][month-1],
     };
     const daysInMonth = new Date(year, month, 0).getDate();
+    const elevation = this._elevationFor(lat, lon); // v39
     const result = [];
     for (let d = 1; d <= daysInMonth; d++) {
       const greg = new Date(year, month - 1, d);
-      const timings = PrayerCalc.getTimings(lat, lon, greg, method, this._countryFor(lat, lon));
+      const timings = PrayerCalc.getTimings(lat, lon, greg, method, this._countryFor(lat, lon), elevation);
       const hijri = this._gregorianToHijri(greg);
       const hijriMonths = this._hijriMonthName(hijri.month);
       const weekdayNames = this._weekdayName(greg.getDay());
@@ -748,12 +864,6 @@ const API = {
    * Get a single random dua.
    */
   async getRandomDua() {
-    // v36: preferir el dataset local revisado — devuelve la traducción ya
-    // localizada (es/ar/en) en lugar del texto inglés crudo de la API.
-    if (CONFIG.USE_LOCAL_DUAS && typeof LocalDuasService !== 'undefined') {
-      const lang = AppState.settings.locale || 'es';
-      return await LocalDuasService.getRandom(lang);
-    }
     try {
       const res = await fetch(`${CONFIG.API.UMMAH}/duas/random`);
       const json = await res.json();
@@ -768,12 +878,6 @@ const API = {
    */
   async searchDuas(query) {
     if (!query || query.length < 2) return [];
-    // v36: búsqueda local sobre el dataset revisado (traducciones ya
-    // localizadas) — evita resultados en inglés sin traducir.
-    if (CONFIG.USE_LOCAL_DUAS && typeof LocalDuasService !== 'undefined') {
-      const lang = AppState.settings.locale || 'es';
-      return await LocalDuasService.search(query, lang);
-    }
     try {
       const res = await fetch(`${CONFIG.API.UMMAH}/duas/search?q=${encodeURIComponent(query)}`);
       const json = await res.json();
@@ -806,8 +910,33 @@ const LocationService = {
     }
   },
 
+  // v39: elevación (metros) vía Open-Meteo — gratis, sin API key, con CORS
+  // habilitado para llamarse directo desde el navegador sin pasar por el
+  // proxy backend (github.com/open-meteo/open-meteo: "No API key required,
+  // CORS supported"). Se usa para corregir Shuruq/Maghrib/Isha en ciudades
+  // con altitud — ver PrayerCalc.applyElevationAdjustment para el porqué.
+  // Uso NO comercial según su licencia; si Quba se distribuye/monetiza,
+  // revisar https://open-meteo.com/en/pricing (mismo endpoint con clave de
+  // pago, o self-host). Nunca lanza: si falla, la app sigue como antes
+  // (sin corregir elevación), no bloquea el resto del geocoding.
+  async fetchElevation(lat, lon) {
+    try {
+      const url = `https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lon}`;
+      const res = await (typeof API !== 'undefined' ? API._fetchWithTimeout(url, 6000) : fetch(url));
+      if (!res.ok) return null;
+      const data = await res.json();
+      const el = Array.isArray(data.elevation) ? data.elevation[0] : null;
+      return (typeof el === 'number' && isFinite(el)) ? el : null;
+    } catch (e) {
+      return null;
+    }
+  },
+
   // Reverse geocode via Nominatim with graceful failure
+  // v39: la elevación se pide EN PARALELO (Open-Meteo) — no añade latencia
+  // extra apreciable, y así queda lista en cuanto se resuelve la ubicación.
   async reverseGeocode(lat, lon) {
+    const elevationPromise = this.fetchElevation(lat, lon);
     try {
       const res = await fetch(
         // v28: siempre en inglés → detección de país estable ('Jordan',
@@ -816,13 +945,16 @@ const LocationService = {
         { headers: { 'Accept-Language': 'en' } }
       );
       const data = await res.json();
+      const elevation = await elevationPromise;
       return {
         city: data.address?.city || data.address?.town || data.address?.village || data.address?.county || '',
         country: data.address?.country || '',
         countryCode: (data.address?.country_code || '').toUpperCase(),
+        elevation, // v39: metros s.n.m., o null si Open-Meteo no respondió
       };
     } catch (e) {
-      return { city: '', country: '' };
+      const elevation = await elevationPromise.catch(() => null);
+      return { city: '', country: '', elevation };
     }
   },
 
@@ -832,8 +964,31 @@ const LocationService = {
 
     // 1) Use cached if available and not forcing refresh
     if (!forceRefresh) {
+      // v40: leer la caché PRIMERO (v39 usaba `cached` antes de declararlo →
+      // ReferenceError al primer arranque: home congelada en el skeleton y el
+      // error se manifestaba además como «problema al acceder a la ubicación»).
       const cached = Storage.get('last_location');
-      if (cached) return cached;
+      if (cached) {
+        // v39/v40: una ubicación cacheada de ANTES de esta versión no tiene
+        // `elevation` — se completa EN SEGUNDO PLANO (sin bloquear ni añadir
+        // latencia aquí) para que Shuruq/Maghrib/Isha se corrijan en cuanto
+        // haya respuesta, en vez de esperar hasta que expire esta caché de 7
+        // días. Nunca falla de forma visible: si Open-Meteo no responde, la
+        // app sigue exactamente como estaba.
+        if (typeof cached.elevation !== 'number' && typeof navigator !== 'undefined' && navigator.onLine) {
+          this.fetchElevation(cached.latitude, cached.longitude).then((elevation) => {
+            if (typeof elevation !== 'number') return;
+            const patched = Object.assign({}, cached, { elevation });
+            Storage.set('last_location', patched, CONFIG.CACHE_TTL * 7);
+            if (typeof AppState !== 'undefined' && AppState.location &&
+                AppState.location.latitude === cached.latitude &&
+                AppState.location.longitude === cached.longitude) {
+              AppState.location.elevation = elevation;
+            }
+          }).catch(() => {});
+        }
+        return cached;
+      }
     }
 
     // 2) Try browser geolocation
@@ -909,6 +1064,11 @@ const LocationService = {
   },
 
   // Set a manual location (from profile settings)
+  // v40: vuelve a ser INMEDIATA — la ciudad cambia al instante, sin esperar
+  // al servidor de elevación (v39 bloqueaba la UI 1–6 s en cada cambio de
+  // ciudad, de ahí la «lentitud al cambiar de país»). La elevación (v39) se
+  // resuelve en segundo plano y se parchea en cuanto llega: el horario se
+  // recalcula solo con la corrección, sin re-render completo ni esperas.
   setManual(lat, lon, city, country) {
     const coords = {
       latitude: lat,
@@ -917,10 +1077,27 @@ const LocationService = {
       country: country || '',
       // v28: versión en inglés (para las correcciones regionales por país)
       countryEn: this.countryEnOf(lat, lon, country),
+      elevation: null, // se completa abajo en segundo plano
       manual: true,
     };
     Storage.set('last_location', coords, CONFIG.CACHE_TTL * 30);
     AppState.location = coords;
+
+    // v39/v40: elevación sin bloquear — cuando llega, se guarda y se
+    // recalculan los horarios del día silenciosamente (misma corrección de
+    // Shuruq/Maghrib/Isha, pero sin congelar la UI mientras tanto).
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      this.fetchElevation(lat, lon).then((elevation) => {
+        if (typeof elevation !== 'number') return;
+        const patched = Object.assign({}, coords, { elevation });
+        Storage.set('last_location', patched, CONFIG.CACHE_TTL * 30);
+        if (typeof AppState !== 'undefined' && AppState.location &&
+            AppState.location.latitude === lat && AppState.location.longitude === lon) {
+          AppState.location.elevation = elevation;
+          AppState.timings = null; // invalida el horario calculado sin elevación
+        }
+      }).catch(() => {});
+    }
     return coords;
   },
 
@@ -939,10 +1116,24 @@ const LocationService = {
     return la >= 29.0 && la <= 33.4 && lo >= 34.9 && lo <= 39.4;
   },
 
+  // v36: detección de Palestina (nombre EN/ES/AR o bounding box aproximado).
+  // Muslim Pro publica para Palestina el convenio MWL (Fajr 18° / Isha 17°),
+  // así que la app debe usar el método 3 en Ramala, Nablus, Gaza, Jerusalén…
+  // incluso si el usuario tiene otro método global (salvo elección manual).
+  isPalestine(loc) {
+    if (!loc) return false;
+    const hay = [loc.countryEn, loc.country].filter(Boolean).join(' ').toLowerCase();
+    if (hay.includes('palestin') || hay.includes('فلسطين')) return true;
+    const la = Number(loc.latitude), lo = Number(loc.longitude);
+    // Franja de Gaza + Cisjordania (aprox.): 31.2-32.6 N, 34.2-35.6 E
+    return la >= 31.2 && la <= 32.6 && lo >= 34.2 && lo <= 35.6;
+  },
+
   // v28: nombre de país en inglés según coordenadas (sin depender de la red).
-  // Solo normaliza los países con corrección regional activa (de momento JO).
+  // Solo normaliza los países con corrección regional activa (JO y PS).
   countryEnOf(lat, lon, country) {
     if (this.isJordan({ latitude: lat, longitude: lon, country })) return 'Jordan';
+    if (this.isPalestine({ latitude: lat, longitude: lon, country })) return 'Palestine';
     return country || '';
   },
 

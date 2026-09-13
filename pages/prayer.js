@@ -5,6 +5,7 @@ const PrayerPage = {
   deviceHeading: 0,
   orientationHandler: null,
   permissionGranted: false,
+  countdownInterval: null, // v36: actualiza el «tiempo restante» en la tabla
 
   async render(container, params = {}) {
     // v14: honor incoming tab param (e.g. Router.go('prayer',{tab:'monthly'}))
@@ -15,19 +16,54 @@ const PrayerPage = {
     container.innerHTML = Skeleton.prayer();
 
     try {
-      const loc = AppState.location || await LocationService.getCurrent();
+      // v40: SIEMPRE releer la ubicación actual del servicio — antes
+      // `AppState.location` cortocircuitaba y la página podía mostrar los
+      // horarios de la ciudad anterior tras cambiarla (desincronización con
+      // la home y el jadwal mensual).
+      const loc = await LocationService.getCurrent();
       AppState.location = loc;
 
       this.qiblaBearing = Qibla.calculateBearing(loc.latitude, loc.longitude);
       const distance = Qibla.distance(loc.latitude, loc.longitude);
 
-      const [timings, hijri] = await Promise.all([
-        AppState.timings ? Promise.resolve({ timings: AppState.timings }) :
-          API.getPrayerTimes(loc.latitude, loc.longitude, new Date(), AppState.settings.calculationMethod),
-        AppState.hijri ? Promise.resolve(AppState.hijri) : API.gregorianToHijri(),
-      ]);
+      // v40: sello de coordenadas — los horarios cacheados solo se reutilizan
+      // si pertenecen a ESTA ciudad. Si la red falla (o el usuario está sin
+      // conexión) se recurre al motor astronómico local (PrayerCalc) en lugar
+      // de mostrar el aviso de «error de ubicación».
+      const stamp = (tgs) => {
+        if (tgs) {
+          tgs._lat = loc.latitude;
+          tgs._lon = loc.longitude;
+          tgs._date = new Date().toDateString();
+        }
+        return tgs;
+      };
+      const cacheValid = AppState.timings &&
+        AppState.timings._lat === loc.latitude &&
+        AppState.timings._lon === loc.longitude &&
+        AppState.timings._date === new Date().toDateString();
 
-      AppState.timings = timings.timings;
+      let timings;
+      try {
+        timings = cacheValid ? { timings: AppState.timings } :
+          await API.getPrayerTimes(loc.latitude, loc.longitude, new Date(), AppState.settings.calculationMethod);
+      } catch (netErr) {
+        // شبكة أمان: حساب فلكي محلي عند فشل الشبكة بدل رسالة خطأ الموقع
+        if (typeof PrayerCalc !== 'undefined') {
+          const base = AppState.settings.calculationMethod || 3;
+          const method = (API._effectiveMethod) ? API._effectiveMethod(loc.latitude, loc.longitude, base) : base;
+          let local = PrayerCalc.getTimings(loc.latitude, loc.longitude, new Date(), method, loc.countryEn || loc.country || '');
+          local = PrayerCalc.applyPrayerOffsets(local);
+          local._estimated = true;
+          timings = { timings: local };
+        } else {
+          throw netErr;
+        }
+      }
+
+      const hijri = AppState.hijri ? AppState.hijri : await API.gregorianToHijri();
+
+      AppState.timings = stamp(timings.timings);
       AppState.hijri = hijri;
 
       // 🔔 Programar las alarmas del día: adhan automático a la hora de cada
@@ -52,7 +88,11 @@ const PrayerPage = {
       <div class="page-header">
         <div class="page-title"><i class="fas fa-mosque"></i> ${t('tabPrayer')}</div>
         ${hijri ? `<div class="page-subtitle">${hijri.day} ${hijri.month?.en} ${hijri.year} هـ</div>` : ''}
-        ${loc.city ? `<div class="page-meta"><i class="fas fa-location-dot"></i> ${escapeHtml(loc.city)}${loc.country ? ', ' + escapeHtml(loc.country) : ''}</div>` : ''}
+        <button class="prayers-location" onclick="ProfilePage.pickCity()" title="${escapeAttr(t('changeCity') || '')}" aria-label="${escapeAttr(t('changeCity') || 'Cambiar ciudad')}">
+          <i class="fas fa-location-dot"></i>
+          <span>${escapeHtml([loc.city, loc.country].filter(Boolean).join(', ') || (t('chooseCityOrLocation') || 'Elige una ciudad'))}</span>
+          <i class="fas fa-pen prayers-location-edit"></i>
+        </button>
 
         <div class="inner-tabs">
           <button class="inner-tab ${this.activeTab === 'times' ? 'active' : ''}" onclick="PrayerPage.switchTab('times')">
@@ -80,6 +120,43 @@ const PrayerPage = {
     if (this.activeTab === 'qibla') {
       this.initOrientationListener();
     }
+    // v36: en la pestaña de horarios, actualizar el «tiempo restante» bajo
+    // la próxima oración cada segundo (y re-render al cambiar de oración).
+    if (this.activeTab === 'times') this.startCountdown();
+  },
+
+  startCountdown() {
+    if (this.countdownInterval) clearInterval(this.countdownInterval);
+    this.countdownInterval = setInterval(() => {
+      if (!AppState.timings) return;
+      const np = getNextPrayer(AppState.timings);
+      if (!np) return;
+      const remEl = document.querySelector('#prayer-tab-content .prayer-remaining');
+      if (!remEl) return;
+      if (remEl.dataset.prayerRemaining === np.name) {
+        const txt = remEl.querySelector('.prayer-remaining-text');
+        if (txt) txt.textContent = formatCountdown(np.diffMs);
+      } else {
+        // v40: al cambiar de oración se actualizan SOLO las filas afectadas,
+        // sin re-render completo (el re-render disparaba skeleton + red y se
+        // percibía como «recarga» constante de la página).
+        const root = document.querySelector('#prayer-tab-content');
+        if (!root) return;
+        root.querySelectorAll('.prayer-row.next').forEach(r => r.classList.remove('next'));
+        remEl.remove();
+        const rows = root.querySelectorAll('.prayer-row');
+        const daily = getDailyPrayers(AppState.timings);
+        const idx = daily.findIndex(p => p.name === np.name);
+        if (idx >= 0 && rows[idx]) {
+          rows[idx].classList.add('next');
+          const block = rows[idx].querySelector('.prayer-time-block');
+          if (block) {
+            block.insertAdjacentHTML('afterbegin',
+              `<div class="prayer-remaining" data-prayer-remaining="${np.name}"><i class="fas fa-hourglass-half"></i> <span class="prayer-remaining-text">${formatCountdown(np.diffMs)}</span></div>`);
+          }
+        }
+      }
+    }, 1000);
   },
 
   switchTab(tab) {
@@ -115,6 +192,7 @@ const PrayerPage = {
             </div>
             <div class="prayer-time-block">
               <div class="prayer-time">${formatTime12h(p.time)}</div>
+              ${next?.name === p.name ? `<div class="prayer-remaining" data-prayer-remaining="${p.name}"><i class="fas fa-hourglass-half"></i> <span class="prayer-remaining-text">${formatCountdown(next.diffMs)}</span></div>` : ''}
               ${p.iqamah ? `<div class="prayer-iqamah"><i class="fas fa-bell"></i> ${t('iqamah') || 'Iqamah'} ${formatTime12h(p.iqamah)} <span class="iqamah-off">+${p.iqamahOffset} ${t('minShort') || 'min'}</span></div>` : ''}
             </div>
             ${canCheck ? `
@@ -294,11 +372,12 @@ const PrayerPage = {
     const isCurrentMonth = today.getMonth() + 1 === month && today.getFullYear() === year;
     const todayDay = today.getDate();
 
-    // v36: cabecera sobre el jadwal — ciudad + fecha hijri + fecha gregoriana
+    // v36/v40: cabecera sobre el jadwal — ciudad + fechas en UNA línea, solo
+    // números separados por «/» (hijri / gregoriana), sin mes en texto.
     const loc = AppState.location || {};
     const hijri = AppState.hijri;
-    const gregorianStr = today.toLocaleDateString(currentLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    const hijriStr = hijri ? `${hijri.day} ${hijri.month?.ar || hijri.month?.en || ''} ${hijri.year} هـ` : '';
+    const gregNum = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+    const hijriNum = hijri ? `${hijri.day}/${hijri.month?.number || ''}/${hijri.year}` : '';
 
     // Prayer column headers
     const prayerLabels = {
@@ -337,8 +416,7 @@ const PrayerPage = {
     container.innerHTML = `
       <div class="monthly-loc-bar">
         ${loc.city ? `<span class="monthly-loc-city"><i class="fas fa-location-dot"></i> ${escapeHtml(loc.city)}${loc.country ? ', ' + escapeHtml(loc.country) : ''}</span>` : ''}
-        ${hijriStr ? `<span class="monthly-loc-hijri"><i class="fas fa-moon"></i> ${hijriStr}</span>` : ''}
-        <span class="monthly-loc-greg"><i class="fas fa-calendar"></i> ${gregorianStr}</span>
+        ${hijriNum ? `<span class="monthly-loc-hijri"><i class="fas fa-moon"></i> ${hijriNum} <span class="prayers-date-sep">/</span> <i class="fas fa-calendar-day"></i> ${gregNum}</span>` : `<span class="monthly-loc-hijri"><i class="fas fa-calendar-day"></i> ${gregNum}</span>`}
       </div>
       <div class="monthly-header">
         <div class="monthly-title"><i class="fas fa-calendar-days"></i> ${monthName} ${year}</div>
@@ -496,6 +574,11 @@ const PrayerPage = {
       window.removeEventListener('deviceorientation', this.orientationHandler);
       window.removeEventListener('deviceorientationabsolute', this.orientationHandler);
       this.orientationHandler = null;
+    }
+    // v36: detener el contador de «tiempo restante» al salir de la página
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+      this.countdownInterval = null;
     }
   },
 };

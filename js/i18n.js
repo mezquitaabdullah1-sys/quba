@@ -393,6 +393,10 @@ const I18N = {
     timeShiftWinterApplied: 'Horario de invierno aplicado (−1h)',
     // v28: ajuste manual por oración (±60 min)
     prayerAdjust: 'Ajuste manual de horarios',
+    prayerAdjustTap: 'Toca para mostrar las oraciones',
+    prayerAdjustActive: 'Hay ajustes activos',
+    chooseCityOrLocation: 'Elegir ciudad o activar ubicación',
+    remainingShort: 'quedan',
     prayerAdjustDesc: 'Adelanta o retrasa cada oración entre −60 y +60 minutos. Se aplica sobre cualquier método de cálculo y sobre los horarios de Muslim Pro.',
     prayerAdjustReset: 'Restablecer ajustes',
     prayerAdjustSaved: 'Ajuste guardado',
@@ -901,6 +905,10 @@ const I18N = {
     timeShiftWinterApplied: 'التوقيت الشتوي مفعّل (−1 ساعة)',
     // v28: تعديل يدوي لمواقيت كل صلاة (±60 دقيقة)
     prayerAdjust: 'تعديل يدوي لمواقيت الصلاة',
+    prayerAdjustTap: 'اضغط لعرض الصلوات',
+    prayerAdjustActive: 'توجد تعديلات نشطة',
+    chooseCityOrLocation: 'اختيار مدينة أو تفعيل الموقع',
+    remainingShort: 'متبقٍ',
     prayerAdjustDesc: 'تقديم أو تأخير كل صلاة بين −60 و+60 دقيقة. يُطبَّق على أي طريقة حساب وعلى مواقيت مسلم برو المتزامنة.',
     prayerAdjustReset: 'إعادة تعيين التعديلات',
     prayerAdjustSaved: 'تم حفظ التعديل',
@@ -1423,6 +1431,10 @@ const I18N = {
     timeShiftWinterApplied: 'Winter time applied (−1h)',
     // v28: manual per-prayer adjustment (±60 min)
     prayerAdjust: 'Manual prayer time adjustment',
+    prayerAdjustTap: 'Tap to show the prayers',
+    prayerAdjustActive: 'Adjustments active',
+    chooseCityOrLocation: 'Choose a city or enable location',
+    remainingShort: 'left',
     prayerAdjustDesc: 'Shift each prayer between −60 and +60 minutes. Applies on top of any calculation method and of synced Muslim Pro times.',
     prayerAdjustReset: 'Reset adjustments',
     prayerAdjustSaved: 'Adjustment saved',

@@ -11,7 +11,10 @@ const HomePage = {
     container.innerHTML = Skeleton.home();
 
     try {
-      const loc = AppState.location || await LocationService.getCurrent();
+      // v40: SIEMPRE releer el servicio de ubicación — antes `AppState.location`
+      // cortocircuitaba y la home podía quedarse con la ciudad anterior tras
+      // cambiarla en otra pantalla (desincronización entre páginas).
+      const loc = await LocationService.getCurrent();
       if (isStale()) return;
       AppState.location = loc;
 
@@ -86,9 +89,9 @@ const HomePage = {
         ${nextPrayer ? `
           <div class="next-prayer-card">
             <div class="next-prayer-label">${t('nextPrayer')}</div>
-            <div class="next-prayer-name">${t('prayers.' + nextPrayer.name)}</div>
+            <div class="next-prayer-name" id="next-prayer-name">${t('prayers.' + nextPrayer.name)}</div>
             <div class="next-prayer-countdown" id="countdown">${formatCountdown(nextPrayer.diffMs)}</div>
-            <div class="next-prayer-time">${formatTime12h(nextPrayer.time)}</div>
+            <div class="next-prayer-time" id="next-prayer-time">${formatTime12h(nextPrayer.time)}</div>
             ${isEstimated ? `<div class="estimated-badge"><i class="fas fa-wifi-slash"></i> ${t('estimatedTimes')}</div>` : ''}
           </div>
         ` : ''}
@@ -144,11 +147,17 @@ const HomePage = {
           <h2 class="section-title">${t('todayPrayers')}
             <span class="prayer-checkin-progress" title="${t('prayerCheckinTitle')}">${doneCount}/${totalCount} ✔</span>
           </h2>
-          <div class="prayers-location"><i class="fas fa-location-dot"></i> ${escapeHtml([loc.city, loc.country].filter(Boolean).join(', '))}</div>
-          <div class="prayers-dates">
-            ${hijri ? `<span class="prayers-date hijri" dir="${currentLocale === 'ar' ? 'rtl' : 'ltr'}"><i class="fas fa-moon"></i> <b>${t('dateHijriLabel')}:</b> ${hijri.day} ${currentLocale === 'ar' ? (hijri.month?.ar || hijri.month?.en) : (hijri.month?.en || hijri.month?.ar)} ${hijri.year} هـ</span>` : ''}
-            <span class="prayers-date greg"><i class="fas fa-calendar-day"></i> <b>${t('dateGregorianLabel')}:</b> ${new Date().toLocaleDateString(currentLocale === 'ar' ? 'ar-EG' : currentLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
-          </div>
+          <button class="prayers-location" onclick="ProfilePage.pickCity()" title="${escapeAttr(t('changeCity') || '')}" aria-label="${escapeAttr(t('changeCity') || 'Cambiar ciudad')}">
+            <i class="fas fa-location-dot"></i>
+            <span>${escapeHtml([loc.city, loc.country].filter(Boolean).join(', ') || (t('chooseCityOrLocation') || 'Elige una ciudad'))}</span>
+            <i class="fas fa-pen prayers-location-edit"></i>
+          </button>
+          ${hijri ? (() => {
+            const now = new Date();
+            const g = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+            // v40: una sola línea, solo números, ambos separados por «/»
+            return `<div class="prayers-dates"><span class="prayers-date compact"><i class="fas fa-moon"></i> ${hijri.day}/${hijri.month?.number || ''}/${hijri.year} <span class="prayers-date-sep">/</span> <i class="fas fa-calendar-day"></i> ${g}</span></div>`;
+          })() : ''}
         </div>
         <div class="card prayers-card">
           ${dailyPrayers.map(p => {
@@ -166,6 +175,7 @@ const HomePage = {
               </div>
               <div class="prayer-time-block">
                 <div class="prayer-time">${formatTime12h(p.time)}</div>
+                ${nextPrayer?.name === p.name ? `<div class="prayer-remaining" data-prayer-remaining="${p.name}"><i class="fas fa-hourglass-half"></i> <span class="prayer-remaining-text">${formatCountdown(nextPrayer.diffMs)}</span></div>` : ''}
               </div>
               ${canCheck ? `
                 <button class="prayer-check ${isDone ? 'checked' : ''} ${passed ? '' : 'locked'}"
@@ -305,11 +315,52 @@ const HomePage = {
   startCountdown() {
     if (this.countdownInterval) clearInterval(this.countdownInterval);
     this.countdownInterval = setInterval(() => {
-      const el = document.getElementById('countdown');
-      if (!el || !AppState.timings) return;
+      if (!AppState.timings) return;
       const np = getNextPrayer(AppState.timings);
-      if (np) el.textContent = formatCountdown(np.diffMs);
+      if (!np) return;
+      const el = document.getElementById('countdown');
+      if (el) el.textContent = formatCountdown(np.diffMs);
+      // v38/v40: actualizar también el «tiempo restante» bajo la hora de la
+      // próxima oración. Al cambiar de oración se actualizan SOLO los nodos
+      // afectados (tarjeta + filas), sin re-render completo: antes el
+      // re-render cada minuto lanzaba skeleton + peticiones de red y el
+      // usuario lo percibía como «la página se recarga al hacer cualquier
+      // cosa».
+      const remEl = document.querySelector('.prayer-remaining');
+      if (remEl) {
+        if (remEl.dataset.prayerRemaining === np.name) {
+          const txt = remEl.querySelector('.prayer-remaining-text');
+          if (txt) txt.textContent = formatCountdown(np.diffMs);
+        } else {
+          this._moveNextPrayer(np);
+        }
+      }
     }, 1000);
+  },
+
+  // v40: cambio de oración SIN re-render — actualiza en su sitio la tarjeta
+  // de la cabecera y mueve el marcador «siguiente» entre las filas.
+  _moveNextPrayer(np) {
+    const container = document.getElementById('main-content');
+    if (!container) return;
+    const nameEl = container.querySelector('#next-prayer-name');
+    if (nameEl) nameEl.textContent = t('prayers.' + np.name);
+    const timeEl = container.querySelector('#next-prayer-time');
+    if (timeEl) timeEl.textContent = formatTime12h(np.time);
+    container.querySelectorAll('.prayer-row.next').forEach(r => r.classList.remove('next'));
+    const remEl = container.querySelector('.prayer-remaining');
+    if (remEl) remEl.remove();
+    const rows = container.querySelectorAll('.prayer-row');
+    const daily = getDailyPrayers(AppState.timings);
+    const idx = daily.findIndex(p => p.name === np.name);
+    if (idx >= 0 && rows[idx]) {
+      rows[idx].classList.add('next');
+      const block = rows[idx].querySelector('.prayer-time-block');
+      if (block) {
+        block.insertAdjacentHTML('beforeend',
+          `<div class="prayer-remaining" data-prayer-remaining="${np.name}"><i class="fas fa-hourglass-half"></i> <span class="prayer-remaining-text">${formatCountdown(np.diffMs)}</span></div>`);
+      }
+    }
   },
 
   cleanup() {
