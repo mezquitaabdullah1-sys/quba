@@ -14,13 +14,31 @@ const HomePage = {
       // v40: SIEMPRE releer el servicio de ubicación — antes `AppState.location`
       // cortocircuitaba y la home podía quedarse con la ciudad anterior tras
       // cambiarla en otra pantalla (desincronización entre páginas).
-      const loc = await LocationService.getCurrent();
+      // v41: TOPE de 8 s al GPS/geocoding — en el primer arranque el
+      // sistema puede dejar el diálogo de permiso sin responder y la home se
+      // quedaba congelada en el skeleton (la «página vacía al abrir»). Pasado
+      // el tope se pinta al instante con la última ubicación conocida o la
+      // ubicación por defecto; si el GPS responde después, el siguiente render
+      // ya usa la ubicación real.
+      const loc = await Promise.race([
+        LocationService.getCurrent(),
+        new Promise((res) => setTimeout(() => {
+          res((LocationService.getCached && LocationService.getCached()) || LocationService.useDefault());
+        }, 8000)),
+      ]);
       if (isStale()) return;
       AppState.location = loc;
 
+      // v41: los horarios y la fecha hijri tienen TOPE de 12 s — con red
+      // lenta o colgada la home ya no espera indefinidamente: salta el catch
+      // y pinta con el cálculo offline (PrayerCalc) sobre la misma ubicación.
+      const withTimeout = (p, ms) => Promise.race([
+        p,
+        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms)),
+      ]);
       const [timings, hijri] = await Promise.all([
-        API.getPrayerTimes(loc.latitude, loc.longitude, new Date(), AppState.settings.calculationMethod),
-        API.gregorianToHijri(),
+        withTimeout(API.getPrayerTimes(loc.latitude, loc.longitude, new Date(), AppState.settings.calculationMethod), 12000),
+        withTimeout(API.gregorianToHijri(), 12000).catch(() => null),
       ]);
       if (isStale()) return;
 
@@ -49,6 +67,25 @@ const HomePage = {
     } catch (e) {
       console.warn('Home error:', e);
       if (isStale()) return;
+      // v41: NUNCA dejar la home vacía ni congelada — ante CUALQUIER fallo
+      // (red, GPS, API, primera apertura) se pinta al instante con el motor
+      // astronómico offline (PrayerCalc) sobre la última ubicación conocida
+      // o la por defecto. El usuario ve sus horarios (marcados como
+      // estimados) en vez de una pantalla en blanco.
+      try {
+        const loc2 = (typeof LocationService !== 'undefined' && LocationService.getCached && LocationService.getCached())
+          || (typeof LocationService !== 'undefined' ? LocationService.useDefault() : null);
+        if (loc2 && typeof API !== 'undefined' && API._offlinePrayerTimes) {
+          AppState.location = loc2;
+          const off = API._offlinePrayerTimes(loc2.latitude, loc2.longitude, new Date(), AppState.settings.calculationMethod);
+          AppState.timings = off.timings;
+          const verse2 = getFamousVerseOfTheDay();
+          const dua2 = getDuaOfTheDay();
+          this.renderContent(container, loc2, off.timings, null, verse2, dua2, null);
+          this.startCountdown();
+          return;
+        }
+      } catch (e2) { /* si ni el offline funciona, sigue al mensaje de error */ }
       // v21: skeleton offline — no perder el saludo ni la posibilidad de
       // reintentar solo porque falló todo lo demás (ubicación/red/etc.)
       const offline = !navigator.onLine;

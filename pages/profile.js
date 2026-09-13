@@ -419,7 +419,22 @@ const ProfilePage = {
         }
         AppState.timings = null;
         showToast(Cities.label(city), 2000);
-        this.render(document.getElementById('main-content'));
+        // v41: el selector se puede abrir desde la HOME (botón de ubicación)
+        // o desde el PERFIL. Antes se pintaba SIEMPRE el perfil → al cambiar
+        // la ciudad desde el inicio el usuario acababa «expulsado» a la
+        // página de ajustes. Ahora se vuelve a la página de origen y el
+        // cambio es inmediato (setManual ya no espera al servidor).
+        const container = document.getElementById('main-content');
+        const cur = (typeof Router !== 'undefined' && Router.current) ? Router.current.name : 'profile';
+        if (cur !== 'profile' && typeof HomePage !== 'undefined' && cur === 'home') {
+          HomePage.render(container);
+        } else if (cur !== 'profile' && Router.current && Router.current.route) {
+          const r = Router.current.route;
+          const m = r.method || 'render';
+          if (typeof r.page[m] === 'function') r.page[m](container, Router.current.params || {});
+        } else {
+          this.render(container);
+        }
       },
     });
   },

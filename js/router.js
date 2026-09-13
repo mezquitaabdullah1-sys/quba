@@ -31,6 +31,17 @@ const Router = {
       return;
     }
 
+    // v41: tocar la pestaña YA ACTIVA no vuelve a renderizar la página —
+    // antes cada toque en la pestaña actual lanzaba skeleton + peticiones de
+    // red (la «recarga al hacer cualquier cosa»). Solo se re-renderiza si la
+    // ruta o los parámetros cambian, o si se fuerza con options.force.
+    if (!options.force && !options.fromPopState && this.current
+        && this.current.name === routeName
+        && JSON.stringify(this.current.params || {}) === JSON.stringify(params || {})) {
+      this.updateTabs(route.tabId);
+      return;
+    }
+
     // v19: bump token FIRST so any in-flight async render from a previous
     // page (e.g. HomePage still awaiting its API) knows it is now stale and
     // must not wipe/overwrite the new page's DOM.

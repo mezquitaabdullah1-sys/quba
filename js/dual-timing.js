@@ -57,7 +57,10 @@ const DualTiming = {
       const dd = String(date.getDate()).padStart(2, '0');
       const mm = String(date.getMonth() + 1).padStart(2, '0');
       const key = `prayer_${city.lat.toFixed(2)}_${city.lon.toFixed(2)}_${dd}-${mm}-${date.getFullYear()}_${method}`;
-      if (!Storage.get(key)) Storage.set(key, data, CONFIG.CACHE_TTL * 14);
+      // v41: SOBRESCRIBIR siempre — un dato antiguo incorrecto ya no queda
+      // congelado 14 días tapando al horario correcto (igual que el fix v36
+      // de MuslimProSync para el horario principal).
+      Storage.set(key, data, CONFIG.CACHE_TTL * 14);
     } catch (e) { /* silencioso */ }
   },
 
@@ -153,9 +156,13 @@ const DualTiming = {
       for (const n of ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']) {
         out[n] = String(data.timings[n] || '').split(' ')[0];
       }
-      // v38: ajuste manual por oración también sobre los datos Muslim Pro
-      // cacheados (guardados en crudo) — igual que en el horario principal.
-      return (typeof PrayerCalc !== 'undefined') ? PrayerCalc.applyPrayerOffsets(out) : out;
+      // v41: el horario SECUNDARIO aplica EXACTAMENTE las mismas reglas que
+      // el principal: corrección regional (Jordania/Palestina → Isha =
+      // Maghrib+90) sobre TODOS los datos (incluidos los Muslim Pro cacheados
+      // en crudo) + ajuste manual por oración del usuario.
+      if (typeof PrayerCalc === 'undefined') return out;
+      return PrayerCalc.applyPrayerOffsets(
+        PrayerCalc.applyRegionalCorrections(out, city.country || '', city.lat, city.lon));
     };
 
     // 1) Caché compartida con el horario principal — SOLO si es dato
@@ -189,7 +196,10 @@ const DualTiming = {
       // 3) Aladhan por coordenadas (hora local de la ciudad, método EFECTIVO)
       if (typeof API !== 'undefined' && API._fetchWithTimeout) {
         try {
-          const url = `${CONFIG.API.ALADHAN}/timings/${dd}-${mm}-${yyyy}?latitude=${city.lat}&longitude=${city.lon}&method=${method}`;
+          // v41: en Aladhan el ID 19 es Argelia, no Jordania — pedir MWL (3)
+          // y dejar que applyRegionalCorrections aplique Maghrib+90 (JO/PS).
+          const apiMethod = (method === 19) ? 3 : method;
+          const url = `${CONFIG.API.ALADHAN}/timings/${dd}-${mm}-${yyyy}?latitude=${city.lat}&longitude=${city.lon}&method=${apiMethod}`;
           const res = await API._fetchWithTimeout(url, 8000);
           if (res.ok) {
             const json = await res.json();

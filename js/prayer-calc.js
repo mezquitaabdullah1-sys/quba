@@ -33,7 +33,7 @@ const PrayerCalc = {
     12: { fajr: 12,   isha: 12,   ishaMinutes: null }, // UOIF (Europa)
     13: { fajr: 18,   isha: 17,   ishaMinutes: null }, // Diyanet (Turquía)
     14: { fajr: 18,   isha: 17,   ishaMinutes: null }, // Aprox. (sin espec. pública offline)
-    19: { fajr: 18,   isha: null, ishaMinutes: 90 },   // Jordania (Awqaf) — Isha = Maghrib+90min
+    19: { fajr: 18,   isha: null, ishaMinutes: 90 },   // Jordania/Palestina (Awqaf) — Isha = Maghrib+90min
   },
   ASR_SHADOW_FACTOR: 1, // Shafi'i/estándar (igual que el default de Aladhan)
 
@@ -197,12 +197,20 @@ const PrayerCalc = {
       const c = (country || '').toString().toLowerCase();
       const o = (typeof AppState !== 'undefined' && AppState.settings && AppState.settings.prayerOffsets) || {};
 
-      // ── Jordania: Isha = Maghrib + 90 min (Ministerio de Awqaf jordano;
-      //    es el convenio que publica Muslim Pro para Jordania, EGYPTBIS) ──
+      // ── v41: Jordania Y PALESTINA — la misma regla oficial de Awqaf:
+      //    Isha = Maghrib + 90 minutos. Es exactamente lo que publica Muslim
+      //    Pro para Ramala, Nablus, Gaza, Jerusalén, Ammán, Irbid… (p. ej.
+      //    Ramala: Maghrib 18:36 → Isha 20:06, no 20:22 del cálculo angular
+      //    MWL 17°; Ammán: Maghrib 18:39 → Isha 20:09, no 20:19). Antes
+      //    Palestina se dejaba en MWL angular y el Isha salía adelantado
+      //    ~16 min respecto al horario real. ──
       const isJordan = c.includes('jordan') || c.includes('الأردن') || c.includes('اردن')
         // v36: bounding box también por coordenadas (ciudad manual sin país)
         || (typeof LocationService !== 'undefined' && LocationService.isJordan({ latitude: lat, longitude: lng }));
-      if (isJordan) {
+      const isPalestine = c.includes('palestin') || c.includes('فلسطين')
+        || (typeof LocationService !== 'undefined' && LocationService.isPalestine
+            && LocationService.isPalestine({ latitude: lat, longitude: lng, country }));
+      if (isJordan || isPalestine) {
         // No pisar un ajuste manual explícito del usuario sobre Isha
         if (Math.round(Number(o.Isha) || 0) !== 0) return timings;
         const [hh, mm] = timings.Maghrib.split(' ')[0].split(':').map(Number);
@@ -210,33 +218,8 @@ const PrayerCalc = {
         const total = ((hh * 60 + mm + 90) % 1440 + 1440) % 1440;
         const out = Object.assign({}, timings);
         out.Isha = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
-        out._regionFixed = 'JO';
+        out._regionFixed = isJordan ? 'JO' : 'PS';
         return out;
-      }
-
-      // ── v36: Palestina (Ramala, Nablus, Gaza, Jerusalén…) — Muslim Pro
-      //    publica MWL puro (Fajr 18° / Isha 17°). Si el motor local se
-      //    invocó con un método distinto (p. ej. el usuario tiene otro método
-      //    global), Palestina sigue mostrando el horario MWL que iguala a
-      //    Muslim Pro, salvo ajuste manual explícito sobre Isha.
-      const isPalestine = c.includes('palestin') || c.includes('فلسطين')
-        || (typeof LocationService !== 'undefined' && LocationService.isPalestine
-            && LocationService.isPalestine({ latitude: lat, longitude: lng, country }));
-      if (isPalestine && typeof AppState !== 'undefined' && AppState.settings) {
-        const m = Number(AppState.settings.calculationMethod || 3);
-        const params = this.METHOD_PARAMS[m] || this.METHOD_PARAMS[3];
-        // Solo si el método activo NO es ya MWL: recalcular Isha con 17°
-        // respecto al Maghrib mostrado (mantiene Dhuhr/Asr del método).
-        if (params.isha !== 17 && Math.round(Number(o.Isha) || 0) === 0) {
-          const out = Object.assign({}, timings);
-          // Isha = Maghrib + T(17°) no se puede derivar sin la declinación
-          // del día; como aproximación robusta: Isha = Maghrib + (Isha_actual
-          // − Maghrib_actual) corregido al delta angular de 17° se delega al
-          // cálculo principal (getTimings ya usa el método efectivo por
-          // ciudad vía API._effectiveMethod, que para Palestina devuelve 3).
-          out._regionFixed = 'PS';
-          return out;
-        }
       }
       return timings;
     } catch (e) { return timings; }

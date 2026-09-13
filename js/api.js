@@ -50,9 +50,13 @@ const API = {
       if (cached && cached._source === 'muslimpro') return this._applyTimeShift(cached);
 
       // v18: If online, fetch + also prefetch next 14 days in background
-      // v28: la regla jordana (Isha = Maghrib+90) se aplica SIEMPRE del lado
-      // cliente en _postProcessPrayerData (Aladhan no la calcula fielmente).
-      const url = `${CONFIG.API.ALADHAN}/timings/${dd}-${mm}-${yyyy}?latitude=${lat}&longitude=${lng}&method=${method}`;
+      // v28/v41: la regla jordana/palestina (Isha = Maghrib+90) se aplica
+      // SIEMPRE del lado cliente en _postProcessPrayerData. En Aladhan el ID
+      // 19 es ARGELIA (Isha 17° angular), NO Jordania — pedir 19 hacía que el
+      // Isha de Ammán saliera ~10 min tarde (20:19 en vez de 20:09). Pedimos
+      // MWL (3) a la API y corregimos en cliente con Maghrib+90.
+      const apiMethod = (method === 19) ? 3 : method;
+      const url = `${CONFIG.API.ALADHAN}/timings/${dd}-${mm}-${yyyy}?latitude=${lat}&longitude=${lng}&method=${apiMethod}`;
       const res = await this._fetchWithTimeout(url, 8000);
       if (!res.ok) throw new Error('Prayer API error');
       const json = await res.json();
@@ -430,7 +434,9 @@ const API = {
   // v36: mes completo desde Aladhan (método efectivo ya resuelto por el
   // llamador) + corrección regional (Jordania) + ajuste manual por oración.
   async _fetchAladhanMonth(lat, lon, month, year, method) {
-    const url = `${CONFIG.API.ALADHAN}/calendar/${year}/${month}?latitude=${lat}&longitude=${lon}&method=${method}`;
+    // v41: mismo mapeo que getPrayerTimes — en Aladhan 19 = Argelia.
+    const apiMethod = (method === 19) ? 3 : method;
+    const url = `${CONFIG.API.ALADHAN}/calendar/${year}/${month}?latitude=${lat}&longitude=${lon}&method=${apiMethod}`;
     const res = await this._fetchWithTimeout(url, 8000);
     if (!res.ok) throw new Error('Prayer month error');
     const json = await res.json();
@@ -453,11 +459,16 @@ const API = {
   },
 
   /**
-   * v36: método de cálculo EFECTIVO por ubicación — reproduce el convenio
-   * por defecto que usa Muslim Pro en cada país (verificado contra sus
-   * páginas oficiales, 2026-09-11): Jordania → 19 (Awqaf: Isha = Maghrib+90),
-   * Turquía → 13 (Diyanet), EE. UU./Canadá → 2 (ISNA), Francia → 12 (UOIF).
-   * Si el usuario eligió un método manualmente, se respeta siempre.
+   * v41: método de cálculo EFECTIVO por ubicación — reproduce el convenio
+   * por defecto que usa Muslim Pro en cada país: Jordania Y PALESTINA → 19
+   * (Awqaf: Fajr 18° + Isha = Maghrib+90 min — antes Palestina se trataba
+   * como MWL angular y el Isha salía ~16 min adelantado: 20:22 en vez de
+   * 20:06 en Ramala), Turquía → 13 (Diyanet), EE. UU./Canadá → 2 (ISNA),
+   * Francia → 12 (UOIF). Si el usuario eligió un método manualmente, se
+   * respeta siempre.
+   * OJO: en la API de Aladhan el ID 19 NO es Jordania (allí es Argelia,
+   * Isha 17°) — por eso las llamadas a Aladhan mapean 19 → 3 y la regla
+   * Maghrib+90 se aplica del lado cliente (applyRegionalCorrections).
    */
   _effectiveMethod(lat, lon, method) {
     try {
@@ -467,8 +478,8 @@ const API = {
       const loc = (typeof AppState !== 'undefined' && AppState.location) || null;
       const near = loc && Math.abs(loc.latitude - lat) < 0.5 && Math.abs(loc.longitude - lon) < 0.5;
       if (near && typeof LocationService !== 'undefined') {
-        if (LocationService.isJordan(loc)) return 19;      // Awqaf Jordania
-        if (LocationService.isPalestine && LocationService.isPalestine(loc)) return 3; // MWL (Muslim Pro)
+        if (LocationService.isJordan(loc)) return 19;      // Awqaf Jordania (Maghrib+90)
+        if (LocationService.isPalestine && LocationService.isPalestine(loc)) return 19; // Awqaf — misma regla que Jordania
       }
       // Ciudades conocidas de la lista: convenio oficial de su país
       if (typeof Cities !== 'undefined' && Cities.match) {
@@ -479,14 +490,14 @@ const API = {
           if (country.includes('ee. uu') || country.includes('canad')) return 2;  // ISNA
           if (country.includes('francia') || country.includes('france')) return 12; // UOIF
           if (country.includes('jordan')) return 19; // Awqaf Jordania
-          if (country.includes('palestin')) return 3;  // MWL (convención MP de Palestina)
+          if (country.includes('palestin')) return 19; // Awqaf Palestina — Isha = Maghrib+90
           if (country.includes('arabia saud')) return 4; // Umm Al-Qura
         }
       }
       // Bounding boxes cuando la ubicación no está en la lista
       if (typeof LocationService !== 'undefined') {
         if (LocationService.isJordan({ latitude: lat, longitude: lon })) return 19;
-        if (LocationService.isPalestine && LocationService.isPalestine({ latitude: lat, longitude: lon })) return 3;
+        if (LocationService.isPalestine && LocationService.isPalestine({ latitude: lat, longitude: lon })) return 19;
       }
     } catch (_) { /* nunca romper por la autodetección */ }
     return method;
