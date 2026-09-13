@@ -1,7 +1,7 @@
 // 🏷️ Versión centralizada — cargar primero
 // Un solo punto de verdad para SW, README, profile, manifest
-const APP_VERSION = '1.0.40';
-const APP_BUILD_DATE = '2026-09-13';
+const APP_VERSION = '1.0.38';
+const APP_BUILD_DATE = '2026-09-11';
 const APP_NAME = 'Quba';
 const APP_CODENAME = 'Quba Al-Mubarak';
 

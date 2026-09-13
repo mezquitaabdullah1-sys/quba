@@ -116,29 +116,6 @@ const Cities = {
 
   byId(id) { return CITY_LIST.find(c => c.id === id) || null; },
 
-  /**
-   * Ciudad de la lista más cercana a unas coordenadas (±0.15° ≈ ~15 km) o
-   * null. IMPORTANTE: devuelve la de MENOR distancia, no la primera que
-   * entre en el radio — Ramala (31.90, 35.20) y Jerusalén (31.77, 35.21)
-   * están a menos de 15 km y ambas entraban, y quedarse con la primera
-   * hacía que Ramala heredara el slug/horario de Jerusalén (uno de los
-   * desfases reportados).
-   */
-  match(lat, lon) {
-    try {
-      const la = Number(lat), lo = Number(lon);
-      if (!isFinite(la) || !isFinite(lo)) return null;
-      let best = null, bestD = Infinity;
-      for (const c of CITY_LIST) {
-        const dLat = c.lat - la, dLon = c.lon - lo;
-        if (Math.abs(dLat) > 0.15 || Math.abs(dLon) > 0.15) continue;
-        const d = dLat * dLat + dLon * dLon;
-        if (d < bestD) { bestD = d; best = c; }
-      }
-      return best;
-    } catch (e) { return null; }
-  },
-
   /** Etiqueta legible según el idioma actual: «اسم المدينة، البلد» o «Ciudad, País» */
   label(c) {
     if (!c) return '';

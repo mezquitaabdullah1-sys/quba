@@ -5,7 +5,6 @@ const PrayerPage = {
   deviceHeading: 0,
   orientationHandler: null,
   permissionGranted: false,
-  countdownInterval: null, // v36: actualiza el «tiempo restante» en la tabla
 
   async render(container, params = {}) {
     // v14: honor incoming tab param (e.g. Router.go('prayer',{tab:'monthly'}))
@@ -53,11 +52,7 @@ const PrayerPage = {
       <div class="page-header">
         <div class="page-title"><i class="fas fa-mosque"></i> ${t('tabPrayer')}</div>
         ${hijri ? `<div class="page-subtitle">${hijri.day} ${hijri.month?.en} ${hijri.year} هـ</div>` : ''}
-        <button class="prayers-location" onclick="ProfilePage.pickCity()" title="${escapeAttr(t('changeCity') || '')}" aria-label="${escapeAttr(t('changeCity') || 'Cambiar ciudad')}">
-          <i class="fas fa-location-dot"></i>
-          <span>${escapeHtml([loc.city, loc.country].filter(Boolean).join(', ') || (t('chooseCityOrLocation') || 'Elige una ciudad'))}</span>
-          <i class="fas fa-pen prayers-location-edit"></i>
-        </button>
+        ${loc.city ? `<div class="page-meta"><i class="fas fa-location-dot"></i> ${escapeHtml(loc.city)}${loc.country ? ', ' + escapeHtml(loc.country) : ''}</div>` : ''}
 
         <div class="inner-tabs">
           <button class="inner-tab ${this.activeTab === 'times' ? 'active' : ''}" onclick="PrayerPage.switchTab('times')">
@@ -85,26 +80,6 @@ const PrayerPage = {
     if (this.activeTab === 'qibla') {
       this.initOrientationListener();
     }
-    // v36: en la pestaña de horarios, actualizar el «tiempo restante» bajo
-    // la próxima oración cada segundo (y re-render al cambiar de oración).
-    if (this.activeTab === 'times') this.startCountdown();
-  },
-
-  startCountdown() {
-    if (this.countdownInterval) clearInterval(this.countdownInterval);
-    this.countdownInterval = setInterval(() => {
-      if (!AppState.timings) return;
-      const np = getNextPrayer(AppState.timings);
-      if (!np) return;
-      const remEl = document.querySelector('#prayer-tab-content .prayer-remaining');
-      if (!remEl) return;
-      if (remEl.dataset.prayerRemaining === np.name) {
-        const txt = remEl.querySelector('.prayer-remaining-text');
-        if (txt) txt.textContent = formatCountdown(np.diffMs);
-      } else {
-        this.render(document.getElementById('main-content'));
-      }
-    }, 1000);
   },
 
   switchTab(tab) {
@@ -140,7 +115,6 @@ const PrayerPage = {
             </div>
             <div class="prayer-time-block">
               <div class="prayer-time">${formatTime12h(p.time)}</div>
-              ${next?.name === p.name ? `<div class="prayer-remaining" data-prayer-remaining="${p.name}"><i class="fas fa-hourglass-half"></i> <span class="prayer-remaining-text">${formatCountdown(next.diffMs)}</span></div>` : ''}
               ${p.iqamah ? `<div class="prayer-iqamah"><i class="fas fa-bell"></i> ${t('iqamah') || 'Iqamah'} ${formatTime12h(p.iqamah)} <span class="iqamah-off">+${p.iqamahOffset} ${t('minShort') || 'min'}</span></div>` : ''}
             </div>
             ${canCheck ? `
@@ -522,11 +496,6 @@ const PrayerPage = {
       window.removeEventListener('deviceorientation', this.orientationHandler);
       window.removeEventListener('deviceorientationabsolute', this.orientationHandler);
       this.orientationHandler = null;
-    }
-    // v36: detener el contador de «tiempo restante» al salir de la página
-    if (this.countdownInterval) {
-      clearInterval(this.countdownInterval);
-      this.countdownInterval = null;
     }
   },
 };

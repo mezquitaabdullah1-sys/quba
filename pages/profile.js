@@ -185,15 +185,6 @@ const ProfilePage = {
           return `
         <div class="section-label"><i class="fas fa-sliders"></i> ${t('prayerAdjust') || 'Ajuste manual de horarios'}</div>
         <div class="card" style="padding:0;overflow:hidden;">
-          <div class="list-row" onclick="ProfilePage.togglePrayerAdjust()" style="cursor:pointer;">
-            <div class="list-row-icon"><i class="fas fa-sliders"></i></div>
-            <div class="list-row-info">
-              <div class="list-row-label">${t('prayerAdjust') || 'Ajuste manual de horarios'}</div>
-              <div class="list-row-value">${anySet ? ('⚠️ ' + (t('prayerAdjustActive') || '')) : (t('prayerAdjustTap') || '')}</div>
-            </div>
-            <i class="fas fa-chevron-down list-row-chevron prayer-adjust-chevron${this._prayerAdjustOpen ? ' open' : ''}"></i>
-          </div>
-          <div class="prayer-adjust-body" style="display:${this._prayerAdjustOpen ? 'block' : 'none'};">
           ${row('Fajr', 'cloud-moon')}
           ${row('Sunrise', 'sun')}
           ${row('Dhuhr', 'sun')}
@@ -207,7 +198,6 @@ const ProfilePage = {
           </div>` : ''}
           <div style="padding: 0 var(--sp-md) 12px; font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
             <i class="fas fa-circle-info"></i> ${t('prayerAdjustDesc') || 'Adelanta o retrasa cada oración entre −60 y +60 minutos. Se aplica sobre cualquier método de cálculo y sobre los horarios de Muslim Pro.'}
-          </div>
           </div>
         </div>`;
         })()}
@@ -405,16 +395,8 @@ const ProfilePage = {
     Cities.openPicker({
       title: t('changeCity') || 'Cambiar ciudad',
       currentId: null,
-      onSelect: async (city) => {
-        // v39: setManual ahora es async (resuelve también la elevación) —
-        // se espera para que el primer horario ya salga con la corrección.
-        await LocationService.setManual(city.lat, city.lon, Cities.plainName(city), Cities.plainCountry(city));
-        // v38: al cambiar de ciudad manualmente, purgar los horarios
-        // cacheados (cualquier fuente) para que la nueva ciudad se cargue
-        // limpia y no herede datos de la ciudad anterior.
-        if (typeof Storage !== 'undefined' && Storage.clearPrayerCache) {
-          Storage.clearPrayerCache();
-        }
+      onSelect: (city) => {
+        LocationService.setManual(city.lat, city.lon, Cities.plainName(city), Cities.plainCountry(city));
         AppState.timings = null;
         showToast(Cities.label(city), 2000);
         this.render(document.getElementById('main-content'));
@@ -544,16 +526,6 @@ const ProfilePage = {
     if (next === cur) return; // ya está en el límite ±60
     AppState.settings.prayerOffsets[name] = next;
     this._afterOffsetsChanged(next === 0 ? '0 ' + (t('minShort') || 'min') : null);
-  },
-
-  // v38: pliega/despliega el bloque de ajuste manual por oración
-  // (directo sobre el DOM, sin re-render, para no perder el scroll).
-  togglePrayerAdjust() {
-    this._prayerAdjustOpen = !this._prayerAdjustOpen;
-    const body = document.querySelector('.prayer-adjust-body');
-    if (body) body.style.display = this._prayerAdjustOpen ? 'block' : 'none';
-    const chev = document.querySelector('.prayer-adjust-chevron');
-    if (chev) chev.classList.toggle('open', !!this._prayerAdjustOpen);
   },
 
   resetOffsets() {
