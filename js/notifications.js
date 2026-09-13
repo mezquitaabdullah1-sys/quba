@@ -183,7 +183,10 @@ const PrayerNotifications = {
       }
       // 2) Respaldo offline con el motor de cálculo local
       if (!timings && typeof PrayerCalc !== 'undefined') {
-        timings = PrayerCalc.getTimings(loc.latitude, loc.longitude, new Date(), AppState.settings.calculationMethod || 3);
+        // v39: se pasa la elevación conocida de `loc` (si LocationService ya la
+        // resolvió) para que Shuruq/Maghrib/Isha salgan corregidos también aquí.
+        const elevation = typeof loc.elevation === 'number' ? loc.elevation : 0;
+        timings = PrayerCalc.getTimings(loc.latitude, loc.longitude, new Date(), AppState.settings.calculationMethod || 3, '', elevation);
       }
       if (timings) {
         AppState.timings = timings;

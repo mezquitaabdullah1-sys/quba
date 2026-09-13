@@ -107,8 +107,15 @@ const DualTiming = {
     const now = new Date();
     const offset = tz ? this._tzOffsetMs(tz, now) : 0;
     const shifted = new Date(now.getTime() + offset);
-    const method = AppState.settings.calculationMethod || 3;
-    const raw = PrayerCalc.getTimings(city.lat, city.lon, shifted, method);
+    // v36: método EFECTIVO de la ciudad (misma resolución que el horario
+    // principal y la tabla mensual): Jordania → 19 (Isha = Maghrib+90),
+    // Turquía → 13, EE.UU./Canadá → 2, Francia → 12… y el país permite a
+    // PrayerCalc aplicar la regla regional jordana también sin red.
+    const base = AppState.settings.calculationMethod || 3;
+    const method = (typeof API !== 'undefined' && API._effectiveMethod)
+      ? API._effectiveMethod(city.lat, city.lon, base)
+      : base;
+    const raw = PrayerCalc.getTimings(city.lat, city.lon, shifted, method, city.country || '');
     const deltaMin = Math.round(offset / 60000);
     const out = {};
     for (const key of Object.keys(raw)) out[key] = this._shiftTimeStr(raw[key], deltaMin);
@@ -128,22 +135,40 @@ const DualTiming = {
    */
   async getTimings(city) {
     if (!city) return null;
-    const method = AppState.settings.calculationMethod || 3;
+    // v36: método EFECTIVO de la ciudad secundaria — igual que el horario
+    // principal (Antes la franja usaba siempre el método global, p. ej. MWL,
+    // incluso para ciudades jordanas → Isha no coincidía con Muslim Pro).
+    const base = AppState.settings.calculationMethod || 3;
+    const method = (typeof API !== 'undefined' && API._effectiveMethod)
+      ? API._effectiveMethod(city.lat, city.lon, base)
+      : base;
     const now = new Date();
     const dd = String(now.getDate()).padStart(2, '0');
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const yyyy = now.getFullYear();
     const cacheKey = `prayer_${city.lat.toFixed(2)}_${city.lon.toFixed(2)}_${dd}-${mm}-${yyyy}_${method}`;
 
-    // 1) Caché compartida con el horario principal
+    const toOut = (data) => {
+      const out = {};
+      for (const n of ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']) {
+        out[n] = String(data.timings[n] || '').split(' ')[0];
+      }
+      // v38: ajuste manual por oración también sobre los datos Muslim Pro
+      // cacheados (guardados en crudo) — igual que en el horario principal.
+      return (typeof PrayerCalc !== 'undefined') ? PrayerCalc.applyPrayerOffsets(out) : out;
+    };
+
+    // 1) Caché compartida con el horario principal — SOLO si es dato
+    // Muslim Pro (exacto). Los datos Aladhan/locales cacheados ya no
+    // cortocircuitan: se reintenta Muslim Pro para autocurar desfases de
+    // ±1-3 min (Shuruk/Maghrib/Isha) vistos en Ramala, Nablus, Gaza,
+    // Madrid, Bogotá…
+    let stale = null;
     try {
       const cached = (typeof Storage !== 'undefined') && Storage.get(cacheKey);
       if (cached && cached.timings && cached.timings.Fajr) {
-        const out = {};
-        for (const n of ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']) {
-          out[n] = String(cached.timings[n] || '').split(' ')[0];
-        }
-        return out;
+        if (cached._source === 'muslimpro') return toOut(cached);
+        stale = cached;
       }
     } catch (e) { /* sigue */ }
 
@@ -154,15 +179,14 @@ const DualTiming = {
           const mp = await MuslimProSync.getTimings(city.lat, city.lon, now, method);
           if (mp && mp.timings && mp.timings.Fajr) {
             this._cache(city, now, method, mp);
-            const out = {};
-            for (const n of ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']) {
-              out[n] = String(mp.timings[n] || '').split(' ')[0];
-            }
-            return out;
+            return toOut(mp);
           }
         } catch (e) { /* sigue con Aladhan */ }
       }
-      // 3) Aladhan por coordenadas (hora local de la ciudad, método elegido)
+      // v36: si hay dato Muslim Pro antiguo de este mismo día en caché (la
+      // semana se descargó antes), úsalo antes de degradar a Aladhan.
+      if (stale && stale._source === 'muslimpro') return toOut(stale);
+      // 3) Aladhan por coordenadas (hora local de la ciudad, método EFECTIVO)
       if (typeof API !== 'undefined' && API._fetchWithTimeout) {
         try {
           const url = `${CONFIG.API.ALADHAN}/timings/${dd}-${mm}-${yyyy}?latitude=${city.lat}&longitude=${city.lon}&method=${method}`;
@@ -170,19 +194,25 @@ const DualTiming = {
           if (res.ok) {
             const json = await res.json();
             if (json.code === 200 && json.data && json.data.timings) {
-              this._cache(city, now, method, json.data);
-              const out = {};
-              for (const n of ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']) {
-                out[n] = String(json.data.timings[n] || '').split(' ')[0];
+              // v36: corrección regional (Jordania: Isha = Maghrib+90) también
+              // en la vía Aladhan de la franja — igual que el horario principal.
+              let data = json.data;
+              if (typeof PrayerCalc !== 'undefined') {
+                const t2 = PrayerCalc.applyPrayerOffsets(
+                  PrayerCalc.applyRegionalCorrections(data.timings, city.country || '', city.lat, city.lon));
+                if (t2 !== data.timings) data = Object.assign({}, data, { timings: t2 });
               }
-              return out;
+              this._cache(city, now, method, data);
+              return toOut(data);
             }
           }
         } catch (e) { /* respaldo offline */ }
       }
     }
 
-    // 4) Respaldo 100% offline (compensado al huso de la ciudad)
+    // 4a) Cualquier dato cacheado (aunque no sea Muslim Pro) antes que nada
+    if (stale) return toOut(stale);
+    // 4b) Respaldo 100% offline (compensado al huso de la ciudad)
     return this._getOfflineTimings(city);
   },
 

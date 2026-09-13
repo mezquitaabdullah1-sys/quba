@@ -52,6 +52,7 @@ const MuslimProSync = {
         if (res.ok) {
           const j = await res.json();
           if (j && j.timings && j.timings.Fajr) {
+            this._cacheWeek(lat, lng, method, j.week || null);
             return this._toData(j.timings, j.date || iso);
           }
         }
@@ -60,28 +61,39 @@ const MuslimProSync = {
 
     // ── 2) Acceso directo a muslimpro.com ──
     try {
-      const slug = await this._resolveSlug(lat, lng);
+      // v36: las 92 ciudades de la lista usan su slug OFICIAL verificado
+      // (tabla MuslimProCities) — sin búsqueda web, sin riesgo de resolver a
+      // una página de otra ciudad homónima (causa de los desfases en Ramala,
+      // Nablus, Gaza, Madrid, Bogotá…). Solo ubicaciones fuera de la lista
+      // pasan por la resolución dinámica Nominatim + DuckDuckGo.
+      let slug = (typeof MuslimProCities !== 'undefined') ? MuslimProCities.slugFor(lat, lng) : null;
+      if (!slug) slug = await this._resolveSlug(lat, lng);
       if (!slug) return null;
       const res = await fetch(`${this.MP_BASE}/${slug}`);
       if (!res.ok) return null;
       const html = await res.text();
       const days = this._parsePage(html);
-
-      // Cachear la semana completa publicada → offline idéntico a Muslim Pro
-      if (typeof Storage !== 'undefined' && typeof CONFIG !== 'undefined') {
-        for (const [d, t] of Object.entries(days)) {
-          const [y2, m2, d2] = d.split('-');
-          const key = `prayer_${lat.toFixed(2)}_${lng.toFixed(2)}_${d2}-${m2}-${y2}_${method}`;
-          if (!Storage.get(key)) {
-            Storage.set(key, this._toData(t, d), CONFIG.CACHE_TTL * 14);
-          }
-        }
-      }
+      this._cacheWeek(lat, lng, method, days);
 
       const t = days[iso];
       return t ? this._toData(t, iso) : null;
     } catch (_) {
       return null;
+    }
+  },
+
+  /**
+   * Cachea la semana completa publicada por Muslim Pro → offline idéntico.
+   * v36: SOBRESCRIBE cualquier valor previo (antes se usaba `if (!get)` y
+   * los datos antiguos de Aladhan/cálculo local, que difieren ±1-3 min en
+   * Shuruk/Maghrib/Isha, quedaban congelados 14 días tapando a Muslim Pro).
+   */
+  _cacheWeek(lat, lng, method, days) {
+    if (!days || typeof Storage === 'undefined' || typeof CONFIG === 'undefined') return;
+    for (const [d, t] of Object.entries(days)) {
+      const [y2, m2, d2] = d.split('-');
+      const key = `prayer_${lat.toFixed(2)}_${lng.toFixed(2)}_${d2}-${m2}-${y2}_${method}`;
+      Storage.set(key, this._toData(t, d), CONFIG.CACHE_TTL * 14);
     }
   },
 

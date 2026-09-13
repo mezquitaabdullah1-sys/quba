@@ -144,7 +144,11 @@ const HomePage = {
           <h2 class="section-title">${t('todayPrayers')}
             <span class="prayer-checkin-progress" title="${t('prayerCheckinTitle')}">${doneCount}/${totalCount} ✔</span>
           </h2>
-          <div class="prayers-location"><i class="fas fa-location-dot"></i> ${escapeHtml([loc.city, loc.country].filter(Boolean).join(', '))}</div>
+          <button class="prayers-location" onclick="ProfilePage.pickCity()" title="${escapeAttr(t('changeCity') || '')}" aria-label="${escapeAttr(t('changeCity') || 'Cambiar ciudad')}">
+            <i class="fas fa-location-dot"></i>
+            <span>${escapeHtml([loc.city, loc.country].filter(Boolean).join(', ') || (t('chooseCityOrLocation') || 'Elige una ciudad'))}</span>
+            <i class="fas fa-pen prayers-location-edit"></i>
+          </button>
           <div class="prayers-dates">
             ${hijri ? `<span class="prayers-date hijri" dir="${currentLocale === 'ar' ? 'rtl' : 'ltr'}"><i class="fas fa-moon"></i> <b>${t('dateHijriLabel')}:</b> ${hijri.day} ${currentLocale === 'ar' ? (hijri.month?.ar || hijri.month?.en) : (hijri.month?.en || hijri.month?.ar)} ${hijri.year} هـ</span>` : ''}
             <span class="prayers-date greg"><i class="fas fa-calendar-day"></i> <b>${t('dateGregorianLabel')}:</b> ${new Date().toLocaleDateString(currentLocale === 'ar' ? 'ar-EG' : currentLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
@@ -166,6 +170,7 @@ const HomePage = {
               </div>
               <div class="prayer-time-block">
                 <div class="prayer-time">${formatTime12h(p.time)}</div>
+                ${nextPrayer?.name === p.name ? `<div class="prayer-remaining" data-prayer-remaining="${p.name}"><i class="fas fa-hourglass-half"></i> <span class="prayer-remaining-text">${formatCountdown(nextPrayer.diffMs)}</span></div>` : ''}
               </div>
               ${canCheck ? `
                 <button class="prayer-check ${isDone ? 'checked' : ''} ${passed ? '' : 'locked'}"
@@ -305,10 +310,23 @@ const HomePage = {
   startCountdown() {
     if (this.countdownInterval) clearInterval(this.countdownInterval);
     this.countdownInterval = setInterval(() => {
-      const el = document.getElementById('countdown');
-      if (!el || !AppState.timings) return;
+      if (!AppState.timings) return;
       const np = getNextPrayer(AppState.timings);
-      if (np) el.textContent = formatCountdown(np.diffMs);
+      if (!np) return;
+      const el = document.getElementById('countdown');
+      if (el) el.textContent = formatCountdown(np.diffMs);
+      // v38: actualizar también el «tiempo restante» bajo la hora de la
+      // próxima oración en la tabla de la home (y moverlo si cambia la
+      // oración al pasar el adhan).
+      const remEl = document.querySelector('.prayer-remaining');
+      if (remEl) {
+        if (remEl.dataset.prayerRemaining === np.name) {
+          const txt = remEl.querySelector('.prayer-remaining-text');
+          if (txt) txt.textContent = formatCountdown(np.diffMs);
+        } else {
+          this.render(document.getElementById('main-content'));
+        }
+      }
     }, 1000);
   },
 

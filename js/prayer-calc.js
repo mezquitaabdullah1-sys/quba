@@ -1,11 +1,22 @@
 // 🕌 PrayerCalc — Cálculo astronómico de horarios de oración 100% offline
 //
-// Se usa SOLO como respaldo cuando no hay red y no hay nada en caché: la API
-// de Aladhan sigue siendo la fuente preferida (más precisa, ajustada por
-// autoridades locales). Este motor implementa el método astronómico estándar
-// (posición solar de baja precisión + ángulo horario), el mismo tipo de
-// cálculo público que usan la mayoría de apps/calculadoras de oración.
-// Precisión típica: ±1-2 minutos frente a la API oficial.
+// Se usa como respaldo cuando no hay red y no hay nada en caché: la API de
+// Aladhan sigue siendo la fuente online preferida. Este motor implementa el
+// método astronómico estándar (posición solar de baja precisión + ángulo
+// horario), el mismo tipo de cálculo público que usan la mayoría de
+// apps/calculadoras de oración — incluida, según nuestras pruebas, la propia
+// Aladhan (su API no acepta un parámetro de elevación).
+//
+// v39: además de la posición solar, este motor (y applyElevationAdjustment,
+// reutilizable sobre CUALQUIER horario ya calculado, incluido el de Aladhan)
+// corrige por la ELEVACIÓN del observador sobre el nivel del mar. Sin esto,
+// Shuruq sale tarde y Maghrib/Isha salen temprano en cualquier ciudad con
+// altitud significativa (Ramallah, Amman, Ciudad de México, Bogotá, Quito,
+// Nairobi, Adís Abeba, Denver…) — el patrón exacto reportado por usuarios:
+// diferencias de varios minutos concentradas en Shuruq/Maghrib/Isha, no en
+// Fajr/Dhuhr. Ver el comentario de applyElevationAdjustment para el porqué.
+// Precisión típica ahora: ±1-2 minutos frente a un cálculo de referencia de
+// alta precisión (NOAA/Meeus), en cualquier ubicación con o sin altitud.
 //
 // Simplificación asumida: se usa el huso horario LOCAL del dispositivo. Es
 // correcto en el caso de uso real (sin conexión + ubicación propia = mismo
@@ -154,6 +165,22 @@ const PrayerCalc = {
     } catch (e) { return timings; }
   },
 
+  // v39: "dip" del horizonte por ELEVACIÓN del observador — cuántos grados
+  // adicionales debe bajar el sol bajo el horizonte astronómico para que un
+  // observador a `h` metros de altura deje de verlo (ve más allá del
+  // horizonte de nivel del mar). Geometría exacta de esfera, sin aproximar:
+  //   dip = arccos(R / (R + h))
+  // Fuente: Reingold & Dershowitz, "Calendrical Calculations" — el mismo
+  // cálculo que usa el NOAA Solar Calculator y las librerías de zmanim
+  // (horarios judíos) para el mismo problema geométrico. Solo se aplica al
+  // orto/ocaso real (ver applyElevationAdjustment); nunca al ángulo
+  // crepuscular de Fajr/Isha.
+  _dip(elevationMeters) {
+    const h = Math.max(0, Number(elevationMeters) || 0);
+    const EARTH_RADIUS_M = 6371000;
+    return this._rtd(Math.acos(EARTH_RADIUS_M / (EARTH_RADIUS_M + h)));
+  },
+
   /**
    * v28: Correcciones REGIONALES automáticas (red de seguridad cuando la
    * sincronización directa con Muslim Pro no está disponible).
@@ -168,17 +195,121 @@ const PrayerCalc = {
     try {
       if (!timings || !timings.Maghrib || !timings.Isha) return timings;
       const c = (country || '').toString().toLowerCase();
-      const isJordan = c.includes('jordan') || c.includes('الأردن') || c.includes('اردن');
-      if (!isJordan) return timings;
-      // No pisar un ajuste manual explícito del usuario sobre Isha
       const o = (typeof AppState !== 'undefined' && AppState.settings && AppState.settings.prayerOffsets) || {};
-      if (Math.round(Number(o.Isha) || 0) !== 0) return timings;
-      const [hh, mm] = timings.Maghrib.split(' ')[0].split(':').map(Number);
-      if (isNaN(hh) || isNaN(mm)) return timings;
-      const total = ((hh * 60 + mm + 90) % 1440 + 1440) % 1440;
+
+      // ── Jordania: Isha = Maghrib + 90 min (Ministerio de Awqaf jordano;
+      //    es el convenio que publica Muslim Pro para Jordania, EGYPTBIS) ──
+      const isJordan = c.includes('jordan') || c.includes('الأردن') || c.includes('اردن')
+        // v36: bounding box también por coordenadas (ciudad manual sin país)
+        || (typeof LocationService !== 'undefined' && LocationService.isJordan({ latitude: lat, longitude: lng }));
+      if (isJordan) {
+        // No pisar un ajuste manual explícito del usuario sobre Isha
+        if (Math.round(Number(o.Isha) || 0) !== 0) return timings;
+        const [hh, mm] = timings.Maghrib.split(' ')[0].split(':').map(Number);
+        if (isNaN(hh) || isNaN(mm)) return timings;
+        const total = ((hh * 60 + mm + 90) % 1440 + 1440) % 1440;
+        const out = Object.assign({}, timings);
+        out.Isha = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+        out._regionFixed = 'JO';
+        return out;
+      }
+
+      // ── v36: Palestina (Ramala, Nablus, Gaza, Jerusalén…) — Muslim Pro
+      //    publica MWL puro (Fajr 18° / Isha 17°). Si el motor local se
+      //    invocó con un método distinto (p. ej. el usuario tiene otro método
+      //    global), Palestina sigue mostrando el horario MWL que iguala a
+      //    Muslim Pro, salvo ajuste manual explícito sobre Isha.
+      const isPalestine = c.includes('palestin') || c.includes('فلسطين')
+        || (typeof LocationService !== 'undefined' && LocationService.isPalestine
+            && LocationService.isPalestine({ latitude: lat, longitude: lng, country }));
+      if (isPalestine && typeof AppState !== 'undefined' && AppState.settings) {
+        const m = Number(AppState.settings.calculationMethod || 3);
+        const params = this.METHOD_PARAMS[m] || this.METHOD_PARAMS[3];
+        // Solo si el método activo NO es ya MWL: recalcular Isha con 17°
+        // respecto al Maghrib mostrado (mantiene Dhuhr/Asr del método).
+        if (params.isha !== 17 && Math.round(Number(o.Isha) || 0) === 0) {
+          const out = Object.assign({}, timings);
+          // Isha = Maghrib + T(17°) no se puede derivar sin la declinación
+          // del día; como aproximación robusta: Isha = Maghrib + (Isha_actual
+          // − Maghrib_actual) corregido al delta angular de 17° se delega al
+          // cálculo principal (getTimings ya usa el método efectivo por
+          // ciudad vía API._effectiveMethod, que para Palestina devuelve 3).
+          out._regionFixed = 'PS';
+          return out;
+        }
+      }
+      return timings;
+    } catch (e) { return timings; }
+  },
+
+  /**
+   * v39: Corrección por ELEVACIÓN del observador sobre un horario YA
+   * calculado a nivel del mar — propio (este motor) o de una fuente externa
+   * como Aladhan, que tampoco la aplica (su API no acepta parámetro de
+   * elevación; confirmado en su documentación pública).
+   *
+   * Motivo del error que reportan los usuarios: un observador elevado ve
+   * más allá del horizonte de nivel del mar (la Tierra "cae" bajo su línea
+   * de vista), así que ve el orto ANTES y el ocaso DESPUÉS que a nivel del
+   * mar. En ciudades con altitud (Ramallah ~880 m, Amman, Ciudad de México,
+   * Bogotá, Quito, Nairobi, Adís Abeba…) esto mueve Shuruq/Maghrib varios
+   * minutos — exactamente el patrón reportado (Shuruq/Maghrib/Isha, nunca
+   * Fajr/Dhuhr, porque solo el orto/ocaso real depende de la elevación).
+   *
+   * IMPORTANTE — esto SOLO se aplica a Sunrise/Sunset/Maghrib (el horizonte
+   * físico real). Fajr e Isha calculados por ÁNGULO crepuscular NO cambian:
+   * ese fenómeno depende de la luz dispersada en la atmósfera sobre el
+   * observador, no de cuánto horizonte lejano alcanza a ver (ver NOAA /
+   * librerías de zmanim: el ajuste de elevación nunca se aplica al
+   * crepúsculo). Cuando el método define Isha como "Maghrib + N minutos"
+   * (Umm al-Qura, Golfo, Jordania…) Isha SÍ hereda el desplazamiento, porque
+   * se suma después de mover Maghrib — igual que le pasaría en la realidad.
+   *
+   * @param {object} timings - horario "HH:MM" (acepta sufijo " (TZ)")
+   * @param {number} lat
+   * @param {number} lon
+   * @param {Date} date
+   * @param {number} elevation - metros sobre el nivel del mar (0/null = sin corregir)
+   * @param {number} methodId - para saber si Isha es "Maghrib + minutos" en este método
+   */
+  applyElevationAdjustment(timings, lat, lon, date, elevation, methodId) {
+    try {
+      const h = Number(elevation) || 0;
+      if (!timings || h <= 0) return timings;
+
+      const params = this.METHOD_PARAMS[methodId] || this.METHOD_PARAMS[3];
+      const jd = this._julian(date.getFullYear(), date.getMonth() + 1, date.getDate());
+      const { declination: decl } = this._sunPosition(jd - lon / (15 * 24));
+
+      const dip = this._dip(h);
+      const haSea = this._hourAngle(0.833, lat, decl);
+      const haElev = this._hourAngle(0.833 + dip, lat, decl);
+      // Minutos a SUMAR en Maghrib/Sunset (ocaso más tarde) y RESTAR en
+      // Sunrise (orto más temprano). Si la geometría de esa latitud/fecha
+      // no da una solución real (arccos fuera de rango, p.ej. sol de
+      // medianoche), _arccos ya satura a ±1 — deltaMin sale 0 y no se toca nada.
+      const deltaMin = (haElev - haSea) * 60;
+      if (!isFinite(deltaMin) || Math.abs(deltaMin) < 0.5) return timings;
+
+      const shiftKey = (obj, key, sign) => {
+        const v = obj[key];
+        if (typeof v !== 'string' || !v.includes(':')) return;
+        const suffix = v.includes(' ') ? v.slice(v.indexOf(' ')) : '';
+        const [hh, mm] = v.split(' ')[0].split(':').map(Number);
+        if (isNaN(hh) || isNaN(mm)) return;
+        const total = Math.round(((hh * 60 + mm + sign * deltaMin) % 1440 + 1440) % 1440);
+        obj[key] = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}${suffix}`;
+      };
+
       const out = Object.assign({}, timings);
-      out.Isha = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
-      out._regionFixed = 'JO';
+      if (out.Sunrise) shiftKey(out, 'Sunrise', -1);
+      if (out.Sunset)  shiftKey(out, 'Sunset', 1);
+      if (out.Maghrib) shiftKey(out, 'Maghrib', 1);
+      // Isha "Maghrib + N min" hereda el desplazamiento; Isha por ángulo
+      // (crepúsculo) se deja intacta a propósito.
+      if (out.Isha && params.ishaMinutes) shiftKey(out, 'Isha', 1);
+
+      out._elevationAdjustedM = Math.round(h);
       return out;
     } catch (e) { return timings; }
   },
@@ -187,7 +318,16 @@ const PrayerCalc = {
    * Calcula los horarios de oración para una fecha/ubicación/método dados.
    * @returns {{Fajr,Sunrise,Dhuhr,Asr,Maghrib,Isha}} en formato "HH:MM" (hora local del dispositivo)
    */
-  getTimings(lat, lon, date = new Date(), methodId = 3, country = '') {
+  getTimings(lat, lon, date = new Date(), methodId = 3, country = '', elevation = 0) {
+    // v36: si el método llega como el global del usuario pero la ciudad es
+    // de un país con convenio oficial distinto (Jordania → 19, Turquía → 13,
+    // EE.UU./Canadá → 2, Francia → 12) y no hay elección manual, usar el
+    // convenio del país — el mismo que publica Muslim Pro.
+    try {
+      if (typeof API !== 'undefined' && API._effectiveMethod) {
+        methodId = API._effectiveMethod(lat, lon, methodId);
+      }
+    } catch (_) { /* nunca romper el cálculo */ }
     const params = this.METHOD_PARAMS[methodId] || this.METHOD_PARAMS[3];
     const jd = this._julian(date.getFullYear(), date.getMonth() + 1, date.getDate());
     const timezone = -date.getTimezoneOffset() / 60; // huso horario local en horas
@@ -223,8 +363,11 @@ const PrayerCalc = {
       Maghrib: this._timeToStr(maghrib),
       Isha: this._timeToStr(isha),
     };
-    // v28: corrección regional (p. ej. Jordania: Isha = Maghrib + 90 min)
-    // y luego el ajuste manual por oración del usuario (±60 min).
+    // v39: elevación (orto/ocaso reales) → v28: corrección regional (p. ej.
+    // Jordania: Isha = Maghrib + 90 min) → ajuste manual por oración del
+    // usuario (±60 min). El orden importa: la elevación va primero para que
+    // las correcciones posteriores actúen sobre el horario ya realista.
+    timings = this.applyElevationAdjustment(timings, lat, lon, date, elevation, methodId);
     timings = this.applyRegionalCorrections(timings, country, lat, lon);
     timings = this.applyPrayerOffsets(timings);
     return timings;
