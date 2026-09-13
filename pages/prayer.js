@@ -50,12 +50,12 @@ const PrayerPage = {
       } catch (netErr) {
         // شبكة أمان: حساب فلكي محلي عند فشل الشبكة بدل رسالة خطأ الموقع
         if (typeof PrayerCalc !== 'undefined') {
+          // v43: نفس مسار API._offlinePrayerTimes — يشمل تعويض فرق توقيت
+          // المدينة المختارة يدوياً وختم _cityDeltaMs، بدل حساب خام كان
+          // يُظهر «الصلاة القادمة» بتوقيت الجهاز رغم اختلاف توقيت المدينة.
           const base = AppState.settings.calculationMethod || 3;
           const method = (API._effectiveMethod) ? API._effectiveMethod(loc.latitude, loc.longitude, base) : base;
-          let local = PrayerCalc.getTimings(loc.latitude, loc.longitude, new Date(), method, loc.countryEn || loc.country || '');
-          local = PrayerCalc.applyPrayerOffsets(local);
-          local._estimated = true;
-          timings = { timings: local };
+          timings = API._offlinePrayerTimes(loc.latitude, loc.longitude, new Date(), method);
         } else {
           throw netErr;
         }

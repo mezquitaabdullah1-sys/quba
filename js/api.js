@@ -3,6 +3,17 @@
 const API = {
   // ============ PRAYER TIMES (Aladhan) ============
   async getPrayerTimes(lat, lng, date = new Date(), method = 3) {
+    // v43: ختم فرق التوقيت بين المدينة المختارة والجهاز — تستخدمه شاشتا
+    // البداية والصلاة لعرض «الصلاة القادمة» بتوقيت المدينة المحلي عندما
+    // تُختار المدينة يدوياً، ويبقى 0 مع GPS فيظهر توقيت الجهاز كما هو.
+    const _cityDeltaMs = (typeof CityClock !== 'undefined')
+      ? CityClock.deltaMsFor(lat, lng, date) : 0;
+    const _withDelta = (data) => {
+      try {
+        if (data && data.timings) data.timings._cityDeltaMs = _cityDeltaMs;
+      } catch (e) { /* silencioso */ }
+      return data;
+    };
     const dd = String(date.getDate()).padStart(2, '0');
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     const yyyy = date.getFullYear();
@@ -19,13 +30,13 @@ const API = {
     // Aladhan/cálculo local (±1-3 min de desfase en Shuruk/Maghrib/Isha) YA
     // NO cortocircuita: se reintenta Muslim Pro en cada carga con red para
     // autocurar datos antiguos, y solo se usa como último respaldo.
-    if (cached && cached._source === 'muslimpro') return this._applyTimeShift(cached);
+    if (cached && cached._source === 'muslimpro') return _withDelta(this._applyTimeShift(cached));
 
     // v21: sin red → respaldo: caché local (aunque no sea Muslim Pro) y,
     // en su defecto, el cálculo astronómico local.
     if (!navigator.onLine) {
-      if (cached) return this._applyTimeShift(cached);
-      return this._offlinePrayerTimes(lat, lng, date, method);
+      if (cached) return _withDelta(this._applyTimeShift(cached));
+      return _withDelta(this._offlinePrayerTimes(lat, lng, date, method));
     }
 
     try {
@@ -37,7 +48,7 @@ const API = {
           const mp = await MuslimProSync.getTimings(lat, lng, date, method);
           if (mp && mp.timings && mp.timings.Fajr) {
             Storage.set(cacheKey, mp, CONFIG.CACHE_TTL * 14); // 14 days cache
-            return this._applyTimeShift(mp);
+            return _withDelta(this._applyTimeShift(mp));
           }
         } catch (e) {
           console.warn('MuslimPro sync no disponible, usando Aladhan:', e.message);
@@ -47,7 +58,7 @@ const API = {
       // v36: Muslim Pro inalcanzable pero ya hay un dato Muslim Pro cacheado
       // de este día (p. ej. la página semanal se cargó antes): úsalo aunque
       // sea viejo antes de degradar a Aladhan — sigue siendo EXACTO.
-      if (cached && cached._source === 'muslimpro') return this._applyTimeShift(cached);
+      if (cached && cached._source === 'muslimpro') return _withDelta(this._applyTimeShift(cached));
 
       // v18: If online, fetch + also prefetch next 14 days in background
       // v28/v41: la regla jordana/palestina (Isha = Maghrib+90) se aplica
@@ -69,11 +80,11 @@ const API = {
       // Background prefetch: next 14 days so app works offline for 2 weeks
       this._prefetchNext14Days(lat, lng, method).catch(() => {});
 
-      return this._applyTimeShift(json.data);
+      return _withDelta(this._applyTimeShift(json.data));
     } catch (e) {
       // Red inestable/caída a mitad: nunca dejar al usuario sin nada
       console.warn('Prayer API offline, calculando localmente:', e.message);
-      return this._offlinePrayerTimes(lat, lng, date, method);
+      return _withDelta(this._offlinePrayerTimes(lat, lng, date, method));
     }
   },
 
@@ -162,7 +173,23 @@ const API = {
     const country = this._countryFor(lat, lng);
     // v39: la elevación corrige Shuruq/Maghrib/Isha (ver applyElevationAdjustment)
     const elevation = this._elevationFor(lat, lng);
-    const timings = PrayerCalc.getTimings(lat, lng, date, method, country, elevation);
+    // v43: فرق توقيت المدينة اليدوية عن الجهاز — في الوضع دون اتصال يحسب
+    // PrayerCalc بالمنطقة الشمسية ثم يُزاح الناتج إلى التوقيت المحلي للمدينة
+    // (مع GPS الفرق = 0 فيبقى توقيت الجهاز كما هو).
+    const cityDeltaMs = (typeof CityClock !== 'undefined')
+      ? CityClock.deltaMsFor(lat, lng, date) : 0;
+    const cityNow = new Date(date.getTime() + cityDeltaMs);
+    const timings = PrayerCalc.getTimings(lat, lng, cityNow, method, country, elevation);
+    if (cityDeltaMs) {
+      const deltaMin = Math.round(cityDeltaMs / 60000);
+      for (const key of Object.keys(timings)) {
+        const v = timings[key];
+        if (typeof v === 'string' && v.includes(':')) timings[key] = PrayerCalc._shiftTimeStr(v, deltaMin);
+      }
+    }
+    // v43: ختم فرق التوقيت داخل timings أيضاً — بعض الشاشات تستدعي هذه
+    // الدالة مباشرة (دون المرور بـ getPrayerTimes) فتحتاج الختم هنا.
+    try { timings._cityDeltaMs = cityDeltaMs; } catch (e) { /* silencioso */ }
     // _estimated se duplica DENTRO de timings porque varias pantallas hacen
     // `AppState.timings = resultado.timings` (pierden el nivel exterior).
     timings._estimated = true;
@@ -1189,23 +1216,40 @@ function getDailyPrayers(timings) {
 function getNextPrayer(timings) {
   if (!timings) return null;
   const order = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+  // v43: عند اختيار المدينة يدوياً تكون المواقيت بتوقيت المدينة المحلي —
+  // لذا نحوّل كل وقت إلى لحظته الحقيقية (CityClock) قبل مقارنته بـ«الآن»،
+  // فيظهر العدّ التنازلي صحيحاً. مع GPS يكون الفرق 0 ولا يتغيّر شيء.
+  const deltaMs = Number(timings._cityDeltaMs) || 0;
   const now = new Date();
   for (const name of order) {
     const ts = (timings[name] || '').split(' ')[0];
     if (!ts) continue;
-    const [h, m] = ts.split(':').map(Number);
-    const d = new Date();
-    d.setHours(h, m, 0, 0);
+    let d;
+    if (deltaMs && typeof CityClock !== 'undefined') {
+      d = CityClock.toDate(ts, deltaMs, now);
+    } else {
+      const [h, m] = ts.split(':').map(Number);
+      if (isNaN(h) || isNaN(m)) continue;
+      d = new Date();
+      d.setHours(h, m, 0, 0);
+    }
+    if (!d) continue;
     if (d > now) {
       const diffMs = d - now;
       return { name, time: ts, diffMs, date: d };
     }
   }
   const ts = (timings.Fajr || '05:00').split(' ')[0];
-  const [h, m] = ts.split(':').map(Number);
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  d.setHours(h, m, 0, 0);
+  let d;
+  if (deltaMs && typeof CityClock !== 'undefined') {
+    d = CityClock.toDate(ts, deltaMs, now);
+    if (d) d = new Date(d.getTime() + 24 * 60 * 60 * 1000);
+  } else {
+    const [h, m] = ts.split(':').map(Number);
+    d = new Date();
+    d.setDate(d.getDate() + 1);
+    d.setHours(h || 5, m || 0, 0, 0);
+  }
   return { name: 'Fajr', time: ts, diffMs: d - now, date: d, nextDay: true };
 }
 

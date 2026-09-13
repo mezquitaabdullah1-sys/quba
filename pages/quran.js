@@ -796,6 +796,10 @@ const QuranPage = {
     };
     const te = e => {
       if (x === null) return;
+      // v43: لا تعمل إلا ونحن فعلاً داخل قارئ السور — حماية إضافية لو بقي
+      // المعالج لسبب ما بعد الانتقال لصفحة أخرى.
+      if (typeof Router !== 'undefined' && Router.current
+          && !['quran', 'surah'].includes(Router.current.name)) { x = null; return; }
       const tt = e.changedTouches[0];
       const dx = tt.clientX - x;
       const dy = tt.clientY - y;
@@ -2065,5 +2069,16 @@ const QuranPage = {
     const player = document.getElementById('audio-player');
     if (player) { player.pause(); player.src = ''; }
     this.playingAyah = null;
+    // v43: إزالة سحب التنقل بين السور عند مغادرة صفحة القرآن — قبل ذلك كان
+    // المعالج يبقى معلّقاً على #main-content، فأي سحب في الصفحات الأخرى كان
+    // يفتح القرآن ويقلب السور. الآن يعمل فقط والقرآن مفتوح.
+    if (this._readerSwipeHandlers) {
+      const mc = document.getElementById('main-content');
+      if (mc) {
+        try { mc.removeEventListener('touchstart', this._readerSwipeHandlers.ts); } catch (e) {}
+        try { mc.removeEventListener('touchend', this._readerSwipeHandlers.te); } catch (e) {}
+      }
+      this._readerSwipeHandlers = null;
+    }
   },
 };

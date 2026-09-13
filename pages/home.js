@@ -42,6 +42,13 @@ const HomePage = {
       ]);
       if (isStale()) return;
 
+      // v43: ختم الإحداثيات على المواقيت كي تستخدمها صفحة الصلاة مع ختم
+      // فرق التوقيت نفسه بدل إعادة الجلب (نفس منطق stamp في PrayerPage).
+      if (timings.timings && loc) {
+        timings.timings._lat = loc.latitude;
+        timings.timings._lon = loc.longitude;
+        timings.timings._date = new Date().toDateString();
+      }
       AppState.timings = timings.timings;
       AppState.hijri = hijri;
 
@@ -78,6 +85,11 @@ const HomePage = {
         if (loc2 && typeof API !== 'undefined' && API._offlinePrayerTimes) {
           AppState.location = loc2;
           const off = API._offlinePrayerTimes(loc2.latitude, loc2.longitude, new Date(), AppState.settings.calculationMethod);
+          // v43: ختم الإحداثيات — ضروري لئلا تُعيد صفحة الصلاة جلب المواقيت
+          // من جديد وتفقد ختم فرق التوقيت (_cityDeltaMs) الخاص بالمدينة.
+          off.timings._lat = loc2.latitude;
+          off.timings._lon = loc2.longitude;
+          off.timings._date = new Date().toDateString();
           AppState.timings = off.timings;
           const verse2 = getFamousVerseOfTheDay();
           const dua2 = getDuaOfTheDay();

@@ -226,21 +226,24 @@ const QuranMushafPage = {
   },
 
   // التقليب بالسحب (معكوس الاتجاه): اليمين = الصفحة التالية، اليسار = السابقة
+  // v43: المعالجات تُحفَظ وتُزال في cleanup() — قبل ذلك كانت تبقى معلّقة على
+  // #main-content بعد مغادرة المصحف، فكان السحب يقلب صفحات المصحف حتى وأنت
+  // في صفحات أخرى من التطبيق.
   _bindSwipe() {
     const mc = document.getElementById('main-content');
     if (!mc) return;
     if (this._swipeBound) return;
     this._swipeBound = true;
 
-    mc.addEventListener('touchstart', e => {
+    this._swipeTs = e => {
       if (!document.getElementById('msh-page')) return;
       const tt = e.touches[0];
       this._touchX = tt.clientX;
       this._touchY = tt.clientY;
-    }, { passive: true });
-
-    mc.addEventListener('touchend', e => {
-      if (this._touchX === null || !document.getElementById('msh-page') || this._animating) return;
+    };
+    this._swipeTe = e => {
+      if (this._touchX === null || this._touchX === undefined) return;
+      if (!document.getElementById('msh-page') || this._animating) { this._touchX = null; return; }
       const tt = e.changedTouches[0];
       const dx = tt.clientX - this._touchX;
       const dy = tt.clientY - this._touchY;
@@ -249,7 +252,9 @@ const QuranMushafPage = {
         if (dx > 0) this.nextPage();   // سحب لليمين ← الصفحة التالية
         else this.prevPage();          // سحب لليسار ← الصفحة السابقة
       }
-    }, { passive: true });
+    };
+    mc.addEventListener('touchstart', this._swipeTs, { passive: true });
+    mc.addEventListener('touchend', this._swipeTe, { passive: true });
 
     // أسهم لوحة المفاتيح (للحاسوب) — نفس اتجاه السحب
     document.addEventListener('keydown', this._keyHandler = (e) => {
@@ -505,6 +510,17 @@ const QuranMushafPage = {
     if (this._keyHandler) {
       document.removeEventListener('keydown', this._keyHandler);
       this._keyHandler = null;
+    }
+    // v43: إزالة معالجات السحب من #main-content أيضاً — السحب بين صفحات
+    // المصحف يعمل الآن فقط ما دام المصحف مفتوحاً.
+    if (this._swipeBound) {
+      const mc = document.getElementById('main-content');
+      if (mc) {
+        try { mc.removeEventListener('touchstart', this._swipeTs); } catch (e) {}
+        try { mc.removeEventListener('touchend', this._swipeTe); } catch (e) {}
+      }
+      this._swipeTs = null;
+      this._swipeTe = null;
       this._swipeBound = false;
     }
   },

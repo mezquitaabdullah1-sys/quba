@@ -114,6 +114,10 @@ const PrayerNotifications = {
 
     const DAY_MS = 24 * 60 * 60 * 1000;
 
+    // v43: فرق توقيت المدينة اليدوية — الأذان والتذكير يُبرمجان على اللحظة
+    // الحقيقية للصلاة في المدينة المختارة (مع GPS الفرق = 0 دون تغيير).
+    const cityDeltaMs = Number(timings._cityDeltaMs) || 0;
+
     ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].forEach(prayer => {
       const timeStr = timings[prayer];
       if (!timeStr) return;
@@ -124,8 +128,14 @@ const PrayerNotifications = {
       const prayerName = prayerNames[prayer] || prayer;
 
       // 1) Adhan automático a la hora exacta de la oración
-      const target = new Date();
-      target.setHours(h, m, 0, 0);
+      let target;
+      if (cityDeltaMs && typeof CityClock !== 'undefined') {
+        target = CityClock.toDate(clean, cityDeltaMs, new Date());
+        if (!target) return;
+      } else {
+        target = new Date();
+        target.setHours(h, m, 0, 0);
+      }
       const delay = target.getTime() - Date.now();
       if (wantAdhan && delay >= 0 && delay <= DAY_MS) {
         const timerId = setTimeout(() => {
