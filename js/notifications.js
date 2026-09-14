@@ -196,7 +196,17 @@ const PrayerNotifications = {
         // v39: se pasa la elevación conocida de `loc` (si LocationService ya la
         // resolvió) para que Shuruq/Maghrib/Isha salgan corregidos también aquí.
         const elevation = typeof loc.elevation === 'number' ? loc.elevation : 0;
-        timings = PrayerCalc.getTimings(loc.latitude, loc.longitude, new Date(), AppState.settings.calculationMethod || 3, '', elevation);
+        // v44: antes se usaba el método GLOBAL en crudo (AppState.settings.
+        // calculationMethod) sin pasar por API._effectiveMethod — un usuario
+        // en Jordania con MWL como método global habría recibido sus alarmas
+        // de medianoche con el método equivocado (y país vacío, así que
+        // tampoco corregía nada). Se resuelve igual que el resto de la app.
+        const base = AppState.settings.calculationMethod || 3;
+        const method = (typeof API !== 'undefined' && API._effectiveMethod)
+          ? API._effectiveMethod(loc.latitude, loc.longitude, base)
+          : base;
+        const country = loc.countryEn || loc.country || '';
+        timings = PrayerCalc.getTimings(loc.latitude, loc.longitude, new Date(), method, country, elevation);
       }
       if (timings) {
         AppState.timings = timings;

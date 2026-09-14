@@ -97,6 +97,52 @@ const DualTiming = {
   },
 
   /**
+   * v44: elevación (m) de una ciudad de la lista — corrige Shuruq/Maghrib/
+   * Isha igual que en el horario principal (ver PrayerCalc.
+   * applyElevationAdjustment). A diferencia de `API._elevationFor` (pensada
+   * solo para la ubicación ACTUAL del dispositivo), esta cachea por
+   * `city.id` en Storage, así que sirve para cualquier ciudad secundaria
+   * aunque el usuario esté físicamente en otro país.
+   * Lectura SÍNCRONA de la caché (para el pintado instantáneo offline) +
+   * relleno en segundo plano la primera vez que se pide una ciudad nueva
+   * estando online — nunca bloquea ni lanza.
+   */
+  _elevationForCity(city) {
+    try {
+      if (!city || typeof Storage === 'undefined') return 0;
+      const key = `city_elev_${city.id}`;
+      const cached = Storage.get(key);
+      if (typeof cached === 'number') return cached;
+      if (typeof navigator !== 'undefined' && navigator.onLine &&
+          typeof API !== 'undefined' && API.fetchElevation) {
+        API.fetchElevation(city.lat, city.lon).then((elevation) => {
+          if (typeof elevation === 'number' && typeof CONFIG !== 'undefined') {
+            Storage.set(key, elevation, CONFIG.CACHE_TTL * 365); // no cambia: caché larga
+          }
+        }).catch(() => {});
+      }
+      return 0; // hasta que llegue la respuesta, sin corregir (igual que antes)
+    } catch (e) { return 0; }
+  },
+
+  /** Versión ASÍNCRONA de _elevationForCity — para la vía Aladhan, que ya es async. */
+  async _elevationForCityAsync(city) {
+    try {
+      if (!city || typeof Storage === 'undefined') return 0;
+      const key = `city_elev_${city.id}`;
+      const cached = Storage.get(key);
+      if (typeof cached === 'number') return cached;
+      if (typeof API === 'undefined' || !API.fetchElevation) return 0;
+      const elevation = await API.fetchElevation(city.lat, city.lon);
+      if (typeof elevation === 'number' && typeof CONFIG !== 'undefined') {
+        Storage.set(key, elevation, CONFIG.CACHE_TTL * 365);
+        return elevation;
+      }
+      return 0;
+    } catch (e) { return 0; }
+  },
+
+  /**
    * Horarios OFFLINE en la HORA LOCAL de la ciudad secundaria (respaldo).
    * 1) Se pide a PrayerCalc el día "de pared" de la ciudad (now + offset),
    *    lo que fija la fecha correcta para el cálculo solar.
@@ -110,15 +156,18 @@ const DualTiming = {
     const now = new Date();
     const offset = tz ? this._tzOffsetMs(tz, now) : 0;
     const shifted = new Date(now.getTime() + offset);
-    // v36: método EFECTIVO de la ciudad (misma resolución que el horario
-    // principal y la tabla mensual): Jordania → 19 (Isha = Maghrib+90),
-    // Turquía → 13, EE.UU./Canadá → 2, Francia → 12… y el país permite a
-    // PrayerCalc aplicar la regla regional jordana también sin red.
+    // v36/v44: método EFECTIVO de la ciudad (misma resolución que el
+    // horario principal y la tabla mensual): Jordania → 19 (Awqaf,
+    // Fajr18°/Isha18° angular — ver METHOD_PARAMS[19]), Turquía → 13,
+    // EE.UU./Canadá → 2, Francia → 12.
     const base = AppState.settings.calculationMethod || 3;
     const method = (typeof API !== 'undefined' && API._effectiveMethod)
       ? API._effectiveMethod(city.lat, city.lon, base)
       : base;
-    const raw = PrayerCalc.getTimings(city.lat, city.lon, shifted, method, city.country || '');
+    // v44: elevación de la ciudad secundaria (antes siempre 0 aquí, aunque
+    // el horario principal SÍ la aplicaba — ver _elevationForCity arriba).
+    const elevation = this._elevationForCity(city);
+    const raw = PrayerCalc.getTimings(city.lat, city.lon, shifted, method, city.country || '', elevation);
     const deltaMin = Math.round(offset / 60000);
     const out = {};
     for (const key of Object.keys(raw)) out[key] = this._shiftTimeStr(raw[key], deltaMin);
@@ -156,10 +205,10 @@ const DualTiming = {
       for (const n of ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']) {
         out[n] = String(data.timings[n] || '').split(' ')[0];
       }
-      // v41: el horario SECUNDARIO aplica EXACTAMENTE las mismas reglas que
-      // el principal: corrección regional (Jordania/Palestina → Isha =
-      // Maghrib+90) sobre TODOS los datos (incluidos los Muslim Pro cacheados
-      // en crudo) + ajuste manual por oración del usuario.
+      // v41/v44: el horario SECUNDARIO aplica exactamente las mismas reglas
+      // que el principal (applyRegionalCorrections es hoy un no-op — ver su
+      // comentario — pero se deja en la cadena por si se añade alguna
+      // corrección regional real en el futuro) + ajuste manual por oración.
       if (typeof PrayerCalc === 'undefined') return out;
       return PrayerCalc.applyPrayerOffsets(
         PrayerCalc.applyRegionalCorrections(out, city.country || '', city.lat, city.lon));
@@ -196,20 +245,26 @@ const DualTiming = {
       // 3) Aladhan por coordenadas (hora local de la ciudad, método EFECTIVO)
       if (typeof API !== 'undefined' && API._fetchWithTimeout) {
         try {
-          // v41: en Aladhan el ID 19 es Argelia, no Jordania — pedir MWL (3)
-          // y dejar que applyRegionalCorrections aplique Maghrib+90 (JO/PS).
-          const apiMethod = (method === 19) ? 3 : method;
+          // v44: en Aladhan el ID 19 es Argelia, no Jordania — Jordania usa
+          // el método nativo 23 de Aladhan (Awqaf, Fajr18°/Isha18°), igual
+          // que en API.getPrayerTimes.
+          const apiMethod = (method === 19) ? 23 : method;
           const url = `${CONFIG.API.ALADHAN}/timings/${dd}-${mm}-${yyyy}?latitude=${city.lat}&longitude=${city.lon}&method=${apiMethod}`;
           const res = await API._fetchWithTimeout(url, 8000);
           if (res.ok) {
             const json = await res.json();
             if (json.code === 200 && json.data && json.data.timings) {
-              // v36: corrección regional (Jordania: Isha = Maghrib+90) también
-              // en la vía Aladhan de la franja — igual que el horario principal.
+              // v44: la vía Aladhan de la franja secundaria NO aplicaba la
+              // corrección de elevación (a diferencia del horario principal)
+              // — por eso Ammán/Bogotá/Quito… salían con Shuruq/Maghrib
+              // varios minutos desviados también aquí. Se aplica ahora igual
+              // que en API._postProcessPrayerData.
               let data = json.data;
               if (typeof PrayerCalc !== 'undefined') {
-                const t2 = PrayerCalc.applyPrayerOffsets(
-                  PrayerCalc.applyRegionalCorrections(data.timings, city.country || '', city.lat, city.lon));
+                const elevation = await this._elevationForCityAsync(city);
+                let t2 = PrayerCalc.applyElevationAdjustment(data.timings, city.lat, city.lon, now, elevation, method);
+                t2 = PrayerCalc.applyPrayerOffsets(
+                  PrayerCalc.applyRegionalCorrections(t2, city.country || '', city.lat, city.lon));
                 if (t2 !== data.timings) data = Object.assign({}, data, { timings: t2 });
               }
               this._cache(city, now, method, data);

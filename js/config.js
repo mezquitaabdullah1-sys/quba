@@ -26,9 +26,11 @@ const CONFIG = {
     12: { es: 'UOIF (Europa)',                  ar: 'UOIF (أوروبا)',               en: 'UOIF (Europe)' },
     13: { es: 'Diyanet (Turquía)',              ar: 'الشؤون الدينية (تركيا)',      en: 'Diyanet (Türkiye)' },
     14: { es: 'Espiritualidad Islámica España', ar: 'الروحانية الإسلامية (إسبانيا)', en: 'Islamic Spirituality Spain' },
-    // v28: Jordania — Ministerio de Awqaf: Fajr 18° y Isha = Maghrib + 90 min.
-    // El ID 19 se reserva también en Aladhan; al usarlo se aplica tune para
-    // reproducir los horarios oficiales jordanos minuto a minuto.
+    // v28/v44: Jordania — Ministerio de Awqaf: Fajr 18° / Isha 18° angular
+    // (verificado 2026-09-13 contra awqaf.gov.jo; NO es un fijo Maghrib+90,
+    // esa cifra de v1.0.35 no se sostuvo). Aladhan tiene ID 23 nativo para
+    // este método; esta app usa internamente el ID 19 para no chocar con su
+    // ID 19 real (Argelia) — ver API._effectiveMethod.
     19: { es: 'Min. de Awqaf de Jordania',      ar: 'وزارة الأوقاف الأردنية',    en: 'Jordan Ministry of Awqaf' },
   },
 

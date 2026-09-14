@@ -33,7 +33,14 @@ const PrayerCalc = {
     12: { fajr: 12,   isha: 12,   ishaMinutes: null }, // UOIF (Europa)
     13: { fajr: 18,   isha: 17,   ishaMinutes: null }, // Diyanet (Turquía)
     14: { fajr: 18,   isha: 17,   ishaMinutes: null }, // Aprox. (sin espec. pública offline)
-    19: { fajr: 18,   isha: null, ishaMinutes: 90 },   // Jordania/Palestina (Awqaf) — Isha = Maghrib+90min
+    // v44: Jordania (Ministerio de Awqaf) — Fajr 18°/Isha 18° angular, NO
+    // "Maghrib+90min" (esa cifra, de v1.0.35, no resistió la verificación en
+    // vivo del 2026-09-13 contra awqaf.gov.jo: el intervalo real ronda 76-77
+    // min en septiembre, no 90 — ver comentario en applyRegionalCorrections
+    // y en API._effectiveMethod). Equivale a "Univ. Islamic Sciences,
+    // Karachi"; ajustado con la elevación real de Ammán da un error medio
+    // <1 min frente a 10 días del calendario oficial jordano.
+    19: { fajr: 18,   isha: 18,   ishaMinutes: null }, // Jordania (Awqaf)
   },
   ASR_SHADOW_FACTOR: 1, // Shafi'i/estándar (igual que el default de Aladhan)
 
@@ -182,10 +189,25 @@ const PrayerCalc = {
   },
 
   /**
-   * v28: Correcciones REGIONALES automáticas (red de seguridad cuando la
-   * sincronización directa con Muslim Pro no está disponible).
-   *  • Jordania → Isha = Maghrib + 90 min (regla oficial del Ministerio de
-   *    Awqaf jordano; verificado con los horarios publicados por Muslim Pro).
+   * v28-v43: Correcciones REGIONALES automáticas (red de seguridad cuando la
+   * sincronización directa con Muslim Pro no está disponible). Históricamente
+   * forzaba Isha = Maghrib + 90 min en Jordania (y, desde v41, también en
+   * Palestina).
+   *
+   * v44 — RETIRADA, verificado 2026-09-13 contra dos fuentes primarias:
+   *  • Jordania: la web oficial del Ministerio de Awqaf (awqaf.gov.jo) da un
+   *    intervalo Maghrib→Isha real de ~76-77 min en septiembre, no 90 — la
+   *    cifra de 90 (v1.0.35) venía de una única lectura del 09-09-2026 que
+   *    no se sostuvo. La convención correcta es angular (Fajr 18°/Isha 18°,
+   *    igual que "Univ. Islamic Sciences, Karachi") y ahora vive en
+   *    METHOD_PARAMS[19] — se aplica sola, sin parche posterior.
+   *  • Palestina: el propio widget de Muslim Pro etiqueta Ramala/Nablus/
+   *    Gaza/Jerusalén como "-Muslim World League (MWL)", no como Awqaf
+   *    jordano — nunca debió compartir la regla de Jordania. Ahora usa el
+   *    método global del usuario sin ninguna corrección forzada.
+   * La función se deja como no-op (en vez de borrarla) porque api.js la
+   * sigue llamando en varios sitios; si en el futuro se detecta otra
+   * corrección regional real y verificada, este es el sitio para añadirla.
    * @param {object} timings - horarios "HH:MM"
    * @param {string} country - país en inglés (Nominatim, accept-language=en)
    * @param {number|null} lat
@@ -193,34 +215,7 @@ const PrayerCalc = {
    */
   applyRegionalCorrections(timings, country, lat, lng) {
     try {
-      if (!timings || !timings.Maghrib || !timings.Isha) return timings;
-      const c = (country || '').toString().toLowerCase();
-      const o = (typeof AppState !== 'undefined' && AppState.settings && AppState.settings.prayerOffsets) || {};
-
-      // ── v41: Jordania Y PALESTINA — la misma regla oficial de Awqaf:
-      //    Isha = Maghrib + 90 minutos. Es exactamente lo que publica Muslim
-      //    Pro para Ramala, Nablus, Gaza, Jerusalén, Ammán, Irbid… (p. ej.
-      //    Ramala: Maghrib 18:36 → Isha 20:06, no 20:22 del cálculo angular
-      //    MWL 17°; Ammán: Maghrib 18:39 → Isha 20:09, no 20:19). Antes
-      //    Palestina se dejaba en MWL angular y el Isha salía adelantado
-      //    ~16 min respecto al horario real. ──
-      const isJordan = c.includes('jordan') || c.includes('الأردن') || c.includes('اردن')
-        // v36: bounding box también por coordenadas (ciudad manual sin país)
-        || (typeof LocationService !== 'undefined' && LocationService.isJordan({ latitude: lat, longitude: lng }));
-      const isPalestine = c.includes('palestin') || c.includes('فلسطين')
-        || (typeof LocationService !== 'undefined' && LocationService.isPalestine
-            && LocationService.isPalestine({ latitude: lat, longitude: lng, country }));
-      if (isJordan || isPalestine) {
-        // No pisar un ajuste manual explícito del usuario sobre Isha
-        if (Math.round(Number(o.Isha) || 0) !== 0) return timings;
-        const [hh, mm] = timings.Maghrib.split(' ')[0].split(':').map(Number);
-        if (isNaN(hh) || isNaN(mm)) return timings;
-        const total = ((hh * 60 + mm + 90) % 1440 + 1440) % 1440;
-        const out = Object.assign({}, timings);
-        out.Isha = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
-        out._regionFixed = isJordan ? 'JO' : 'PS';
-        return out;
-      }
+      if (!timings) return timings;
       return timings;
     } catch (e) { return timings; }
   },
@@ -346,8 +341,8 @@ const PrayerCalc = {
       Maghrib: this._timeToStr(maghrib),
       Isha: this._timeToStr(isha),
     };
-    // v39: elevación (orto/ocaso reales) → v28: corrección regional (p. ej.
-    // Jordania: Isha = Maghrib + 90 min) → ajuste manual por oración del
+    // v39: elevación (orto/ocaso reales) → v28: corrección regional (hoy
+    // no-op, ver applyRegionalCorrections) → ajuste manual por oración del
     // usuario (±60 min). El orden importa: la elevación va primero para que
     // las correcciones posteriores actúen sobre el horario ya realista.
     timings = this.applyElevationAdjustment(timings, lat, lon, date, elevation, methodId);

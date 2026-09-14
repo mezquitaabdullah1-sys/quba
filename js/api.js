@@ -61,12 +61,14 @@ const API = {
       if (cached && cached._source === 'muslimpro') return _withDelta(this._applyTimeShift(cached));
 
       // v18: If online, fetch + also prefetch next 14 days in background
-      // v28/v41: la regla jordana/palestina (Isha = Maghrib+90) se aplica
-      // SIEMPRE del lado cliente en _postProcessPrayerData. En Aladhan el ID
-      // 19 es ARGELIA (Isha 17° angular), NO Jordania — pedir 19 hacía que el
-      // Isha de Ammán saliera ~10 min tarde (20:19 en vez de 20:09). Pedimos
-      // MWL (3) a la API y corregimos en cliente con Maghrib+90.
-      const apiMethod = (method === 19) ? 3 : method;
+      // v44: en Aladhan el ID interno 19 de esta app es ARGELIA (Isha 17°
+      // angular), NO Jordania — pedir 19 directamente daría el método
+      // equivocado. Aladhan añadió después un método NATIVO para Jordania,
+      // id 23 ("Ministry of Awqaf, Islamic Affairs and Holy Places,
+      // Jordan"), verificado 2026-09-13 equivalente a Fajr 18°/Isha 18°
+      // (ver METHOD_PARAMS[19] en prayer-calc.js) — se pide ese id
+      // directamente en vez del remapeo a MWL(3) + parche manual de antes.
+      const apiMethod = (method === 19) ? 23 : method;
       const url = `${CONFIG.API.ALADHAN}/timings/${dd}-${mm}-${yyyy}?latitude=${lat}&longitude=${lng}&method=${apiMethod}`;
       const res = await this._fetchWithTimeout(url, 8000);
       if (!res.ok) throw new Error('Prayer API error');
@@ -147,10 +149,10 @@ const API = {
     return 0;
   },
 
-  // v28: corrección regional (Jordania: Isha = Maghrib+90) + v39: corrección
-  // por ELEVACIÓN (Aladhan no la aplica — su API no acepta ese parámetro,
-  // ver PrayerCalc.applyElevationAdjustment) + ajuste manual por oración
-  // (±60 min) sobre una respuesta con forma Aladhan.
+  // v28/v44: corrección regional (hoy no-op, ver applyRegionalCorrections) +
+  // v39: corrección por ELEVACIÓN (Aladhan no la aplica — su API no acepta
+  // ese parámetro, ver PrayerCalc.applyElevationAdjustment) + ajuste manual
+  // por oración (±60 min) sobre una respuesta con forma Aladhan.
   _postProcessPrayerData(data, lat, lng, method, date = new Date()) {
     try {
       if (!data || !data.timings || typeof PrayerCalc === 'undefined') return data;
@@ -169,7 +171,7 @@ const API = {
   //      verano/invierno (AppState.settings.timeShift).
   _offlinePrayerTimes(lat, lng, date, method) {
     if (typeof PrayerCalc === 'undefined') throw new Error('Prayer API error');
-    // v28: el país permite a PrayerCalc aplicar la regla jordana (Isha=Maghrib+90)
+    // v28: país detectado (para applyRegionalCorrections; hoy no-op, ver su comentario)
     const country = this._countryFor(lat, lng);
     // v39: la elevación corrige Shuruq/Maghrib/Isha (ver applyElevationAdjustment)
     const elevation = this._elevationFor(lat, lng);
@@ -417,11 +419,11 @@ const API = {
     // v36: MISMA fuente que el horario principal (Muslim Pro exacto). El
     // cálculo offline antes usaba SIEMPRE el método global del usuario
     // (p. ej. MWL 18/17) incluso en Jordania → la tabla mensual y la franja
-    // secundaria no coincidían con el horario principal (Isha = Maghrib+90
-    // del Ministerio de Awqaf). Ahora el método efectivo se resuelve por
-    // ciudad: Jordania → 19, Turquía → 13, EE.UU./Canadá → 2, Francia → 12…
-    // (los mismos convenios que publica Muslim Pro por país), salvo elección
-    // manual explícita del usuario.
+    // secundaria no coincidían con el horario principal (Awqaf, Fajr18°/
+    // Isha18°). Ahora el método efectivo se resuelve por ciudad: Jordania →
+    // 19, Turquía → 13, EE.UU./Canadá → 2, Francia → 12… (los mismos
+    // convenios que publica Muslim Pro por país), salvo elección manual
+    // explícita del usuario.
     method = this._effectiveMethod(lat, lon, method);
 
     const cacheKey = `prayer_month_${lat.toFixed(2)}_${lon.toFixed(2)}_${month}_${year}_${method}`;
@@ -461,8 +463,9 @@ const API = {
   // v36: mes completo desde Aladhan (método efectivo ya resuelto por el
   // llamador) + corrección regional (Jordania) + ajuste manual por oración.
   async _fetchAladhanMonth(lat, lon, month, year, method) {
-    // v41: mismo mapeo que getPrayerTimes — en Aladhan 19 = Argelia.
-    const apiMethod = (method === 19) ? 3 : method;
+    // v44: mismo mapeo que getPrayerTimes — en Aladhan 19 = Argelia;
+    // Jordania usa el método nativo 23 de Aladhan (Awqaf, Fajr18°/Isha18°).
+    const apiMethod = (method === 19) ? 23 : method;
     const url = `${CONFIG.API.ALADHAN}/calendar/${year}/${month}?latitude=${lat}&longitude=${lon}&method=${apiMethod}`;
     const res = await this._fetchWithTimeout(url, 8000);
     if (!res.ok) throw new Error('Prayer month error');
@@ -486,16 +489,38 @@ const API = {
   },
 
   /**
-   * v41: método de cálculo EFECTIVO por ubicación — reproduce el convenio
-   * por defecto que usa Muslim Pro en cada país: Jordania Y PALESTINA → 19
-   * (Awqaf: Fajr 18° + Isha = Maghrib+90 min — antes Palestina se trataba
-   * como MWL angular y el Isha salía ~16 min adelantado: 20:22 en vez de
-   * 20:06 en Ramala), Turquía → 13 (Diyanet), EE. UU./Canadá → 2 (ISNA),
-   * Francia → 12 (UOIF). Si el usuario eligió un método manualmente, se
-   * respeta siempre.
-   * OJO: en la API de Aladhan el ID 19 NO es Jordania (allí es Argelia,
-   * Isha 17°) — por eso las llamadas a Aladhan mapean 19 → 3 y la regla
-   * Maghrib+90 se aplica del lado cliente (applyRegionalCorrections).
+   * v44: método de cálculo EFECTIVO por ubicación — reproduce el convenio
+   * por defecto que usa Muslim Pro en cada país: Jordania → 19 (Ministerio
+   * de Awqaf: Fajr 18° / Isha 18°, angular — NO "Maghrib+90 min" fijo,
+   * ver corrección más abajo), Turquía → 13 (Diyanet), EE. UU./Canadá → 2
+   * (ISNA), Francia → 12 (UOIF). Si el usuario eligió un método
+   * manualmente, se respeta siempre.
+   *
+   * v44 — CORRECCIÓN (verificado 2026-09-13 contra dos fuentes primarias):
+   *  1) El propio widget de Muslim Pro (prayer-times.muslimpro.com) etiqueta
+   *     Ramala/Nablus/Gaza/Jerusalén explícitamente como "-Muslim World
+   *     League (MWL)", NO como el Ministerio de Awqaf jordano. PALESTINA
+   *     usaba erróneamente el método 19 aquí (asumiendo la misma regla que
+   *     Jordania) — el país de Palestina ya NO se redirige a 19: cae al
+   *     método global del usuario (MWL por defecto), que es lo correcto.
+   *  2) La cifra "Isha = Maghrib + 90 min" para JORDANIA (registrada en
+   *     v1.0.35 a partir de una sola lectura del 2026-09-09) no se sostiene:
+   *     la web oficial del Ministerio de Awqaf (awqaf.gov.jo/ar/Pages/
+   *     PrayerTime), consultada en vivo el 2026-09-13 para Ammán/Balqa/
+   *     Zarqa/Madaba, publica un intervalo Maghrib→Isha de ~76-77 min ese
+   *     día (18:51→20:08), no 90. Contrastando 10 días seguidos (13 al 22
+   *     de sept. 2026) contra ese mismo calendario oficial, el modelo
+   *     angular Fajr 18° / Isha 18° (idéntico a "Univ. Islamic Sciences,
+   *     Karachi") con elevación ~950 m reproduce esos horarios con un error
+   *     medio <1 min — ver METHOD_PARAMS[19] en prayer-calc.js. El intervalo
+   *     "aparente" de 90 min crece hasta ese valor solo en pleno invierno
+   *     (el crepúsculo de 18° dura más cerca del solsticio en esta latitud),
+   *     así que la lectura de sept-09-2026 probablemente cayó sobre un dato
+   *     atípico o mal capturado, no sobre la regla real.
+   *  3) Aladhan SÍ tiene ahora un método nativo para Jordania: id 23
+   *     ("Ministry of Awqaf, Islamic Affairs and Holy Places, Jordan",
+   *     añadido después de que se escribiera el remapeo 19→3 de más abajo).
+   *     Se usa directamente en vez de pedir MWL y parchear Isha a mano.
    */
   _effectiveMethod(lat, lon, method) {
     try {
@@ -505,8 +530,7 @@ const API = {
       const loc = (typeof AppState !== 'undefined' && AppState.location) || null;
       const near = loc && Math.abs(loc.latitude - lat) < 0.5 && Math.abs(loc.longitude - lon) < 0.5;
       if (near && typeof LocationService !== 'undefined') {
-        if (LocationService.isJordan(loc)) return 19;      // Awqaf Jordania (Maghrib+90)
-        if (LocationService.isPalestine && LocationService.isPalestine(loc)) return 19; // Awqaf — misma regla que Jordania
+        if (LocationService.isJordan(loc)) return 19; // Awqaf Jordania (Fajr18°/Isha18°)
       }
       // Ciudades conocidas de la lista: convenio oficial de su país
       if (typeof Cities !== 'undefined' && Cities.match) {
@@ -517,14 +541,14 @@ const API = {
           if (country.includes('ee. uu') || country.includes('canad')) return 2;  // ISNA
           if (country.includes('francia') || country.includes('france')) return 12; // UOIF
           if (country.includes('jordan')) return 19; // Awqaf Jordania
-          if (country.includes('palestin')) return 19; // Awqaf Palestina — Isha = Maghrib+90
           if (country.includes('arabia saud')) return 4; // Umm Al-Qura
+          // Palestina: SIN convenio propio en Muslim Pro (etiquetado "MWL" en
+          // su propia web) — cae al método global del usuario, sin forzar nada.
         }
       }
       // Bounding boxes cuando la ubicación no está en la lista
       if (typeof LocationService !== 'undefined') {
         if (LocationService.isJordan({ latitude: lat, longitude: lon })) return 19;
-        if (LocationService.isPalestine && LocationService.isPalestine({ latitude: lat, longitude: lon })) return 19;
       }
     } catch (_) { /* nunca romper por la autodetección */ }
     return method;
