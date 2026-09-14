@@ -683,3 +683,9 @@
 .font-medium .ayah-end-marker-lg { font-size: 1.5em !important; }
 .font-large .ayah-end-marker-lg { font-size: 1.65em !important; }
 .font-xlarge .ayah-end-marker-lg { font-size: 1.8em !important; }
+
+/* v45: بطاقتان جنبًا إلى جنب (المحفوظات + آخر آية مقروءة) في صفحة القرآن الرئيسية */
+.quran-quick-entries{display:flex;gap:10px;align-items:stretch;}
+.quran-quick-entries .bookmarks-entry-card{flex:1;min-width:0;}
+.bookmarks-entry-card:disabled{opacity:.55;cursor:default;}
+.last-read-card .bookmarks-entry-icon{color:#8B5CF6;}

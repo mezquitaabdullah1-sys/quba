@@ -513,7 +513,7 @@ const QuranPage = {
           <div class="surah-number"><span>${s.number}</span></div>
           <div class="surah-info">
             <div class="surah-name">${Validate.escapeHTML(QuranHelpers.surahDisplayName(s))}</div>
-            <div class="surah-meta">${Validate.escapeHTML(QuranHelpers.surahMeaning(s))} • ${s.numberOfAyahs} ${t('ayah').toLowerCase()}s • ${s.revelationType === 'Meccan' ? t('meccan') : t('medinan')}</div>
+            <div class="surah-meta">${Validate.escapeHTML(QuranHelpers.surahMeaning(s))} • ${s.numberOfAyahs} ${t('ayah').toLowerCase()}s • ${s.revelationType === 'Meccan' ? t('meccan') : t('medinan')} • ${t('surahRevelationOrder')} ${this._revelationOrder(s.number) || '—'}</div>
           </div>
           ${currentLocale !== 'ar' ? `<div class="surah-arabic-name">${cleanArName}</div>` : ''}
           ${isDown ? '<div class="surah-offline-badge"><i class="fas fa-circle-check"></i></div>' : ''}
@@ -598,6 +598,10 @@ const QuranPage = {
       });
 
       this.renderReader(container, surah);
+      // v45: historial de navegación — guarda la aleya de entrada y activa
+      // el rastreo de la aleya visible durante la lectura.
+      this._saveLastRead(surah.number, targetAyah || 1);
+      this._trackLastRead(surah);
       if (targetAyah) {
         setTimeout(() => this.scrollToAyah(targetAyah, true), 200);
       }
@@ -713,6 +717,8 @@ const QuranPage = {
               <span><i class="fas fa-${surah.revelationType === 'Meccan' ? 'kaaba' : 'mosque'}"></i> ${surah.revelationType === 'Meccan' ? t('meccan') : t('medinan')}</span>
               <span class="dot-sep">•</span>
               <span>${surah.numberOfAyahs} ${t('ayah').toLowerCase()}s</span>
+              <span class="dot-sep">•</span>
+              <span><i class="fas fa-arrow-down-wide-short"></i> ${t('surahRevelationOrder')} ${this._revelationOrder(surah.number) || '—'}</span>
             </div>
           </div>
           <div class="surah-banner-decoration">۞</div>
@@ -992,7 +998,10 @@ const QuranPage = {
     if (typeof this.clearUnifiedSearch === 'function') {
       try { this.clearUnifiedSearch(); } catch (e) {}
     }
-    if (this.currentSurah && this.currentSurah.number === surahNum) {
+    // v45 FIX: no basta con que `currentSurah` coincida en memoria (sobrevive
+    // al salir de la sura); hay que comprobar que la aleya existe en el DOM.
+    if (this.currentSurah && this.currentSurah.number === surahNum
+        && document.getElementById(`ayah-${ayahNum}`)) {
       this.scrollToAyah(ayahNum, true);
     } else {
       Router.push('surah', { surahNumber: surahNum, ayah: ayahNum });
@@ -1024,6 +1033,8 @@ const QuranPage = {
         el.classList.add('highlight');
         setTimeout(() => el.classList.remove('highlight'), 2000);
       }
+      // v45: cualquier salto explícito a una aleya cuenta como lectura
+      if (this.currentSurah) this._saveLastRead(this.currentSurah.number, ayahNumber);
     }
   },
 
@@ -1954,20 +1965,84 @@ const QuranPage = {
     }
   },
 
+  // v45: número de revelación (orden de descenso) de la sura, 1-114
+  _revelationOrder(num) {
+    const o = (typeof window !== 'undefined') && window.SURAH_REVELATION_ORDER;
+    return (o && o[num]) || null;
+  },
+
+  // ============ ÚLTIMA ALEYA LEÍDA (historial de navegación, v45) ============
+  getLastRead() {
+    const l = Storage.get('quran_last_read');
+    return (l && l.s >= 1 && l.s <= 114 && l.a >= 1) ? l : null;
+  },
+
+  _saveLastRead(surahNum, ayahNum) {
+    Storage.set('quran_last_read', { s: surahNum, a: ayahNum, t: Date.now() });
+  },
+
+  // Rastrea la aleya visible mientras el usuario se desplaza leyendo y la
+  // guarda como "última aleya leída" (con espera para no escribir en cada píxel).
+  _trackLastRead(surah) {
+    this._clearLastReadTracker();
+    const mc = document.getElementById('main-content');
+    const handler = () => {
+      if (this._lrTick) return;
+      this._lrTick = true;
+      setTimeout(() => {
+        this._lrTick = false;
+        const blocks = document.querySelectorAll('#ayahs-container .ayah-block');
+        let current = null;
+        const limit = window.innerHeight * 0.45;
+        for (const b of blocks) {
+          if (b.getBoundingClientRect().top < limit) current = b;
+          else break;
+        }
+        if (current) this._saveLastRead(surah.number, parseInt(current.dataset.ayah, 10) || 1);
+      }, 400);
+    };
+    window.addEventListener('scroll', handler, { passive: true });
+    if (mc) mc.addEventListener('scroll', handler, { passive: true });
+    this._lrHandler = handler;
+  },
+
+  _clearLastReadTracker() {
+    if (!this._lrHandler) return;
+    const mc = document.getElementById('main-content');
+    try { window.removeEventListener('scroll', this._lrHandler); } catch (e) {}
+    if (mc) { try { mc.removeEventListener('scroll', this._lrHandler); } catch (e) {} }
+    this._lrHandler = null;
+  },
+
   renderBookmarksEntry() {
     const el = document.getElementById('bookmarks-entry');
     if (!el) return;
     const bookmarks = this.getBookmarks();
+    // v45: junto a «Guardadas», tarjeta de historial con la última aleya
+    // leída; al pulsarla navega a esa aleya dentro del Corán traducido.
+    const last = this.getLastRead();
+    const lastName = last ? this._surahNameByNumber(last.s) : '';
+    const chevron = `fa-chevron-${currentLocale === 'ar' ? 'left' : 'right'}`;
     el.innerHTML = `
-      <button class="bookmarks-entry-card" onclick="QuranPage.openBookmarks()">
-        <span class="bookmarks-entry-icon"><i class="fas fa-bookmark"></i></span>
-        <span class="bookmarks-entry-text">
-          <span class="bookmarks-entry-title">${t('bookmarksTitle')}</span>
-          <span class="bookmarks-entry-sub">${bookmarks.length}/${this.MAX_BOOKMARKS}</span>
-        </span>
-        ${bookmarks.length ? `<span class="bookmarks-entry-dots">${bookmarks.map(b => `<span class="bookmark-color-dot" style="background:${this.BOOKMARK_COLORS[b.c]};"></span>`).join('')}</span>` : ''}
-        <i class="fas fa-chevron-${currentLocale === 'ar' ? 'left' : 'right'}"></i>
-      </button>
+      <div class="quran-quick-entries">
+        <button class="bookmarks-entry-card" onclick="QuranPage.openBookmarks()">
+          <span class="bookmarks-entry-icon"><i class="fas fa-bookmark"></i></span>
+          <span class="bookmarks-entry-text">
+            <span class="bookmarks-entry-title">${t('bookmarksTitle')}</span>
+            <span class="bookmarks-entry-sub">${bookmarks.length}/${this.MAX_BOOKMARKS}</span>
+          </span>
+          ${bookmarks.length ? `<span class="bookmarks-entry-dots">${bookmarks.map(b => `<span class="bookmark-color-dot" style="background:${this.BOOKMARK_COLORS[b.c]};"></span>`).join('')}</span>` : ''}
+          <i class="fas ${chevron}"></i>
+        </button>
+        <button class="bookmarks-entry-card last-read-card" ${last ? `onclick="QuranPage.goToBookmark(${last.s}, ${last.a})"` : 'disabled'}>
+          <span class="bookmarks-entry-icon"><i class="fas fa-clock-rotate-left"></i></span>
+          <span class="bookmarks-entry-text">
+            <span class="bookmarks-entry-title">${t('lastReadTitle')}</span>
+            <span class="bookmarks-entry-sub">${last ? `${last.s}. ${Validate.escapeHTML(lastName)} · ${t('ayah')} ${last.a}` : t('lastReadEmpty')}</span>
+          </span>
+          <i class="fas ${chevron}"></i>
+        </button>
+      </div>
     `;
   },
 
@@ -2008,8 +2083,15 @@ const QuranPage = {
 
   goToBookmark(surahNum, ayahNum) {
     closeModal();
-    if (this.currentSurah && this.currentSurah.number === surahNum) {
-      // Misma sura ya abierta: scroll directo con resaltado
+    // v45 FIX: antes bastaba con que `currentSurah` coincidiera EN MEMORIA —
+    // pero ese valor sobrevive al volver a la lista, así que al pulsar un
+    // marcador guardado desde la pantalla principal del Corán se llamaba a
+    // scrollToAyah sobre un DOM que ya no existe y NO pasaba nada (el fallo
+    // reportado). Ahora solo se hace scroll directo si la aleya está de
+    // verdad renderizada; en caso contrario se navega a la sura con la aleya.
+    if (this.currentSurah && this.currentSurah.number === surahNum
+        && document.getElementById(`ayah-${ayahNum}`)) {
+      // Misma sura ya abierta Y visible: scroll directo con resaltado
       this.scrollToAyah(ayahNum, true);
     } else {
       Router.push('surah', { surahNumber: surahNum, ayah: ayahNum });
@@ -2069,6 +2151,8 @@ const QuranPage = {
     const player = document.getElementById('audio-player');
     if (player) { player.pause(); player.src = ''; }
     this.playingAyah = null;
+    // v45: soltar el rastreador de "última aleya leída" al salir del Corán
+    this._clearLastReadTracker();
     // v43: إزالة سحب التنقل بين السور عند مغادرة صفحة القرآن — قبل ذلك كان
     // المعالج يبقى معلّقاً على #main-content، فأي سحب في الصفحات الأخرى كان
     // يفتح القرآن ويقلب السور. الآن يعمل فقط والقرآن مفتوح.
