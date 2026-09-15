@@ -223,11 +223,8 @@ const PrayerPdf = {
     btn.classList.toggle('is-loading', on);
   },
 
-  // ============ PDF DEL DÍA ============
-  async downloadDaily(btn) {
-    this._busy(btn, true);
-    try {
-      await this._ensureJsPdf();
+  // ============ LIENZO DEL DÍA (dibujo compartido por PDF e imagen PNG) ============
+  async _renderDailyCanvas() {
       if (document.fonts && document.fonts.ready) await document.fonts.ready;
       const timings = (typeof AppState !== 'undefined') && AppState.timings;
       if (!timings) throw new Error('no timings');
@@ -325,13 +322,47 @@ const PrayerPdf = {
       }
 
       this._drawFooter(ctx);
+      return canvas;
+  },
 
+  // ============ PDF DEL DÍA ============
+  async downloadDaily(btn) {
+    this._busy(btn, true);
+    try {
+      await this._ensureJsPdf();
+      const canvas = await this._renderDailyCanvas();
       const d = new Date();
       const fname = `quba-prayers-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.pdf`;
       this._save(canvas, fname);
       if (typeof showToast === 'function') showToast('📄 PDF ✓');
     } catch (e) {
       console.warn('PDF daily error:', e);
+      if (typeof showToast === 'function') showToast((typeof t === 'function' && t('errorLoading')) || 'Error');
+    } finally {
+      this._busy(btn, false);
+    }
+  },
+
+  // ============ IMAGEN PNG DEL DÍA (mismo diseño que el PDF) ============
+  async saveDailyImage(btn) {
+    this._busy(btn, true);
+    try {
+      const canvas = await this._renderDailyCanvas();
+      const d = new Date();
+      const fname = `quba-prayers-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.png`;
+      const blob = await new Promise((res) => canvas.toBlob(res, 'image/png'));
+      if (!blob) throw new Error('toBlob no disponible');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      if (typeof showToast === 'function') showToast('🖼️ PNG ✓');
+    } catch (e) {
+      console.warn('PNG daily error:', e);
       if (typeof showToast === 'function') showToast((typeof t === 'function' && t('errorLoading')) || 'Error');
     } finally {
       this._busy(btn, false);

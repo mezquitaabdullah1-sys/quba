@@ -209,6 +209,10 @@ const PrayerPage = {
             <span><i class="fas fa-file-pdf"></i> ${t('downloadPdf') || 'Descargar PDF'}</span>
             <i class="fas fa-download"></i>
           </button>
+          <button class="btn-ghost pdf-btn" onclick="PrayerPdf.saveDailyImage(this)" aria-label="${t('saveImage') || 'PNG'}">
+            <span><i class="fas fa-image"></i> ${t('saveImage') || 'حفظ كصورة'}</span>
+            <i class="fas fa-download"></i>
+          </button>
           <button class="btn-ghost" onclick="Router.go('calendar')">
             <span><i class="fas fa-calendar"></i> ${t('hijriCalendar')}</span>
             <i class="fas fa-chevron-${currentLocale === 'ar' ? 'left' : 'right'}"></i>

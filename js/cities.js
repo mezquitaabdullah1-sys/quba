@@ -8,6 +8,16 @@
 const CITY_LIST = [
   // ─── América Latina (capitales y ciudades principales) ───
   { id: 'havana',        name: 'La Habana',        ar: 'هافانا',           country: 'Cuba',               countryAr: 'كوبا',               flag: '🇨🇺', lat: 23.1136,  lon: -82.3666 },
+  // ─── Cuba (resto de provincias principales) — v48 ───
+  { id: 'santiago_de_cuba', name: 'Santiago de Cuba', ar: 'سانتياغو دي كوبا', country: 'Cuba',            countryAr: 'كوبا',               flag: '🇨🇺', lat: 20.0217,  lon: -76.8286 },
+  { id: 'camaguey',      name: 'Camagüey',         ar: 'كاماغواي',          country: 'Cuba',               countryAr: 'كوبا',               flag: '🇨🇺', lat: 21.3808,  lon: -77.9169 },
+  { id: 'holguin',       name: 'Holguín',          ar: 'أولغين',            country: 'Cuba',               countryAr: 'كوبا',               flag: '🇨🇺', lat: 20.8872,  lon: -76.2631 },
+  { id: 'cienfuegos',    name: 'Cienfuegos',       ar: 'سيينفويغوس',        country: 'Cuba',               countryAr: 'كوبا',               flag: '🇨🇺', lat: 22.1496,  lon: -80.4466 },
+  { id: 'sancti_spiritus', name: 'Sancti Spíritus', ar: 'سانكتي سبيريتوس',  country: 'Cuba',               countryAr: 'كوبا',               flag: '🇨🇺', lat: 21.9340,  lon: -79.4410 },
+  { id: 'artemisa',      name: 'Artemisa',         ar: 'أرتيميسا',          country: 'Cuba',               countryAr: 'كوبا',               flag: '🇨🇺', lat: 22.8136,  lon: -82.7630 },
+  { id: 'guantanamo',    name: 'Guantánamo',       ar: 'غوانتانامو',        country: 'Cuba',               countryAr: 'كوبا',               flag: '🇨🇺', lat: 20.1444,  lon: -75.2092 },
+  { id: 'santa_clara',   name: 'Santa Clara',      ar: 'سانتا كلارا',       country: 'Cuba',               countryAr: 'كوبا',               flag: '🇨🇺', lat: 22.4069,  lon: -79.9649 },
+  { id: 'matanzas',      name: 'Matanzas',         ar: 'ماتانزاس',          country: 'Cuba',               countryAr: 'كوبا',               flag: '🇨🇺', lat: 23.0411,  lon: -81.5775 },
   { id: 'mexico_city',   name: 'Ciudad de México', ar: 'مكسيكو سيتي',      country: 'México',             countryAr: 'المكسيك',            flag: '🇲🇽', lat: 19.4326,  lon: -99.1332 },
   { id: 'guadalajara',   name: 'Guadalajara',      ar: 'غوادالاخارا',      country: 'México',             countryAr: 'المكسيك',            flag: '🇲🇽', lat: 20.6597,  lon: -103.3496 },
   { id: 'monterrey',     name: 'Monterrey',        ar: 'مونتيري',          country: 'México',             countryAr: 'المكسيك',            flag: '🇲🇽', lat: 25.6866,  lon: -100.3161 },
@@ -37,6 +47,40 @@ const CITY_LIST = [
   { id: 'san_juan',      name: 'San Juan',         ar: 'سان خوان',         country: 'Puerto Rico',        countryAr: 'بورتوريكو',          flag: '🇵🇷', lat: 18.4655,  lon: -66.1057 },
   { id: 'kingston',      name: 'Kingston',         ar: 'كينغستون',         country: 'Jamaica',            countryAr: 'جامايكا',            flag: '🇯🇲', lat: 18.0179,  lon: -76.8099 },
   { id: 'port_au_prince', name: 'Port-au-Prince',  ar: 'بورت أو برنس',     country: 'Haití',              countryAr: 'هايتي',              flag: '🇭🇹', lat: 18.5944,  lon: -72.3074 },
+
+  // ─── América Latina ampliada (v48): más ciudades por país ───
+  { id: 'maracaibo',     name: 'Maracaibo',        ar: 'ماراكايبو',         country: 'Venezuela',          countryAr: 'فنزويلا',            flag: '🇻🇪', lat: 10.6544,  lon: -71.6528 },
+  { id: 'valencia_ve',   name: 'Valencia',         ar: 'فالنسيا',           country: 'Venezuela',          countryAr: 'فنزويلا',            flag: '🇻🇪', lat: 10.1579,  lon: -68.0072 },
+  { id: 'barquisimeto',  name: 'Barquisimeto',     ar: 'باركيسيميتو',       country: 'Venezuela',          countryAr: 'فنزويلا',            flag: '🇻🇪', lat: 10.0647,  lon: -69.3570 },
+  { id: 'ciudad_guayana', name: 'Ciudad Guayana',  ar: 'سيوداد غوايانا',    country: 'Venezuela',          countryAr: 'فنزويلا',            flag: '🇻🇪', lat: 8.3673,   lon: -62.6414 },
+  { id: 'colon_pa',      name: 'Colón',            ar: 'كولون',             country: 'Panamá',             countryAr: 'بنما',               flag: '🇵🇦', lat: 9.3547,   lon: -79.9001 },
+  { id: 'david_pa',      name: 'David',            ar: 'دافيد',             country: 'Panamá',             countryAr: 'بنما',               flag: '🇵🇦', lat: 8.4273,   lon: -82.4306 },
+  { id: 'cancun',        name: 'Cancún',           ar: 'كانكون',            country: 'México',             countryAr: 'المكسيك',            flag: '🇲🇽', lat: 21.1619,  lon: -86.8515 },
+  { id: 'puebla',        name: 'Puebla',           ar: 'بويبلا',            country: 'México',             countryAr: 'المكسيك',            flag: '🇲🇽', lat: 19.0414,  lon: -98.2063 },
+  { id: 'tijuana',       name: 'Tijuana',          ar: 'تيخوانا',           country: 'México',             countryAr: 'المكسيك',            flag: '🇲🇽', lat: 32.5149,  lon: -117.0382 },
+  { id: 'merida_mx',     name: 'Mérida',           ar: 'ميريدا',            country: 'México',             countryAr: 'المكسيك',            flag: '🇲🇽', lat: 20.9674,  lon: -89.5926 },
+  { id: 'barranquilla',  name: 'Barranquilla',     ar: 'بارانكيا',          country: 'Colombia',           countryAr: 'كولومبيا',           flag: '🇨🇴', lat: 10.9639,  lon: -74.7964 },
+  { id: 'cartagena',     name: 'Cartagena',        ar: 'قرطاجنة',           country: 'Colombia',           countryAr: 'كولومبيا',           flag: '🇨🇴', lat: 10.3910,  lon: -75.4794 },
+  { id: 'cuenca_ec',     name: 'Cuenca',           ar: 'كوينكا',            country: 'Ecuador',            countryAr: 'الإكوادور',          flag: '🇪🇨', lat: -2.9001,  lon: -79.0059 },
+  { id: 'arequipa',      name: 'Arequipa',         ar: 'أريكيبا',           country: 'Perú',               countryAr: 'بيرو',               flag: '🇵🇪', lat: -16.4090, lon: -71.5375 },
+  { id: 'cusco',         name: 'Cusco',            ar: 'كوسكو',             country: 'Perú',               countryAr: 'بيرو',               flag: '🇵🇪', lat: -13.5320, lon: -71.9675 },
+  { id: 'santa_cruz_bo', name: 'Santa Cruz de la Sierra', ar: 'سانتا كروز', country: 'Bolivia',            countryAr: 'بوليفيا',            flag: '🇧🇴', lat: -17.7833, lon: -63.1821 },
+  { id: 'cochabamba',    name: 'Cochabamba',       ar: 'كوتشابامبا',        country: 'Bolivia',            countryAr: 'بوليفيا',            flag: '🇧🇴', lat: -17.3895, lon: -66.1568 },
+  { id: 'concepcion_cl', name: 'Concepción',       ar: 'كونسيبسيون',        country: 'Chile',              countryAr: 'تشيلي',              flag: '🇨🇱', lat: -36.8201, lon: -73.0444 },
+  { id: 'antofagasta',   name: 'Antofagasta',      ar: 'أنتوفاغاستا',       country: 'Chile',              countryAr: 'تشيلي',              flag: '🇨🇱', lat: -23.6509, lon: -70.3975 },
+  { id: 'rosario',       name: 'Rosario',          ar: 'روساريو',           country: 'Argentina',          countryAr: 'الأرجنتين',          flag: '🇦🇷', lat: -32.9442, lon: -60.6505 },
+  { id: 'mendoza',       name: 'Mendoza',          ar: 'مندوزا',            country: 'Argentina',          countryAr: 'الأرجنتين',          flag: '🇦🇷', lat: -32.8895, lon: -68.8458 },
+  { id: 'salvador_br',   name: 'Salvador',         ar: 'سالفادور',          country: 'Brasil',             countryAr: 'البرازيل',           flag: '🇧🇷', lat: -12.9777, lon: -38.5016 },
+  { id: 'fortaleza',     name: 'Fortaleza',        ar: 'فورتاليزا',         country: 'Brasil',             countryAr: 'البرازيل',           flag: '🇧🇷', lat: -3.7319,  lon: -38.5267 },
+  { id: 'belo_horizonte', name: 'Belo Horizonte',  ar: 'بيلو هوريزونتي',    country: 'Brasil',             countryAr: 'البرازيل',           flag: '🇧🇷', lat: -19.9167, lon: -43.9345 },
+  { id: 'manaus',        name: 'Manaus',           ar: 'ماناوس',            country: 'Brasil',             countryAr: 'البرازيل',           flag: '🇧🇷', lat: -3.1190,  lon: -60.0217 },
+  { id: 'santiago_dr',   name: 'Santiago de los Caballeros', ar: 'سانتياغو دي لوس كاباييروس', country: 'Rep. Dominicana', countryAr: 'جمهورية الدومينيكان', flag: '🇩🇴', lat: 19.4517, lon: -70.6970 },
+  { id: 'cap_haitien',   name: 'Cap-Haïtien',      ar: 'كاب هايتيان',       country: 'Haití',              countryAr: 'هايتي',              flag: '🇭🇹', lat: 19.7577,  lon: -72.2043 },
+  { id: 'montego_bay',   name: 'Montego Bay',      ar: 'مونتيغو باي',       country: 'Jamaica',            countryAr: 'جامايكا',            flag: '🇯🇲', lat: 18.4762,  lon: -77.8939 },
+  { id: 'san_pedro_sula', name: 'San Pedro Sula',  ar: 'سان بيدرو سولا',    country: 'Honduras',           countryAr: 'هندوراس',            flag: '🇭🇳', lat: 15.5049,  lon: -88.0251 },
+  { id: 'leon_ni',       name: 'León',             ar: 'ليون',              country: 'Nicaragua',          countryAr: 'نيكاراغوا',          flag: '🇳🇮', lat: 12.4350,  lon: -86.8794 },
+  { id: 'ciudad_del_este', name: 'Ciudad del Este', ar: 'سيوداد ديل إستي',  country: 'Paraguay',           countryAr: 'باراغواي',           flag: '🇵🇾', lat: -25.5167, lon: -54.6167 },
+  { id: 'bayamon',       name: 'Bayamón',          ar: 'بايامون',           country: 'Puerto Rico',        countryAr: 'بورتوريكو',          flag: '🇵🇷', lat: 18.3994,  lon: -66.1557 },
 
   // ─── Europa (ciudades principales) ───
   { id: 'madrid',        name: 'Madrid',           ar: 'مدريد',            country: 'España',             countryAr: 'إسبانيا',            flag: '🇪🇸', lat: 40.4168,  lon: -3.7038 },
@@ -181,7 +225,7 @@ const Cities = {
    * @param {Object} opts { title, currentId, onSelect(city) }
    */
   openPicker(opts) {
-    const { title, currentId, onSelect } = opts || {};
+    const { title, currentId, onSelect, onGps } = opts || {};
     const overlay = document.getElementById('modal-overlay');
     const content = document.getElementById('modal-content');
     if (!overlay || !content) return;
@@ -211,6 +255,10 @@ const Cities = {
         <button class="modal-close" onclick="closeModal()">×</button>
       </div>
       <div style="padding:0 4px 4px;">
+        ${typeof onGps === 'function' ? `
+        <div class="modal-option city-option city-gps-option" id="city-picker-gps" role="button" tabindex="0">
+          <i class="fas fa-location-crosshairs"></i>&nbsp; ${escapeHtml(t('useMyLocation') || 'تحديد موقعي (GPS)')}
+        </div>` : ''}
         <input type="search" id="city-picker-search" class="city-search-input"
                placeholder="${escapeAttr(t('searchCity') || 'Buscar ciudad...')}" autocomplete="off">
         <div id="city-picker-list" class="modal-options city-picker-list"></div>
@@ -222,6 +270,14 @@ const Cities = {
     if (inp) {
       inp.addEventListener('input', () => renderList(inp.value));
       setTimeout(() => inp.focus(), 80);
+    }
+    const gpsEl = content.querySelector('#city-picker-gps');
+    if (gpsEl && typeof onGps === 'function') {
+      const fireGps = () => { closeModal(); onGps(); };
+      gpsEl.addEventListener('click', fireGps);
+      gpsEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fireGps(); }
+      });
     }
     renderList('');
   },

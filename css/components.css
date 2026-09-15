@@ -303,3 +303,19 @@
   animation: pdfspin 1s linear infinite;
 }
 @keyframes pdfspin { to { transform: rotate(360deg); } }
+
+/* v45: opción GPS destacada como primera fila del selector de ciudad */
+.city-gps-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: #0F4C3A;
+  background: rgba(15, 76, 58, 0.08);
+  border: 1px solid rgba(15, 76, 58, 0.25);
+  border-radius: 10px;
+  margin: 4px 0 8px;
+  cursor: pointer;
+}
+.city-gps-option i { color: #0F4C3A; }
+.city-gps-option:active { background: rgba(15, 76, 58, 0.16); }

@@ -405,6 +405,31 @@ const ProfilePage = {
     Cities.openPicker({
       title: t('changeCity') || 'Cambiar ciudad',
       currentId: null,
+      // v45: opción GPS como PRIMERA opción del selector (antes de la lista
+      // de ciudades) — el usuario puede usar su ubicación real o elegir una
+      // ciudad manualmente. Al pulsarla se pide el permiso, se geocodifica y
+      // se recargan los horarios de la página de origen.
+      onGps: async () => {
+        if (typeof LocationService === 'undefined') return;
+        const coords = await LocationService.requestPermission();
+        if (!coords) return;
+        if (typeof Storage !== 'undefined' && Storage.clearPrayerCache) {
+          Storage.clearPrayerCache();
+        }
+        AppState.location = coords;
+        AppState.timings = null;
+        const container = document.getElementById('main-content');
+        const cur = (typeof Router !== 'undefined' && Router.current) ? Router.current.name : 'profile';
+        if (cur === 'home' && typeof HomePage !== 'undefined') {
+          HomePage.render(container);
+        } else if (cur !== 'profile' && Router.current && Router.current.route) {
+          const r = Router.current.route;
+          const m = r.method || 'render';
+          if (typeof r.page[m] === 'function') r.page[m](container, Router.current.params || {});
+        } else {
+          this.render(container);
+        }
+      },
       onSelect: async (city) => {
         // v40: setManual vuelve a ser INMEDIATA (la elevación se resuelve en
         // segundo plano) — la ciudad cambia al instante, sin esperar 1–6 s al
@@ -639,7 +664,10 @@ const ProfilePage = {
     AdhanService.stopPreview();
     const wasMuted = s.muted;
     s.muted = false;
-    AdhanService._playVoice(voice, s.volume, null, (s.takbeerDuration || 12) * 1000)
+    // v47 FIX: aplicar el mismo mínimo de 5 s que usa el adhan real para que
+    // la vista previa suene exactamente igual que lo que sonará a su hora.
+    const durMs = Math.max(5, s.takbeerDuration || 12) * 1000;
+    AdhanService._playVoice(voice, s.volume, null, durMs)
       .finally(() => { s.muted = wasMuted; });
     showToast('🔊 ' + (t('adhanModeTakbeer') || 'Solo las dos primeras Takbeer'), 2000);
   },
