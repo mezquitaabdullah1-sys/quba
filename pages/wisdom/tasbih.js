@@ -1,4 +1,6 @@
 // 📿 Tasbih digital con feedback háptico - self-contained, multilenguaje
+// v50: diseño de UNA sola pantalla (sin scroll en móvil), strip deslizable
+// de adhkar en chips compactos y mini tarjeta de estadísticas hoy/semana.
 const TasbihPage = {
   count: 0,
   totalCount: 0,
@@ -49,6 +51,43 @@ const TasbihPage = {
     },
   ],
 
+  // ============ v50: registro diario para estadísticas hoy / semana ============
+  _dayKey(d) {
+    d = d || new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  },
+
+  getLog() {
+    let log = Storage.get('tasbih_log');
+    if (!log || typeof log !== 'object') log = {};
+    return log;
+  },
+
+  recordDailyCount(n) {
+    const log = this.getLog();
+    const k = this._dayKey();
+    log[k] = (log[k] || 0) + n;
+    // conservar solo los últimos 45 días
+    const keys = Object.keys(log).sort();
+    while (keys.length > 45) { delete log[keys.shift()]; }
+    Storage.set('tasbih_log', log);
+  },
+
+  todayCount() {
+    return this.getLog()[this._dayKey()] || 0;
+  },
+
+  weekCount() {
+    const log = this.getLog();
+    let sum = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      sum += log[this._dayKey(d)] || 0;
+    }
+    return sum;
+  },
+
   render(container) {
     const saved = Storage.get('tasbih') || { count: 0, totalCount: 0, currentDhikr: 0, soundEnabled: true };
     this.count = saved.count || 0;
@@ -64,7 +103,13 @@ const TasbihPage = {
     const progress = Math.min(this.count / this.targetCount, 1);
     const isComplete = this.count >= this.targetCount;
     const lang = currentLocale === 'ar' ? 'ar' : (currentLocale === 'en' ? 'en' : 'es');
-    const translation = dhikr[lang] || dhikr.es; // show translation in the active UI language
+    const today = this.todayCount();
+    const week = this.weekCount();
+    const life = (typeof Gamification !== 'undefined' && Gamification.getState)
+      ? (Gamification.getState().stats.tasbihCount || 0) : 0;
+    const xpPer100 = (typeof Gamification !== 'undefined' && Gamification.XP_PER_TASBIH_100) || 20;
+    const xp = Math.floor(this.totalCount / 100) * xpPer100;
+    const R = 98, CIRC = 2 * Math.PI * R;
 
     container.innerHTML = `
       <div class="top-bar">
@@ -78,33 +123,32 @@ const TasbihPage = {
       </div>
 
       <div class="tasbih-container">
-        <!-- Dhikr selector -->
-        <div class="dhikr-selector">
-          <button class="dhikr-nav" onclick="TasbihPage.changeDhikr(-1)" ${this.currentDhikr === 0 ? 'disabled' : ''}>
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <div class="dhikr-name">${this.currentDhikr + 1} / ${this.DHIKRS.length}</div>
-          <button class="dhikr-nav" onclick="TasbihPage.changeDhikr(1)" ${this.currentDhikr === this.DHIKRS.length - 1 ? 'disabled' : ''}>
-            <i class="fas fa-chevron-right"></i>
-          </button>
+        <!-- v50: شريط صغير قابل للسحب للتنقل بين أذكار المسبحة (chips) -->
+        <div class="dhikr-strip" id="dhikr-strip">
+          ${this.DHIKRS.map((d, idx) => `
+            <button class="dhikr-chip ${idx === this.currentDhikr ? 'active' : ''}" data-dhikr-idx="${idx}" onclick="TasbihPage.selectDhikr(${idx})">
+              <span class="dhikr-chip-ar">${d.ar}</span>
+              <span class="dhikr-chip-target">×${d.target}</span>
+            </button>
+          `).join('')}
         </div>
 
-        <!-- Dhikr text display -->
-        <div class="dhikr-display">
+        <!-- Dhikr text display (compacto, con swipe izquierda/derecha) -->
+        <div class="dhikr-display" id="dhikr-display">
           <div class="dhikr-arabic">${dhikr.ar}</div>
           <div class="dhikr-trans">${dhikr.tr}</div>
           <div class="dhikr-es">${dhikr[lang] || dhikr.es}</div>
         </div>
 
-        <!-- Counter circle -->
+        <!-- Counter circle (220px — cabe en una pantalla sin scroll) -->
         <div class="tasbih-counter ${isComplete ? 'complete' : ''}" id="tasbih-counter" onclick="TasbihPage.increment()">
-          <svg class="tasbih-ring" width="260" height="260" viewBox="0 0 260 260">
-            <circle cx="130" cy="130" r="118" fill="none" stroke="rgba(212,175,55,0.15)" stroke-width="10"/>
-            <circle cx="130" cy="130" r="118" fill="none" stroke="url(#tasbih-gradient)" stroke-width="10"
+          <svg class="tasbih-ring" width="220" height="220" viewBox="0 0 220 220">
+            <circle cx="110" cy="110" r="${R}" fill="none" stroke="rgba(212,175,55,0.15)" stroke-width="9"/>
+            <circle cx="110" cy="110" r="${R}" fill="none" stroke="url(#tasbih-gradient)" stroke-width="9"
                     stroke-linecap="round"
-                    stroke-dasharray="${2 * Math.PI * 118}"
-                    stroke-dashoffset="${2 * Math.PI * 118 * (1 - progress)}"
-                    transform="rotate(-90 130 130)"
+                    stroke-dasharray="${CIRC}"
+                    stroke-dashoffset="${CIRC * (1 - progress)}"
+                    transform="rotate(-90 110 110)"
                     style="transition: stroke-dashoffset 0.4s cubic-bezier(0.4,0,0.2,1);"/>
             <defs>
               <linearGradient id="tasbih-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -120,23 +164,47 @@ const TasbihPage = {
           </div>
         </div>
 
-        <!-- Stats -->
-        <div class="tasbih-stats">
-          <div class="tasbih-stat">
-            <div class="tasbih-stat-value" id="tasbih-session">${this.totalCount}</div>
-            <div class="tasbih-stat-label">${t('sessionTotal') || 'Sesión'}</div>
+        <!-- v50: بطاقة صغيرة — إحصائيات اليوم والأسبوع (تُفتح بالضغط) -->
+        <div class="tasbih-daily-card" id="tasbih-daily-card" onclick="TasbihPage.toggleStatsPanel()" role="button" tabindex="0" aria-expanded="false">
+          <div class="tasbih-daily-item">
+            <div class="tasbih-daily-value" id="tasbih-today-val">${today}</div>
+            <div class="tasbih-daily-label"><i class="fas fa-sun"></i> ${t('todayTasbih') || 'Hoy'}</div>
           </div>
-          <div class="tasbih-stat">
-            <div class="tasbih-stat-value">${Gamification.getState().stats.tasbihCount || 0}</div>
-            <div class="tasbih-stat-label">${t('lifetimeTotal') || 'Histórico'}</div>
+          <div class="tasbih-daily-sep"></div>
+          <div class="tasbih-daily-item">
+            <div class="tasbih-daily-value" id="tasbih-week-val">${week}</div>
+            <div class="tasbih-daily-label"><i class="fas fa-calendar-week"></i> ${t('weekTasbih') || 'Semana'}</div>
           </div>
-          <div class="tasbih-stat">
-            <div class="tasbih-stat-value">+${Math.floor(this.totalCount / 100) * Gamification.XP_PER_TASBIH_100}</div>
-            <div class="tasbih-stat-label">XP</div>
+          <i class="fas fa-chevron-down tasbih-daily-caret" id="tasbih-daily-caret"></i>
+        </div>
+
+        <!-- Panel de estadísticas con pestaña día / semana -->
+        <div class="tasbih-stats-panel hidden" id="tasbih-stats-panel">
+          <div class="tasbih-stats-toggle" role="tablist">
+            <button class="tasbih-stats-tab active" id="tasbih-tab-day" onclick="event.stopPropagation(); TasbihPage.setStatsTab('day')">${t('todayTasbih') || 'Hoy'}</button>
+            <button class="tasbih-stats-tab" id="tasbih-tab-week" onclick="event.stopPropagation(); TasbihPage.setStatsTab('week')">${t('weekTasbih') || 'Semana'}</button>
+          </div>
+          <div class="tasbih-stats">
+            <div class="tasbih-stat">
+              <div class="tasbih-stat-value" id="tasbih-session">${this.totalCount}</div>
+              <div class="tasbih-stat-label">${t('sessionTotal') || 'Sesión'}</div>
+            </div>
+            <div class="tasbih-stat">
+              <div class="tasbih-stat-value" id="tasbih-panel-main">${today}</div>
+              <div class="tasbih-stat-label" id="tasbih-panel-main-label">${t('todayTasbih') || 'Hoy'}</div>
+            </div>
+            <div class="tasbih-stat">
+              <div class="tasbih-stat-value">${life}</div>
+              <div class="tasbih-stat-label">${t('lifetimeTotal') || 'Histórico'}</div>
+            </div>
+            <div class="tasbih-stat">
+              <div class="tasbih-stat-value">+${xp}</div>
+              <div class="tasbih-stat-label">XP</div>
+            </div>
           </div>
         </div>
 
-        <!-- Action buttons -->
+        <!-- Action buttons (compactos) -->
         <div class="tasbih-buttons">
           <button class="btn-ghost tasbih-btn-secondary" onclick="TasbihPage.reset()">
             <i class="fas fa-redo"></i> ${t('resetCounter') || 'Reiniciar'}
@@ -145,26 +213,68 @@ const TasbihPage = {
             <i class="fas fa-trash"></i> ${t('clearAll') || 'Limpiar todo'}
           </button>
         </div>
-
-        <!-- Quick dhikr picker -->
-        <div class="dhikr-picker">
-          <div class="dhikr-picker-title">${t('selectDhikr') || 'Elegir dhikr'}</div>
-          <div class="dhikr-picker-grid">
-            ${this.DHIKRS.map((d, idx) => `
-              <div class="dhikr-pick-item ${idx === this.currentDhikr ? 'active' : ''}" onclick="TasbihPage.selectDhikr(${idx})">
-                <div class="dhikr-pick-ar">${d.ar}</div>
-                <div class="dhikr-pick-target">×${d.target}</div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
       </div>
     `;
+    this._bindDhikrSwipe();
+    this._scrollActiveChip();
+  },
+
+  // ============ v50: panel hoy / semana ============
+  toggleStatsPanel() {
+    const panel = document.getElementById('tasbih-stats-panel');
+    if (!panel) return;
+    const open = panel.classList.toggle('hidden') === false;
+    const caret = document.getElementById('tasbih-daily-caret');
+    if (caret) caret.style.transform = open ? 'rotate(180deg)' : '';
+    const card = document.getElementById('tasbih-daily-card');
+    if (card) card.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) this.setStatsTab('day');
+  },
+
+  setStatsTab(mode) {
+    const dayBtn = document.getElementById('tasbih-tab-day');
+    const weekBtn = document.getElementById('tasbih-tab-week');
+    if (!dayBtn || !weekBtn) return;
+    dayBtn.classList.toggle('active', mode === 'day');
+    weekBtn.classList.toggle('active', mode === 'week');
+    const val = document.getElementById('tasbih-panel-main');
+    const lbl = document.getElementById('tasbih-panel-main-label');
+    if (val) val.textContent = mode === 'day' ? this.todayCount() : this.weekCount();
+    if (lbl) lbl.textContent = mode === 'day' ? (t('todayTasbih') || 'Hoy') : (t('weekTasbih') || 'Semana');
+  },
+
+  // v50: swipe horizontal sobre el texto del dhikr para cambiar de dhikr
+  _bindDhikrSwipe() {
+    const el = document.getElementById('dhikr-display');
+    if (!el || el._swipeBound) return;
+    el._swipeBound = true;
+    let x0 = null;
+    el.style.touchAction = 'pan-y';
+    el.addEventListener('pointerdown', (e) => { x0 = e.clientX; });
+    el.addEventListener('pointerup', (e) => {
+      if (x0 === null) return;
+      const dx = e.clientX - x0;
+      x0 = null;
+      if (Math.abs(dx) < 40) return;
+      const dir = (currentLocale === 'ar' ? -1 : 1) * (dx < 0 ? 1 : -1);
+      this.changeDhikr(dir);
+    });
+  },
+
+  // v50: centrar el chip activo dentro del strip
+  _scrollActiveChip() {
+    const strip = document.getElementById('dhikr-strip');
+    if (!strip) return;
+    const active = strip.querySelector('.dhikr-chip.active');
+    if (active && active.scrollIntoView) {
+      try { active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); } catch (e) {}
+    }
   },
 
   increment() {
     this.count++;
     this.totalCount++;
+    this.recordDailyCount(1); // v50: estadísticas hoy / semana
 
     if (navigator.vibrate) {
       navigator.vibrate(this.count === this.targetCount ? [50, 30, 50, 30, 100] : 20);
@@ -201,10 +311,22 @@ const TasbihPage = {
     const sessionEl = document.getElementById('tasbih-session');
     if (sessionEl) sessionEl.textContent = this.totalCount;
 
+    // v50: actualizar la mini tarjeta hoy / semana en cada toque
+    const todayEl = document.getElementById('tasbih-today-val');
+    if (todayEl) todayEl.textContent = this.todayCount();
+    const weekEl = document.getElementById('tasbih-week-val');
+    if (weekEl) weekEl.textContent = this.weekCount();
+    const panel = document.getElementById('tasbih-stats-panel');
+    const panelVal = document.getElementById('tasbih-panel-main');
+    if (panel && panelVal && !panel.classList.contains('hidden')) {
+      const weekActive = document.getElementById('tasbih-tab-week')?.classList.contains('active');
+      panelVal.textContent = weekActive ? this.weekCount() : this.todayCount();
+    }
+
     const ring = document.querySelector('.tasbih-ring circle:last-of-type');
     if (ring) {
       const progress = Math.min(this.count / this.targetCount, 1);
-      const circ = 2 * Math.PI * 118;
+      const circ = 2 * Math.PI * 98; // v50: radio del nuevo anillo de 220px
       ring.setAttribute('stroke-dashoffset', circ * (1 - progress));
     }
 

@@ -1,6 +1,8 @@
 // 🌐 صفحة اختيار اللغة — تظهر عند أول تشغيل للتطبيق فقط
 // LanguagePicker: first-run language selection screen with flags.
 // Una vez elegido el idioma, se guarda (langChosen) y no vuelve a aparecer.
+// v49: al elegir el idioma se abre la JUELA TUTORIAL (Onboarding) — las
+// páginas de bienvenida en el idioma elegido, una sola vez.
 const LanguagePicker = {
   LANGS: [
     { id: 'ar', flag: '🇸🇦', name: 'العربية',      hint: 'اختر لغتك' },
@@ -84,6 +86,13 @@ const LanguagePicker = {
     if (picker) {
       picker.classList.add('closing');
       setTimeout(() => picker.remove(), 350);
+    }
+
+    // 4) v49: الجولة التعريفية — صفحات الترحيب تظهر مرة واحدة بعد اختيار
+    // اللغة مباشرة، وبنفس اللغة المختارة (ترحيب ← الميزات ← الخصوصية ←
+    // تحديد الموقع). لا تتكرر بعد إتمامها أو تخطيها.
+    if (typeof Onboarding !== 'undefined' && Onboarding.shouldShow()) {
+      Onboarding.show();
     }
   },
 };

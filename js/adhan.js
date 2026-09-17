@@ -72,10 +72,7 @@ const AdhanService = {
         clearCut();
         if (a && a !== this.audio) { try { a.pause(); } catch (e) {} }
         resolve(ok);
-        // v47 FIX: onEnded solo se dispara cuando el audio terminó de verdad
-        // (o se completó el corte programado), no cuando falló la carga — así
-        // en modo «takbeer» no se ejecuta dos veces la continuación.
-        if (ok && onEnded) onEnded();
+        if (onEnded) onEnded();
       };
 
       const tryUrl = (url, isFallback) => {

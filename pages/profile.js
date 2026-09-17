@@ -664,10 +664,7 @@ const ProfilePage = {
     AdhanService.stopPreview();
     const wasMuted = s.muted;
     s.muted = false;
-    // v47 FIX: aplicar el mismo mínimo de 5 s que usa el adhan real para que
-    // la vista previa suene exactamente igual que lo que sonará a su hora.
-    const durMs = Math.max(5, s.takbeerDuration || 12) * 1000;
-    AdhanService._playVoice(voice, s.volume, null, durMs)
+    AdhanService._playVoice(voice, s.volume, null, (s.takbeerDuration || 12) * 1000)
       .finally(() => { s.muted = wasMuted; });
     showToast('🔊 ' + (t('adhanModeTakbeer') || 'Solo las dos primeras Takbeer'), 2000);
   },

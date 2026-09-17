@@ -188,3 +188,6 @@
 @media (prefers-color-scheme: dark) {
   .msh-page { background: #FDFBF3; color: #1F1B12; }
 }
+
+/* v51: زر ألوان التجويد في شريط المصحف */
+.msh-tjw-btn.active { color: var(--gold-soft, #D4AF37); background: rgba(212,175,55,.12); border-radius: 50%; }

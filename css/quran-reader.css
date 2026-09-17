@@ -690,38 +690,47 @@
 .bookmarks-entry-card:disabled{opacity:.55;cursor:default;}
 .last-read-card .bookmarks-entry-icon{color:#8B5CF6;}
 
-/* ============ v47: بطاقتا «المحفوظات» و«آخر آية» بحجم مناسب للهاتف ============ */
-.quran-quick-entries {
-  display: flex;
-  gap: 10px;
-  align-items: stretch;
-  margin: 0 var(--sp-md) var(--sp-md);
+/* ===== v51: ألوان التجويد (تُفعَّل من إعدادات القرآن) ===== */
+.tjw-ghunnah  { color: #1B8A4B; font-weight: 600; }
+.tjw-ikhfa    { color: #7C3AED; }
+.tjw-idgham   { color: #0891B2; }
+.tjw-iqlab    { color: #EA7A1F; }
+.tjw-qalqalah { color: #D4262C; font-weight: 600; }
+.tjw-madd     { color: #1D4ED8; }
+.tjw-laam     { color: #C9A227; }
+[data-theme="dark"] .tjw-ghunnah  { color: #4ADE80; }
+[data-theme="dark"] .tjw-ikhfa    { color: #C4B5FD; }
+[data-theme="dark"] .tjw-idgham   { color: #67E8F9; }
+[data-theme="dark"] .tjw-iqlab    { color: #FDBA74; }
+[data-theme="dark"] .tjw-qalqalah { color: #F87171; }
+[data-theme="dark"] .tjw-madd     { color: #93C5FD; }
+[data-theme="dark"] .tjw-laam     { color: #FDE047; }
+
+/* ===== v51: صفحة خيارات تكرار التلاوة ===== */
+.rp-sheet { padding: 4px 2px 10px; }
+.rp-modes { display: flex; gap: 8px; }
+.rp-mode {
+  flex: 1; padding: 10px 6px; border-radius: var(--r-md, 12px);
+  border: 1px solid var(--border); background: var(--surface-alt);
+  color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all .2s;
 }
-.quran-quick-entries .bookmarks-entry-card {
-  flex: 1 1 0;
-  min-width: 0;
-  width: auto;          /* إلغاء width: calc(100% - ...) الموروثة */
-  margin: 0;            /* إلغاء الهوامش الموروثة داخل الحاوية المرنة */
-  padding: 12px 10px;
-  gap: 8px;
-  min-height: 64px;
+.rp-mode.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.rp-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.rp-chip {
+  min-width: 44px; padding: 8px 10px; border-radius: var(--r-pill, 999px);
+  border: 1px solid var(--border); background: var(--surface-alt);
+  color: var(--text); font-weight: 700; cursor: pointer; transition: all .2s;
 }
-.quran-quick-entries .bookmarks-entry-icon {
-  width: 34px; height: 34px; font-size: 15px;
+.rp-chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.rp-range-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.rp-range-row label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary); }
+.rp-num-input {
+  width: 72px; padding: 8px 10px; border-radius: var(--r-md, 12px);
+  border: 1px solid var(--border); background: var(--surface-alt);
+  color: var(--text); font-size: 15px; font-weight: 700; text-align: center;
 }
-.quran-quick-entries .bookmarks-entry-title { font-size: 13px; }
-.quran-quick-entries .bookmarks-entry-sub {
-  font-size: 11px;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.quran-quick-entries .bookmarks-entry-card > .fa-chevron-left,
-.quran-quick-entries .bookmarks-entry-card > .fa-chevron-right {
-  font-size: 11px; opacity: 0.6; flex-shrink: 0;
-}
-@media (max-width: 380px) {
-  .quran-quick-entries { gap: 8px; }
-  .quran-quick-entries .bookmarks-entry-card { padding: 10px 8px; gap: 6px; }
-  .quran-quick-entries .bookmarks-entry-icon { width: 30px; height: 30px; font-size: 13px; }
-  .quran-quick-entries .bookmarks-entry-title { font-size: 12px; }
-  .quran-quick-entries .bookmarks-entry-sub { font-size: 10px; }
-}
+.rp-apply { width: 100%; margin-top: 14px; padding: 12px; }
+
+/* v51: أيقونة # بدل عدسة البحث الطائفة */
+.ayah-fab-hash { font-size: 20px; font-weight: 800; }

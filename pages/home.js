@@ -66,7 +66,8 @@ const HomePage = {
       const virtue = hijri ? getDailyVirtue(
         parseInt(hijri.month?.number, 10),
         parseInt(hijri.day, 10),
-        new Date().getDay()
+        new Date().getDay(),
+        AppState.settings.locale || 'es' // v50: «Día bendecido» sigue el idioma de la UI
       ) : null;
 
       this.renderContent(container, loc, timings.timings, hijri, verse, dua, virtue);
@@ -220,7 +221,6 @@ const HomePage = {
               <span class="prayer-emoji">${getPrayerEmoji(p.name)}</span>
               <div class="prayer-name-block">
                 <div class="prayer-name">${t('prayers.' + p.name)}</div>
-                <div class="prayer-arabic">${this.prayerArabic(p.name)}</div>
               </div>
               <div class="prayer-time-block">
                 <div class="prayer-time">${formatTime12h(p.time)}</div>

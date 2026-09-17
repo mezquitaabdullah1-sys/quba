@@ -124,9 +124,8 @@
 }
 
 [data-theme="maroon"] .splash {
-  background:
-    radial-gradient(ellipse 70% 50% at 50% 30%, rgba(212, 175, 55, 0.22), transparent 65%),
-    #3A0C1B;
+  /* v50: خلفية موحّدة بلون واحد — بدون صورة وبدون تدرّج */
+  background: #0F4C3A;
 }
 
 /* ============================================================
@@ -236,9 +235,8 @@
 }
 
 [data-theme="brown"] .splash {
-  background:
-    radial-gradient(ellipse 70% 50% at 50% 30%, rgba(212, 175, 55, 0.18), transparent 65%),
-    #6B4F3A;
+  /* v50: خلفية موحّدة بلون واحد — بدون صورة وبدون تدرّج */
+  background: #0F4C3A;
 }
 
 /* ============================================================
@@ -379,10 +377,8 @@
 }
 
 [data-theme="emerald"] .splash {
-  background:
-    radial-gradient(ellipse 70% 50% at 50% 30%, rgba(201, 162, 39, 0.20), transparent 65%),
-    url("../assets/themes/bg-emerald-damask.png") center / cover no-repeat,
-    #0E3B2E;
+  /* v50: خلفية موحّدة بلون واحد — إزالة صورة الخلفية نهائياً */
+  background: #0F4C3A;
 }
 
 /* ============================================================
@@ -571,28 +567,3 @@
 [data-theme="brown"] .search-box.quran-unified-search input { color: #4A3325; }
 [data-theme="brown"] .search-box.quran-unified-search input::placeholder { color: rgba(107, 79, 58, 0.65); }
 [data-theme="brown"] .search-box.quran-unified-search i { color: #6B4F3A; }
-
-/* ============ v47: مفاتيح التفعيل — مفعّل أخضر / معطّل رمادي بوضوح ============ */
-/* حالة المعطّل: رمادي واضح في كل الثيمات */
-.toggle-switch .toggle-slider,
-.toggle-switch input:not(:checked) + .toggle-slider {
-  background: #C7CDD4;
-}
-[data-theme="dark"] .toggle-switch .toggle-slider,
-[data-theme="dark"] .toggle-switch input:not(:checked) + .toggle-slider {
-  background: #4A5560;
-}
-/* حالة المفعّل: أخضر واضح في كل الثيمات (يتفوق على ألوان الثيمات أعلاه) */
-.toggle-switch input:checked + .toggle-slider,
-[data-theme="maroon"] .toggle-switch input:checked + .toggle-slider,
-[data-theme="brown"] .toggle-switch input:checked + .toggle-slider,
-[data-theme="emerald"] .toggle-switch input:checked + .toggle-slider,
-[data-theme="dark"] .toggle-switch input:checked + .toggle-slider {
-  background: #1E9E6A !important;
-  box-shadow: 0 0 0 2px rgba(30, 158, 106, 0.25), inset 0 0 0 1px rgba(255,255,255,0.15);
-}
-.toggle-switch input:checked + .toggle-slider::before {
-  background: #fff;
-}
-/* لمحة عند الضغط */
-.toggle-switch:active .toggle-slider { filter: brightness(0.95); }

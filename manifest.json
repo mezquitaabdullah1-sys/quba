@@ -1,0 +1,32 @@
+{
+  "name": "Quba — Tu compañero hacia el Paraíso",
+  "short_name": "Quba",
+  "description": "Corán con tafsir, oración, Qibla, calendario hijri y quiz gamificado. Multilingüe: árabe, español e inglés.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0F4C3A",
+  "theme_color": "#0F4C3A",
+  "lang": "es",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

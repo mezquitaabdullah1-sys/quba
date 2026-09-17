@@ -1262,3 +1262,124 @@
 
 /* v22: prayer page shortcut to Salah course */
 .prayer-course-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin: 12px 0 4px; padding: 12px; font-size: 0.95rem; }
+
+/* ============================================================
+   v50: Tasbih — diseño de UNA sola pantalla (sin scroll en móvil)
+   ============================================================ */
+.tasbih-container {
+  padding: 0 var(--sp-sm) var(--sp-sm);
+  gap: 8px;
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+/* --- Strip deslizable de adhkar (chips compactos) --- */
+.dhikr-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+.dhikr-strip::-webkit-scrollbar { display: none; }
+.dhikr-chip {
+  flex: 0 0 auto;
+  scroll-snap-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 76, 58, 0.18);
+  background: var(--card-bg, #fff);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.dhikr-chip-ar { font-family: var(--font-arabic); font-size: 13px; font-weight: 700; line-height: 1.3; }
+.dhikr-chip-target { font-size: 9px; color: var(--text-secondary); }
+.dhikr-chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.dhikr-chip.active .dhikr-chip-target { color: rgba(255, 255, 255, 0.85); }
+[data-theme="dark"] .dhikr-chip { background: #1f2937; border-color: rgba(212,175,55,0.25); color: #f3f4f6; }
+[data-theme="dark"] .dhikr-chip.active { background: var(--primary); color: #fff; }
+
+/* --- Display compacto del dhikr actual (swipe horizontal) --- */
+.dhikr-display { text-align: center; padding: 2px 8px 4px; border-radius: 12px; user-select: none; }
+.dhikr-display .dhikr-arabic { font-size: 22px; line-height: 1.5; }
+.dhikr-display .dhikr-trans { font-size: 12px; }
+.dhikr-display .dhikr-es { font-size: 11px; margin-top: 1px; }
+
+/* --- Contador 220px para que TODO quepa sin scroll --- */
+.tasbih-counter { width: 220px; height: 220px; margin: 0 auto; }
+.tasbih-count { font-size: 44px; }
+.tasbih-target { font-size: 14px; }
+.tasbih-hint { font-size: 10px; margin-top: 8px; }
+
+/* --- Mini tarjeta hoy / semana (pulsable) --- */
+.tasbih-daily-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 2px auto 0;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: var(--card-bg, #fff);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  box-shadow: 0 2px 8px rgba(15, 76, 58, 0.08);
+  cursor: pointer;
+  width: fit-content;
+  min-width: 200px;
+}
+.tasbih-daily-item { text-align: center; }
+.tasbih-daily-value { font-size: 17px; font-weight: 700; color: var(--primary); line-height: 1.1; }
+.tasbih-daily-label { font-size: 10px; color: var(--text-secondary); }
+.tasbih-daily-label i { font-size: 9px; margin-inline-end: 2px; }
+.tasbih-daily-sep { width: 1px; height: 22px; background: rgba(15, 76, 58, 0.15); }
+.tasbih-daily-caret { font-size: 10px; color: var(--text-secondary); transition: transform 0.2s ease; }
+[data-theme="dark"] .tasbih-daily-card { background: #1f2937; }
+
+/* --- Panel de estadísticas desplegable (día / semana) --- */
+.tasbih-stats-panel {
+  margin-top: 6px;
+  border-radius: 14px;
+  background: var(--card-bg, #fff);
+  border: 1px solid rgba(15, 76, 58, 0.12);
+  padding: 8px;
+  overflow: hidden;
+}
+.tasbih-stats-panel.hidden { display: none; }
+[data-theme="dark"] .tasbih-stats-panel { background: #1f2937; }
+.tasbih-stats-toggle { display: flex; gap: 6px; margin-bottom: 8px; }
+.tasbih-stats-tab {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 76, 58, 0.18);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tasbih-stats-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.tasbih-stats-panel .tasbih-stats { margin-top: 0; }
+.tasbih-stats-panel .tasbih-stat { padding: 6px 4px; }
+.tasbih-stats-panel .tasbih-stat-value { font-size: 16px; }
+.tasbih-stats-panel .tasbih-stat-label { font-size: 10px; }
+
+/* --- Botones compactos --- */
+.tasbih-buttons { margin-top: 6px; gap: 6px; }
+.tasbih-buttons .tasbih-btn-secondary { padding: 7px 10px; font-size: 12px; }
+
+/* Teléfonos bajos: encoger un poco más para que TODO quepa sin scroll */
+@media (max-height: 700px) {
+  .tasbih-counter { width: 188px; height: 188px; }
+  .tasbih-counter .tasbih-ring { width: 188px; height: 188px; }
+  .dhikr-display .dhikr-arabic { font-size: 19px; }
+  .tasbih-count { font-size: 38px; }
+}

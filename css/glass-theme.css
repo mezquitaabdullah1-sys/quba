@@ -169,9 +169,8 @@ body {
 
 /* ---------- Splash — soften with the same ambient glow ---------- */
 .splash {
-  background:
-    radial-gradient(ellipse 70% 50% at 50% 30%, rgba(212, 175, 55, 0.18), transparent 65%),
-    #0F4C3A;
+  /* v50: fondo plano de un solo color (sin degradado ni imagen de fondo) */
+  background: #0F4C3A;
 }
 
 /* ---------- Scrollbar restraint on lower-power devices ---------- */

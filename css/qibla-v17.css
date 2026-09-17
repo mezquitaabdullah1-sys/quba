@@ -1,6 +1,11 @@
 /* ============================================
-   🧭 Qibla Compass v17 — High-Precision UI
-   ============================================ */
+   🧭 Qibla Compass v18 — High-Precision UI
+   ============================================
+   v48: rebuilt around a TRUE rotating compass ring (cardinal marks turn with
+   the phone, like a real compass) with the Kaaba as a fixed marker on that
+   ring, plus a screen-fixed device pointer the user lines the Kaaba up with —
+   the standard "prayer app" qibla metaphor. See pages/prayer.js for the logic.
+*/
 
 .qibla-v17 {
   padding: 12px;
@@ -81,10 +86,15 @@
   border-color: #d4a017;
 }
 
-/* Outer ring with cardinal marks */
+/* Rotating ring — turns with the phone so N really points north.
+   v48: was previously static; a short LINEAR transition (no overshoot) is
+   critical here — an elastic/bounce easing re-triggers on every sensor
+   sample (up to ~60/sec) and is what produced the visible "shaking". */
 .compass-ring {
   position: absolute;
   inset: 0;
+  transition: transform 0.12s linear;
+  will-change: transform;
 }
 
 .cardinal-mark {
@@ -119,11 +129,12 @@
 }
 [data-theme="dark"] .cardinal-sub { color: #888; }
 
-/* Magnetic North marker (red dot that stays at magnetic north) */
+/* Magnetic North marker — a child of .compass-ring, so it inherits the
+   ring's live rotation automatically; its OWN transform is a one-time
+   fixed offset (the local magnetic declination) set at render time. */
 .magnetic-north-marker {
   position: absolute;
   inset: 0;
-  transition: transform 0.1s linear;
   pointer-events: none;
 }
 .mn-dot {
@@ -139,69 +150,83 @@
   box-shadow: 0 0 6px rgba(220, 38, 38, 0.6);
 }
 
-/* ============ QIBLA NEEDLE ============ */
-.qibla-needle {
+/* ============ QIBLA TARGET (Kaaba marker) ============
+   Also a child of .compass-ring: its local rotation is the FIXED qibla
+   bearing (set once per render), so it rides along with the ring as the
+   phone turns without needing its own per-frame update. */
+.qibla-target {
   position: absolute;
   inset: 0;
-  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
   pointer-events: none;
   z-index: 3;
 }
-.qibla-needle.aligned .needle-body {
-  background: linear-gradient(to top, #16a34a, #22c55e);
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.7);
-}
-.qibla-needle.aligned .needle-tip {
-  color: #16a34a;
-  filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.8));
-}
-.qibla-needle.aligned .needle-label {
-  color: #16a34a;
-  animation: pulse 1s ease-in-out infinite;
-}
 
-/* Needle body (vertical bar pointing up) */
-.needle-body {
+.qibla-target-stem {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 6px;
-  height: 110px;
-  background: linear-gradient(to top, #b8860b, #d4a017, #f0c860);
+  width: 4px;
+  height: 92px;
+  background: linear-gradient(to top, rgba(184,134,11,0.35), #d4a017 65%, #f0c860);
   transform: translate(-50%, -100%);
-  border-radius: 3px;
-  box-shadow: 0 0 10px rgba(212, 160, 23, 0.5);
+  border-radius: 2px;
 }
 
-/* Needle tip (arrowhead) */
-.needle-tip {
+/* Badge stays upright: counter-rotated every frame against the ring's
+   current spin (see pages/prayer.js), so the Kaaba icon never appears
+   upside-down while it orbits the dial. */
+.qibla-target-badge {
   position: absolute;
-  top: 20px;
+  top: 4px;
   left: 50%;
+  width: 44px;
+  height: 44px;
   transform: translateX(-50%);
-  width: 40px;
-  height: 40px;
-  color: #d4a017;
-  filter: drop-shadow(0 0 8px rgba(212, 160, 23, 0.6));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 35% 30%, #3a3a3a, #0a0a0a 70%);
+  border: 3px solid #d4a017;
+  border-radius: 50%;
+  box-shadow: 0 0 14px rgba(212, 160, 23, 0.55);
+  transition: box-shadow 0.2s, border-color 0.2s;
 }
-.needle-tip svg {
-  width: 100%;
-  height: 100%;
+.kaaba-emoji {
+  font-size: 22px;
+  line-height: 1;
+  filter: drop-shadow(0 0 2px rgba(255,255,255,0.15));
 }
 
-/* Needle label ("القِبْلَة") */
-.needle-label {
+.qibla-target.aligned .qibla-target-stem {
+  background: linear-gradient(to top, rgba(22,163,74,0.25), #16a34a 65%, #22c55e);
+}
+.qibla-target.aligned .qibla-target-badge {
+  border-color: #22c55e;
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.75);
+}
+
+/* ============ DEVICE POINTER ============
+   Screen-fixed — represents where the phone is pointing RIGHT NOW. This
+   element never rotates; the user turns until the Kaaba badge (which
+   travels around the ring) reaches it. */
+.device-pointer {
   position: absolute;
-  top: 60px;
+  top: -14px;
   left: 50%;
+  width: 30px;
+  height: 30px;
   transform: translateX(-50%);
-  font-family: 'Amiri', serif;
-  font-size: 13px;
-  font-weight: 700;
-  color: #d4a017;
-  white-space: nowrap;
-  text-shadow: 0 0 8px rgba(212, 160, 23, 0.4);
-  letter-spacing: 1px;
+  color: #0d2b4e;
+  z-index: 5;
+  filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));
+  transition: color 0.2s, filter 0.2s;
+  pointer-events: none;
+}
+[data-theme="dark"] .device-pointer { color: #f0c860; }
+.device-pointer svg { width: 100%; height: 100%; }
+.device-pointer.aligned {
+  color: #16a34a;
+  filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.8));
 }
 
 /* Center hub */
@@ -286,8 +311,9 @@
   margin: 12px 0;
   border-left: 3px solid #d4a017;
 }
+[dir="rtl"] .qibla-tip-v17 { border-left: none; border-right: 3px solid #d4a017; }
 
-/* Activate button */
+/* Calibrate button */
 .qibla-activate-btn {
   width: 100%;
   padding: 14px;
@@ -299,23 +325,107 @@
   gap: 8px;
 }
 
-/* Pulse animation for aligned state */
-@keyframes pulse {
-  0%, 100% { transform: translateX(-50%) scale(1); }
-  50% { transform: translateX(-50%) scale(1.05); }
-}
-
 /* Responsive: smaller compass on small phones */
 @media (max-width: 380px) {
   .compass-v17 { width: 240px; height: 240px; }
-  .needle-body { height: 95px; }
-  .needle-tip { top: 14px; width: 32px; height: 32px; }
-  .needle-label { top: 50px; font-size: 11px; }
+  .qibla-target-stem { height: 80px; }
+  .qibla-target-badge { top: 2px; width: 38px; height: 38px; }
+  .kaaba-emoji { font-size: 19px; }
+  .device-pointer { width: 26px; height: 26px; top: -12px; }
   .info-value.main-value { font-size: 22px; }
 }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .qibla-needle { transition: transform 0.05s linear !important; }
-  .qibla-needle.aligned .needle-label { animation: none !important; }
+  .compass-ring, .qibla-target-badge-inner { transition: transform 0.05s linear !important; }
+}
+
+/* ============================================
+   🎯 Calibration overlay ("move in a figure-8")
+   ============================================ */
+.qibla-calib-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: qcFadeIn 0.2s;
+}
+.qibla-calib-overlay.closing { animation: qcFadeOut 0.2s forwards; }
+@keyframes qcFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes qcFadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+.qibla-calib-sheet {
+  background: var(--card);
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  width: 100%;
+  max-width: 420px;
+  padding: var(--sp-lg);
+  padding-bottom: max(var(--sp-lg), env(safe-area-inset-bottom, 0px));
+  text-align: center;
+  animation: qcSlideUp 0.3s ease;
+}
+@keyframes qcSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.qibla-calib-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.qibla-calib-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+.qibla-calib-stage {
+  position: relative;
+  width: 140px;
+  height: 90px;
+  margin: 0 auto 18px;
+}
+.qibla-calib-track {
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+}
+[data-theme="dark"] .qibla-calib-track { opacity: 0.5; }
+.qibla-calib-phone {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 30px;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  animation: qcFigure8 2.6s ease-in-out infinite;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+}
+@keyframes qcFigure8 {
+  0%    { transform: translate(-50%, -50%) translate(0px, 0px)     rotate(0deg); }
+  12.5% { transform: translate(-50%, -50%) translate(28px, -18px)  rotate(18deg); }
+  25%   { transform: translate(-50%, -50%) translate(46px, 0px)    rotate(0deg); }
+  37.5% { transform: translate(-50%, -50%) translate(28px, 18px)   rotate(-18deg); }
+  50%   { transform: translate(-50%, -50%) translate(0px, 0px)     rotate(0deg); }
+  62.5% { transform: translate(-50%, -50%) translate(-28px, -18px) rotate(-18deg); }
+  75%   { transform: translate(-50%, -50%) translate(-46px, 0px)   rotate(0deg); }
+  87.5% { transform: translate(-50%, -50%) translate(-28px, 18px)  rotate(18deg); }
+  100%  { transform: translate(-50%, -50%) translate(0px, 0px)     rotate(0deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qibla-calib-phone { animation: none; }
+}
+
+.qibla-calib-actions { display: flex; flex-direction: column; gap: 10px; }
+.qibla-calib-done-btn {
+  width: 100%;
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 700;
 }

@@ -17,12 +17,6 @@
 const MP_CITY_SLUGS = {
   // ─── América Latina ───
   havana:         { slug: 'prayer-times/cuba/prayer-times-havana/3553478' },
-  // ─── Cuba (v48) — IDs verificados contra geonames.org ───
-  santiago_de_cuba: { slug: 'prayer-times/cuba/prayer-times-santiago-de-cuba/3536729' },
-  holguin:        { slug: 'prayer-times/cuba/prayer-times-holguin/3556969' },
-  cienfuegos:     { slug: 'prayer-times/cuba/prayer-times-cienfuegos/3564124' },
-  sancti_spiritus: { slug: 'prayer-times/cuba/prayer-times-sancti-spiritus/3540667' },
-  camaguey:       { slug: 'prayer-times/cuba/prayer-times-camaguey/3566067' },
   mexico_city:    { slug: 'prayer-times/mexico/prayer-times-mexico-city/3530597' },
   guadalajara:    { slug: 'prayer-times/mexico/prayer-times-guadalajara/4005539' },
   monterrey:      { slug: 'prayer-times/mexico/prayer-times-monterrey/3995465' },
@@ -52,21 +46,6 @@ const MP_CITY_SLUGS = {
   san_juan:       { slug: 'prayer-times/puerto-rico/prayer-times-san-juan/4568127' },
   kingston:       { slug: 'prayer-times/jamaica/prayer-times-kingston/3489854' },
   port_au_prince: { slug: 'prayer-times/haiti/prayer-times-port-au-prince/3718426' },
-  // ─── América Latina ampliada (v48) — geonames IDs ───
-  maracaibo:      { slug: 'prayer-times/venezuela/prayer-times-maracaibo/3632998' },
-  valencia_ve:    { slug: 'prayer-times/venezuela/prayer-times-valencia/3625549' },
-  barquisimeto:   { slug: 'prayer-times/venezuela/prayer-times-barquisimeto/3648522' },
-  colon_pa:       { slug: 'prayer-times/panama/prayer-times-colon/3712076' },
-  david_pa:       { slug: 'prayer-times/panama/prayer-times-david/3711668' },
-  cancun:         { slug: 'prayer-times/mexico/prayer-times-cancun/3531673' },
-  puebla:         { slug: 'prayer-times/mexico/prayer-times-puebla/3521081' },
-  barranquilla:   { slug: 'prayer-times/colombia/prayer-times-barranquilla/3689147' },
-  cartagena:      { slug: 'prayer-times/colombia/prayer-times-cartagena/3687238' },
-  arequipa:       { slug: 'prayer-times/peru/prayer-times-arequipa/3947322' },
-  santa_cruz_bo:  { slug: 'prayer-times/bolivia/prayer-times-santa-cruz-de-la-sierra/3904906' },
-  rosario:        { slug: 'prayer-times/argentina/prayer-times-rosario/3838583' },
-  salvador_br:    { slug: 'prayer-times/brazil/prayer-times-salvador/3450554' },
-  fortaleza:      { slug: 'prayer-times/brazil/prayer-times-fortaleza/3399415' },
   // ─── Europa ───
   madrid:         { slug: 'prayer-times/spain/prayer-times-madrid/3117735' },
   barcelona:      { slug: 'prayer-times/spain/prayer-times-barcelona/3128760' },

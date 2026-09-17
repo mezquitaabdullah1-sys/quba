@@ -106,7 +106,9 @@ function getDailyVirtue(hijriMonth, hijriDay, dayOfWeek, lang) {
       ar: 'يومٌ مبارك. أكثر من الصلاة والدعاء والصدقة اليوم.',
       en: 'A blessed day. Increase your prayers, du\'as and charity today.',
     };
-    return { title: holidayName, verse: blessed[l], source: 'Sunnah' };
+    // v50: si la UI está en árabe se muestra la frase en árabe (antes caía al español por defecto)
+    const blessedLang = (typeof currentLocale !== 'undefined' && currentLocale === 'ar') ? 'ar' : l;
+    return { title: holidayName, verse: blessed[blessedLang], source: 'Sunnah' };
   }
 
   // Weekday-specific virtues take priority

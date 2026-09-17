@@ -274,12 +274,10 @@ const PrayerPdf = {
         {
           const cw = (x1 - x0) * cols[0].w;
           ctx.textAlign = 'center';
-          ctx.fillStyle = C.ink;
-          ctx.font = '600 36px Inter, sans-serif';
-          ctx.fillText(this._prayerName(p.name), cx + cw / 2, y + 52);
+          // v50: nombre latín eliminado — solo el nombre árabe, centrado en la fila
           ctx.fillStyle = C.green;
           ctx.font = '700 34px Amiri, "Noto Naskh Arabic", serif';
-          ctx.fillText(this._prayerArabic(p.name), cx + cw / 2, y + 98);
+          ctx.fillText(this._prayerArabic(p.name), cx + cw / 2, y + rowH / 2 + 12);
           cx += cw;
         }
         // Adhan
@@ -406,10 +404,10 @@ const PrayerPdf = {
       ctx.font = '700 30px Inter, Amiri, "Noto Naskh Arabic", sans-serif';
       ctx.fillText(this._L('day'), x0 + dayW / 2, y + headH / 2 + 10);
       names.forEach((n, i) => {
-        ctx.fillText(this._prayerName(n), x0 + dayW + cw * i + cw / 2, y + 34);
+        // v50: solo el nombre árabe en la cabecera (sin el nombre latín duplicado)
         ctx.font = '700 26px Amiri, "Noto Naskh Arabic", serif';
         ctx.fillStyle = C.gold;
-        ctx.fillText(this._prayerArabic(n), x0 + dayW + cw * i + cw / 2, y + 66);
+        ctx.fillText(this._prayerArabic(n), x0 + dayW + cw * i + cw / 2, y + headH / 2 + 9);
         ctx.fillStyle = '#ffffff';
         ctx.font = '700 30px Inter, Amiri, "Noto Naskh Arabic", sans-serif';
       });

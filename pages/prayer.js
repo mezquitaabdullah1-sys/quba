@@ -3,7 +3,8 @@ const PrayerPage = {
   activeTab: 'times',
   qiblaBearing: 0,
   deviceHeading: 0,
-  orientationHandler: null,
+  orientationHandlerAbs: null,
+  orientationHandlerRel: null,
   permissionGranted: false,
   countdownInterval: null, // v36: actualiza el «tiempo restante» en la tabla
 
@@ -201,7 +202,7 @@ const PrayerPage = {
                       aria-pressed="${isDone}"
                       onclick="HomePage.toggleCheckin('${p.name}', this)">
                 <i class="fas fa-check"></i>
-              </button>` : ''}
+              </button>` : '<span class="prayer-check-spacer" aria-hidden="true"></span>'}
           </div>`;
         }).join('')}
         <div style="padding: 8px;">
@@ -234,16 +235,16 @@ const PrayerPage = {
     const L = {
       atMakkah:      { es: '¡Estás en la Qibla!',       ar: 'أنت في القبلة!',              en: 'You are at the Qibla!' },
       atMakkahDesc:  { es: 'Te encuentras en Meca o sus alrededores. La Kaaba está cerca.', ar: 'أنت في مكة المكرمة أو ضواحيها. الكعبة قريبة.', en: 'You are in Makkah or its surroundings. The Kaaba is nearby.' },
-      pointToKaaba:  { es: 'Gira hasta que la aguja dorada apunte arriba', ar: 'أدر حتى تشير الإبرة الذهبية إلى الأعلى', en: 'Rotate until the golden needle points up' },
+      pointToKaaba:  { es: 'Gira despacio hasta que la 🕋 llegue a la flecha', ar: 'أدر هاتفك ببطء حتى تصل الكعبة 🕋 إلى السهم', en: 'Slowly turn until the 🕋 reaches the arrow' },
       aligned:       { es: '¡Perfecto! Estás mirando a la Qibla', ar: 'ممتاز! أنت تنظر إلى القبلة', en: 'Perfect! You are facing the Qibla' },
       qiblaDir:      { es: 'Dirección Qibla',            ar: 'اتجاه القبلة',                en: 'Qibla Direction' },
       trueNorth:     { es: 'Norte verdadero',            ar: 'الشمال الحقيقي',              en: 'True North' },
       magneticNorth: { es: 'Norte magnético',            ar: 'الشمال المغناطيسي',           en: 'Magnetic North' },
       declination:   { es: 'Declinación magnética',      ar: 'الانحراف المغناطيسي',         en: 'Magnetic declination' },
       distance:      { es: 'Distancia a la Kaaba',       ar: 'المسافة إلى الكعبة',          en: 'Distance to Kaaba' },
-      activateCompass:{ es: 'Activar brújula',           ar: 'تفعيل البوصلة',               en: 'Enable compass' },
+      calibrate:     { es: 'Calibrar brújula',           ar: 'معايرة البوصلة',              en: 'Calibrate compass' },
       noCompass:     { es: 'Sin brújula: la dirección se muestra sin sensor', ar: 'بدون بوصلة: يظهر الاتجاه بدون حساس', en: 'No compass: direction shown without sensor' },
-      tip:           { es: '<i class="fas fa-lightbulb"></i> Mantén el teléfono horizontal y alejado de objetos metálicos. La aguja dorada siempre apunta a la Kaaba.', ar: '<i class="fas fa-lightbulb"></i> حافظ على الهاتف أفقيًا وبعيدًا عن الأجسام المعدنية. الإبرة الذهبية تشير دائمًا إلى الكعبة.', en: '<i class="fas fa-lightbulb"></i> Keep the phone horizontal and away from metal objects. The golden needle always points to the Kaaba.' },
+      tip:           { es: '<i class="fas fa-lightbulb"></i> Mantén el teléfono horizontal y alejado de objetos metálicos. La 🕋 siempre marca la dirección real a la Kaaba; la flecha fija es hacia donde apunta tu teléfono ahora.', ar: '<i class="fas fa-lightbulb"></i> حافظ على الهاتف أفقيًا وبعيدًا عن الأجسام المعدنية. الكعبة 🕋 تشير دائمًا للاتجاه الحقيقي، والسهم الثابت يمثّل الاتجاه الذي يشير إليه هاتفك الآن.', en: '<i class="fas fa-lightbulb"></i> Keep the phone horizontal and away from metal objects. The 🕋 always marks the real direction to the Kaaba; the fixed arrow shows where your phone is pointing right now.' },
     };
 
     return `
@@ -261,26 +262,34 @@ const PrayerPage = {
 
             <!-- Compass circle -->
             <div class="compass-v17" id="compass">
-              <!-- Outer ring with cardinal marks -->
-              <div class="compass-ring">
+              <!-- Rotating ring: turns with the phone (true north), carries
+                   the cardinal marks, the magnetic-north dot AND the Kaaba
+                   target as children so they all move together. -->
+              <div class="compass-ring" id="compass-ring" style="transform: rotate(0deg);">
                 <div class="cardinal-mark n"><span class="cardinal-letter">N</span><span class="cardinal-sub">${L.trueNorth[lang]}</span></div>
                 <div class="cardinal-mark e"><span class="cardinal-letter">E</span></div>
                 <div class="cardinal-mark s"><span class="cardinal-letter">S</span></div>
                 <div class="cardinal-mark w"><span class="cardinal-letter">W</span></div>
-              </div>
 
-              <!-- Magnetic North marker (small red dot, moves with heading) -->
-              <div class="magnetic-north-marker" id="magnetic-north-marker" style="transform: rotate(${-decl}deg);">
-                <div class="mn-dot"></div>
-              </div>
-
-              <!-- Golden Qibla needle -->
-              <div class="qibla-needle" id="qibla-arrow" style="transform: rotate(${this.qiblaBearing}deg);">
-                <div class="needle-body"></div>
-                <div class="needle-tip">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 22l10-4 10 4z"/></svg>
+                <!-- Magnetic North marker: fixed offset (declination) within the ring -->
+                <div class="magnetic-north-marker" style="transform: rotate(${decl}deg);">
+                  <div class="mn-dot"></div>
                 </div>
-                <div class="needle-label">القِبْلَة</div>
+
+                <!-- Kaaba target: fixed at the qibla bearing within the ring,
+                     so it swings around the dial as the phone turns -->
+                <div class="qibla-target" id="qibla-target" style="transform: rotate(${this.qiblaBearing}deg);">
+                  <div class="qibla-target-stem"></div>
+                  <div class="qibla-target-badge" id="qibla-target-badge" style="transform: translateX(-50%) rotate(${-this.qiblaBearing}deg);">
+                    <span class="kaaba-emoji">🕋</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Fixed device pointer: NOT part of the ring — always shows
+                   where the phone is pointing right now. Align the 🕋 with it. -->
+              <div class="device-pointer" id="device-pointer">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4 21l8-5 8 5z"/></svg>
               </div>
 
               <!-- Center hub -->
@@ -317,8 +326,8 @@ const PrayerPage = {
 
           <div class="qibla-tip-v17">${L.tip[lang]}</div>
 
-          <button class="btn-primary qibla-activate-btn" id="qibla-activate-btn" onclick="PrayerPage.requestOrientationPermission()">
-            <i class="fas fa-compass"></i> ${L.activateCompass[lang]}
+          <button class="btn-primary qibla-activate-btn" id="qibla-activate-btn" onclick="PrayerPage.calibrateCompass()">
+            <i class="fas fa-compass"></i> ${L.calibrate[lang]}
           </button>
         `}
       </div>
@@ -451,113 +460,213 @@ const PrayerPage = {
     `;
   },
 
-  async requestOrientationPermission() {
-    // iOS 13+ requiere permiso explícito
-    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+  async calibrateCompass() {
+    // iOS 13+ requiere permiso explícito (solo hace falta pedirlo una vez)
+    if (!this.permissionGranted && typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
       try {
         const perm = await DeviceOrientationEvent.requestPermission();
         if (perm === 'granted') {
           this.permissionGranted = true;
-          this.initOrientationListener();
-          showToast('Brújula activada');
         } else {
           showToast('Permiso denegado');
+          return;
         }
       } catch (e) {
-        showToast('Error: '+ e.message);
+        showToast('Error: ' + e.message);
+        return;
       }
     } else {
-      // Android / desktop: no requiere permiso
       this.permissionGranted = true;
-      this.initOrientationListener();
-      showToast('Brújula activa');
     }
+
+    // v48: «Calibrar» reinicia el filtro de suavizado (arranca de cero, sin
+    // arrastrar una media vieja de otra sesión/orientación) y vuelve a
+    // enganchar los listeners — así el mismo botón sirve tanto para la
+    // primera activación como para recalibrar más tarde.
+    this.initOrientationListener();
+    this.showCalibrationOverlay();
   },
 
   initOrientationListener() {
-    if (this.orientationHandler) {
-      window.removeEventListener('deviceorientation', this.orientationHandler);
-      window.removeEventListener('deviceorientationabsolute', this.orientationHandler);
+    if (this.orientationHandlerAbs) {
+      window.removeEventListener('deviceorientationabsolute', this.orientationHandlerAbs);
+      this.orientationHandlerAbs = null;
+    }
+    if (this.orientationHandlerRel) {
+      window.removeEventListener('deviceorientation', this.orientationHandlerRel);
+      this.orientationHandlerRel = null;
+    }
+    if (this._qiblaRaf) {
+      cancelAnimationFrame(this._qiblaRaf);
+      this._qiblaRaf = null;
     }
 
-    this.orientationHandler = (e) => {
-      // Determine heading AND whether it is referenced to TRUE north
-      let heading = null;
-      let isTrue = false;
-      if (e.webkitCompassHeading !== undefined) {
-        // iOS Safari gives TRUE heading directly (corrected by the OS)
-        heading = e.webkitCompassHeading;
-        isTrue = true;
-      } else if (e.absolute === true && e.alpha !== null) {
-        // Android Chrome with absolute=true: alpha is relative to true north already
-        heading = 360 - e.alpha;
-        isTrue = true;
-      } else if (e.alpha !== null) {
-        // Android Chrome without absolute: magnetic heading → declination fix inside Qibla.compute
-        heading = 360 - e.alpha;
-        isTrue = false;
-      }
+    Qibla.resetSmoothing();
+    this._lastTrueHeading = undefined;
+    this._lastAligned = undefined;
+    this._pendingHeading = null;
+    this._usingAbsolute = false;
 
-      if (heading === null || isNaN(heading)) return;
-
-      // Adaptive smoothing (outlier rejection + micro-jitter deadband) to avoid jitter
-      const smoothed = Qibla.smoothHeading(heading);
-      this.deviceHeading = smoothed;
+    // Apply the latest smoothed reading once per animation frame instead of
+    // once per sensor sample (sensors can fire up to ~60/sec) — this alone
+    // removes a lot of the visible "vibration" since we're no longer forcing
+    // dozens of layout/paint updates per second.
+    const applyFrame = () => {
+      this._qiblaRaf = null;
+      if (this._pendingHeading === null) return;
+      const heading = this._pendingHeading;
+      this._pendingHeading = null;
 
       const loc = AppState.location;
       const lang = currentLocale === 'ar' ? 'ar' : (currentLocale === 'en' ? 'en' : 'es');
-      const computed = Qibla.compute(loc?.latitude || 0, loc?.longitude || 0, smoothed, lang, isTrue);
+      // v48: both webkitCompassHeading (iOS) and deviceorientationabsolute's
+      // alpha (Android) are MAGNETIC headings, not true headings — always
+      // run them through the declination correction (isTrueHeading=false).
+      const computed = Qibla.compute(loc?.latitude || 0, loc?.longitude || 0, heading, lang, false);
+      const trueHeading = computed.trueHeading;
 
-      const arrowAngle = computed.arrowAngle;
-      const arrow = document.getElementById('qibla-arrow');
-      if (arrow) {
-        // Render deadband: skip DOM writes for sub-degree noise (kills visible vibration)
-        if (this._lastArrowAngle !== undefined) {
-          let dA = Math.abs(arrowAngle - this._lastArrowAngle);
-          if (dA > 180) dA = 360 - dA;
-          if (dA < 0.4 && this._lastAligned === computed.aligned) return;
-        }
-        this._lastArrowAngle = arrowAngle;
-        arrow.style.transform = `rotate(${arrowAngle}deg)`;
-        const aligned = computed.aligned;
-        arrow.classList.toggle('aligned', aligned);
-
-        const hint = document.getElementById('qibla-hint');
-        if (hint) {
-          const L = {
-            aligned: { es: '¡Perfecto! Estás mirando a la Qibla', ar: 'ممتاز! أنت تنظر إلى القبلة', en: 'Perfect! You are facing the Qibla' },
-            pointTo: { es: 'Gira hasta que la aguja dorada apunte arriba', ar: 'أدر حتى تشير الإبرة الذهبية إلى الأعلى', en: 'Rotate until the golden needle points up' },
-          };
-          hint.textContent = aligned ? L.aligned[lang] : L.pointTo[lang];
-          hint.classList.toggle('aligned', aligned);
-        }
-
-        // Update magnetic north marker position (rotates with the compass)
-        const mnMarker = document.getElementById('magnetic-north-marker');
-        if (mnMarker) {
-          // Magnetic north sits at +declination in the true-north frame,
-          // so relative to the device it is at (declination − trueHeading).
-          const mnAngle = isTrue ? (computed.magneticDeclination - smoothed) : -smoothed;
-          mnMarker.style.transform = `rotate(${mnAngle}deg)`;
-        }
-
-        // Update magnetic heading numeric display (magnetic = true − declination)
-        const mhVal = document.getElementById('magnetic-heading-val');
-        if (mhVal) {
-          const mag = isTrue ? (((smoothed - computed.magneticDeclination) % 360) + 360) % 360 : smoothed;
-          mhVal.textContent = mag.toFixed(1) + '°';
-        }
-
-        // Haptic feedback on alignment (debounced)
-        if (aligned && navigator.vibrate && !this._lastAligned) {
-          navigator.vibrate([30, 50, 30]);
-        }
-        this._lastAligned = aligned;
+      // Render deadband: skip DOM writes for sub-degree noise (kills visible vibration)
+      if (this._lastTrueHeading !== undefined) {
+        let dH = Math.abs(trueHeading - this._lastTrueHeading);
+        if (dH > 180) dH = 360 - dH;
+        if (dH < 0.35 && this._lastAligned === computed.aligned) return;
       }
+      this._lastTrueHeading = trueHeading;
+
+      // Rotating the ring by -trueHeading carries the cardinal marks, the
+      // magnetic-north dot AND the Kaaba target along with it (all three
+      // are DOM children of #compass-ring) — one transform, three things move.
+      const ring = document.getElementById('compass-ring');
+      if (ring) ring.style.transform = `rotate(${-trueHeading}deg)`;
+
+      // Counter-rotate the Kaaba badge so it stays upright while it orbits.
+      const badge = document.getElementById('qibla-target-badge');
+      if (badge) badge.style.transform = `translateX(-50%) rotate(${trueHeading - this.qiblaBearing}deg)`;
+
+      const aligned = computed.aligned;
+      const target = document.getElementById('qibla-target');
+      const pointer = document.getElementById('device-pointer');
+      if (target) target.classList.toggle('aligned', aligned);
+      if (pointer) pointer.classList.toggle('aligned', aligned);
+
+      const hint = document.getElementById('qibla-hint');
+      if (hint) {
+        const L = {
+          aligned: { es: '¡Perfecto! Estás mirando a la Qibla', ar: 'ممتاز! أنت تنظر إلى القبلة', en: 'Perfect! You are facing the Qibla' },
+          pointTo: { es: 'Gira despacio hasta que la 🕋 llegue a la flecha', ar: 'أدر هاتفك ببطء حتى تصل الكعبة 🕋 إلى السهم', en: 'Slowly turn until the 🕋 reaches the arrow' },
+        };
+        hint.textContent = aligned ? L.aligned[lang] : L.pointTo[lang];
+        hint.classList.toggle('aligned', aligned);
+      }
+
+      // Numeric magnetic-heading readout (magnetic = true − declination)
+      const mhVal = document.getElementById('magnetic-heading-val');
+      if (mhVal) {
+        const mag = ((trueHeading - computed.magneticDeclination) % 360 + 360) % 360;
+        mhVal.textContent = mag.toFixed(1) + '°';
+      }
+
+      // Haptic feedback on alignment (debounced)
+      if (aligned && navigator.vibrate && !this._lastAligned) {
+        navigator.vibrate([30, 50, 30]);
+      }
+      this._lastAligned = aligned;
     };
 
-    window.addEventListener('deviceorientationabsolute', this.orientationHandler, true);
-    window.addEventListener('deviceorientation', this.orientationHandler, true);
+    const processHeading = (rawHeading) => {
+      if (rawHeading === null || isNaN(rawHeading)) return;
+      // Adaptive smoothing (outlier rejection + micro-jitter deadband)
+      const smoothed = Qibla.smoothHeading(rawHeading);
+      this.deviceHeading = smoothed;
+      this._pendingHeading = smoothed;
+      if (!this._qiblaRaf) this._qiblaRaf = requestAnimationFrame(applyFrame);
+    };
+
+    // v48: deviceorientationabsolute and deviceorientation can BOTH fire for
+    // the same physical movement on some Android/Chrome combinations — one
+    // "absolute" (magnetometer-referenced) and one "relative" (can drift from
+    // the page's initial orientation). Feeding both into the same filter
+    // made the needle fight itself between two slightly different readings,
+    // which looked like jitter. Once an "absolute" event arrives we trust it
+    // exclusively and stop listening to the relative one. iOS never fires
+    // deviceorientationabsolute at all, so this is a no-op there — it keeps
+    // using deviceorientation + webkitCompassHeading as before.
+    this.orientationHandlerAbs = (e) => {
+      this._usingAbsolute = true;
+      if (this.orientationHandlerRel) {
+        window.removeEventListener('deviceorientation', this.orientationHandlerRel);
+        this.orientationHandlerRel = null;
+      }
+      if (e.alpha === null) return;
+      processHeading(360 - e.alpha);
+    };
+
+    this.orientationHandlerRel = (e) => {
+      if (this._usingAbsolute) return;
+      let heading = null;
+      if (e.webkitCompassHeading !== undefined) {
+        heading = e.webkitCompassHeading; // iOS Safari: magnetic heading
+      } else if (e.alpha !== null) {
+        heading = 360 - e.alpha;
+      }
+      processHeading(heading);
+    };
+
+    window.addEventListener('deviceorientationabsolute', this.orientationHandlerAbs, true);
+    window.addEventListener('deviceorientation', this.orientationHandlerRel, true);
+  },
+
+  showCalibrationOverlay() {
+    // Remove any existing overlay synchronously (no fade) before creating a
+    // fresh one, so re-tapping "Calibrar" quickly can't leave two stacked
+    // #qibla-calib-overlay elements mid-transition.
+    if (this._calibAutoHide) { clearTimeout(this._calibAutoHide); this._calibAutoHide = null; }
+    const existing = document.getElementById('qibla-calib-overlay');
+    if (existing) existing.remove();
+
+    const lang = currentLocale === 'ar' ? 'ar' : (currentLocale === 'en' ? 'en' : 'es');
+    const L = {
+      title: { es: 'Calibrando brújula', ar: 'جارٍ معايرة البوصلة', en: 'Calibrating compass' },
+      desc:  { es: 'Mueve el teléfono trazando un 8 en el aire un par de veces para reajustar el sensor.', ar: 'حرّك هاتفك على شكل الرقم 8 في الهواء عدّة مرات لإعادة ضبط الحساس.', en: 'Move your phone tracing a figure-8 in the air a couple of times to reset the sensor.' },
+      done:  { es: 'Listo', ar: 'تم', en: 'Done' },
+    };
+
+    const overlay = document.createElement('div');
+    overlay.className = 'qibla-calib-overlay';
+    overlay.id = 'qibla-calib-overlay';
+    overlay.innerHTML = `
+      <div class="qibla-calib-sheet">
+        <div class="qibla-calib-title">${L.title[lang]}</div>
+        <div class="qibla-calib-desc">${L.desc[lang]}</div>
+        <div class="qibla-calib-stage">
+          <svg class="qibla-calib-track" viewBox="0 0 100 60" fill="none">
+            <path d="M50,30 C50,13.4 37.3,2 25,2 C10.7,2 2,15 2,30 C2,45 10.7,58 25,58 C37.3,58 50,46.6 50,30 C50,13.4 62.7,2 75,2 C89.3,2 98,15 98,30 C98,45 89.3,58 75,58 C62.7,58 50,46.6 50,30 Z"
+              stroke="#d4a017" stroke-width="2.5" stroke-dasharray="5 6" stroke-linecap="round"/>
+          </svg>
+          <div class="qibla-calib-phone">📱</div>
+        </div>
+        <div class="qibla-calib-actions">
+          <button class="btn-primary qibla-calib-done-btn" onclick="PrayerPage.hideCalibrationOverlay()">${L.done[lang]}</button>
+        </div>
+      </div>
+    `;
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) this.hideCalibrationOverlay();
+    });
+    document.body.appendChild(overlay);
+
+    this._calibAutoHide = setTimeout(() => this.hideCalibrationOverlay(), 6000);
+  },
+
+  hideCalibrationOverlay() {
+    if (this._calibAutoHide) {
+      clearTimeout(this._calibAutoHide);
+      this._calibAutoHide = null;
+    }
+    const overlay = document.getElementById('qibla-calib-overlay');
+    if (!overlay) return;
+    overlay.classList.add('closing');
+    setTimeout(() => overlay.remove(), 200);
   },
 
   permissionPrompt() {
@@ -574,11 +683,19 @@ const PrayerPage = {
   },
 
   cleanup() {
-    if (this.orientationHandler) {
-      window.removeEventListener('deviceorientation', this.orientationHandler);
-      window.removeEventListener('deviceorientationabsolute', this.orientationHandler);
-      this.orientationHandler = null;
+    if (this.orientationHandlerAbs) {
+      window.removeEventListener('deviceorientationabsolute', this.orientationHandlerAbs);
+      this.orientationHandlerAbs = null;
     }
+    if (this.orientationHandlerRel) {
+      window.removeEventListener('deviceorientation', this.orientationHandlerRel);
+      this.orientationHandlerRel = null;
+    }
+    if (this._qiblaRaf) {
+      cancelAnimationFrame(this._qiblaRaf);
+      this._qiblaRaf = null;
+    }
+    this.hideCalibrationOverlay();
     // v36: detener el contador de «tiempo restante» al salir de la página
     if (this.countdownInterval) {
       clearInterval(this.countdownInterval);

@@ -142,9 +142,16 @@ const Qibla = {
   // 2025 magnetic declination grid (degrees, + = East), 15° resolution with
   // bilinear interpolation. Derived from NOAA WMM-2025 isogonic charts.
   // Typical accuracy ±2° in populated regions (worse near the magnetic poles).
-  // NOTE: iOS (webkitCompassHeading) and Android "absolute" orientation events
-  // bypass this table entirely — the OS applies the full WMM internally; this
-  // table is only the fallback for raw magnetic headings.
+  // v48 CORRECTION: neither iOS's webkitCompassHeading nor Android's
+  // "absolute" deviceorientation event is corrected for true north — both
+  // are MAGNETIC headings (Apple's own docs describe webkitCompassHeading as
+  // "relative to magnetic north"; Android's "absolute" flag only means the
+  // reading isn't relative to the page's initial orientation, it still comes
+  // from the magnetometer referenced to magnetic north). This table must
+  // ALWAYS be applied — treating either source as pre-corrected true heading
+  // (as earlier versions did) silently mispoints the compass by the local
+  // declination, which is exactly what "true north doesn't really point
+  // north" looks like.
   DECL_GRID: {
     step: 15,
     lats: [90, 75, 60, 45, 30, 15, 0, -15, -30, -45, -60, -75, -90],
@@ -235,7 +242,7 @@ const Qibla = {
 
   _smoothedHeading: null,
   _outlierCount: 0,
-  _smoothingFactor: 0.10, // base EMA gain — lower = steadier needle
+  _smoothingFactor: 0.08, // base EMA gain — lower = steadier needle (v48: 0.10→0.08, tighter rest state)
   OUTLIER_JUMP_DEG: 45,   // single-sample jumps larger than this are sensor glitches
 
   /**
@@ -284,7 +291,7 @@ const Qibla = {
 
     // Adaptive gain by motion magnitude
     const a = Math.abs(delta);
-    const eff = a < 2 ? 0.04 : (a < 10 ? alpha : Math.min(0.30, alpha * 2.5));
+    const eff = a < 2.5 ? 0.03 : (a < 10 ? alpha : Math.min(0.30, alpha * 2.5));
 
     this._smoothedHeading = (this._smoothedHeading + eff * delta + 360) % 360;
     return this._smoothedHeading;
@@ -304,6 +311,11 @@ const Qibla = {
    * @param {number} userLng  User longitude
    * @param {number} deviceHeading  Raw compass heading (magnetic)
    * @param {string} lang    'es' | 'ar' | 'en'
+   * @param {boolean} [isTrueHeading] v48: callers should always pass false —
+   *   no browser API reliably hands us a WMM-corrected true heading (see the
+   *   DECL_GRID note above), so declination must always be applied here.
+   *   Kept as a parameter only in case a future platform API genuinely
+   *   supplies true heading.
    * @returns {{
    *   qiblaBearing: number,
    *   distance: number,

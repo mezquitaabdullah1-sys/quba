@@ -8,33 +8,26 @@
   <!-- 🔒 Content Security Policy — relaxed (inline handlers/scripts aún permitidos, se irán eliminando) -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https:; media-src 'self' https: data: blob: https://cdn.aladhan.com https://www.islamcan.com; connect-src 'self' https://api.aladhan.com https://www.muslimpro.com https://app.muslimpro.com https://html.duckduckgo.com https://api.alquran.cloud https://cdn.islamic.network https://api.mymemory.translated.net https://nominatim.openstreetmap.org https://api.open-meteo.com https://ummahapi.com https://lingva.ml https://libretranslate.com https://libretranslate.de https://cdn.jsdelivr.net https://download.quranicaudio.com https://everyayah.com; manifest-src 'self'; worker-src 'self';">
 
-  <!-- 🧹 FIX: limpieza de Service Worker heredado — CAUSA RAÍZ de que la
-       traducción/tafsir de Isa García (y cualquier otro fix de este build)
-       parezca "no aplicarse": la app tuvo Service Worker + manifest.json
-       hasta hace muy poco (ver CHANGELOG "PWA eliminado"). Un dispositivo
-       que instaló la app como PWA (o generó el APK vía PWA Builder /
-       Bubblewrap, que empaqueta esa misma URL) tiene ese SW activo AÚN
-       DESPUÉS de borrar sw.js del proyecto — el navegador no lo desinstala
-       solo, y sigue sirviendo desde su Cache Storage el index.html/JS
-       antiguos (sin garcia-data.js, sin las correcciones v29-v32, etc.),
-       sin importar cuántas veces se corrija el código fuente. Aquí se
-       desregistra cualquier SW y se borra toda caché que no sea la de
-       audio del Corán (uso intencional, no relacionado con el SW).
-       Se ejecuta en cada carga; si no hay nada que limpiar, no hace nada. -->
+  <!-- 📦 App shell offline + carga instantánea — ver sw.js para el porqué.
+       v1.0.32 desregistraba cualquier Service Worker en cada carga (ver
+       CHANGELOG "PWA eliminado" / "FIX raíz: Service Worker heredado") para
+       curar un SW viejo que se quedaba activo para siempre sirviendo JS
+       desactualizado. Ese SW nuevo (sw.js) arregla la causa real de aquello
+       (sin skipWaiting/clients.claim ni caché versionada por build, nunca
+       tomaba el control ni se autolimpiaba) — así que ya no hace falta
+       desregistrarlo a mano: cada build se reemplaza sola. Desregistrar
+       aquí de nuevo anularía el propio arreglo (instantáneo + offline). -->
+  <link rel="manifest" href="manifest.json">
   <script>
     (function () {
       try {
         if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistrations().then(function (regs) {
-            regs.forEach(function (reg) { reg.unregister(); });
-          }).catch(function () {});
-        }
-        if (window.caches && caches.keys) {
-          caches.keys().then(function (names) {
-            names.forEach(function (name) {
-              if (name !== 'quba-quran-audio-v1') caches.delete(name).catch(function () {});
+          window.addEventListener('load', function () {
+            navigator.serviceWorker.register('./sw.js').catch(function () {
+              /* silencioso: sin SW la app sigue funcionando, solo pierde
+                 la carga instantánea/offline — nunca debe romper el arranque */
             });
-          }).catch(function () {});
+          });
         }
       } catch (e) { /* silencioso: nunca debe romper el arranque */ }
     })();
@@ -74,9 +67,9 @@
   <link rel="stylesheet" href="css/glass-theme.css">
   <link rel="stylesheet" href="css/themes-colorful.css">
   <link rel="stylesheet" href="css/restyle-layout.css">
+  <link rel="stylesheet" href="css/onboarding.css"> <!-- v49: الجولة التعريفية + سياسة الخصوصية -->
   <link rel="stylesheet" href="css/offline.css">
   <link rel="stylesheet" href="css/share-card.css">
-  <link rel="stylesheet" href="css/mobile-fit.css"> <!-- v48: ajuste móvil Quiz/Cursos -->
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -151,6 +144,7 @@
   <script src="js/env.public.js"></script>
     <script src="js/config.js"></script>
   <script src="js/storage.js"></script>
+  <script src="js/privacy-policy.js"></script> <!-- v49: نص سياسة الخصوصية المحلي (AR/ES/EN) -->
   <script src="js/cache-db.js"></script>
   <script src="js/skeleton.js"></script>
   <!-- v21: motor de cálculo de oración offline + datos/descarga local del Corán -->
@@ -180,6 +174,7 @@
   <script src="data/quran_search_index.js"></script>
   <script src="data/quran_transliteration.js"></script>
   <script src="js/quran-search.js"></script>
+  <script src="js/quran-tajweed.js"></script> <!-- v51: ألوان التجويد (تحليل محلي أوفلاين) -->
   <script src="js/garcia-data.js"></script>
   <script src="js/tafsir.js"></script>
   <script src="js/adhan.js"></script>
@@ -238,6 +233,7 @@
 
   <!-- Pages -->
   <script src="pages/language.js"></script>
+  <script src="js/onboarding.js"></script> <!-- v49: صفحات الترحيب عند أول تشغيل -->
   <script src="pages/home.js"></script>
   <script src="pages/quran.js"></script>
   <script src="pages/quran-mushaf.js"></script>

@@ -28,40 +28,10 @@ let toastTimer = null;
 function showToast(message, duration = 2500) {
   const toast = document.getElementById('toast');
   if (!toast) return;
-  // v47 FIX: algunas llamadas pasan iconos HTML (p. ej. «كتم الأذان») que con
-  // textContent se mostraban como código literal en pantalla. Usamos innerHTML
-  // saneado: se permite solo un subconjunto mínimo de etiquetas seguras.
-  toast.innerHTML = sanitizeToastHtml(String(message ?? ''));
+  toast.textContent = message;
   toast.classList.remove('hidden');
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.add('hidden'), duration);
-}
-
-// Saneador mínimo para toasts: solo se conservan <i>, <b>, <strong>, <em>,
-// <span> y <br> (sin atributos salvo class en <i>/<span>); todo lo demás se
-// convierte en texto plano para evitar inyección.
-function sanitizeToastHtml(html) {
-  const ALLOWED = { I: ['class'], B: [], STRONG: [], EM: [], SPAN: ['class'], BR: [] };
-  const tpl = document.createElement('template');
-  tpl.innerHTML = html;
-  const walk = (node) => {
-    [...node.children].forEach(el => {
-      const spec = ALLOWED[el.tagName];
-      if (!spec) {
-        // sustituir la etiqueta por su contenido de texto
-        const txt = document.createTextNode(el.textContent);
-        el.replaceWith(txt);
-        return;
-      }
-      [...el.attributes].forEach(attr => {
-        if (!spec.includes(attr.name)) el.removeAttribute(attr.name);
-        else if (!/^[\w\s\-]+$/.test(attr.value)) el.removeAttribute(attr.name); // class seguro
-      });
-      walk(el);
-    });
-  };
-  walk(tpl.content);
-  return tpl.innerHTML;
 }
 
 // ============ MODAL ============

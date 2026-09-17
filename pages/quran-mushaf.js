@@ -48,6 +48,7 @@ const QuranMushafPage = {
 
   render(container, params = {}, navToken = null) {
     this.fontSize = Storage.get('mushaf_font') || 'medium';
+    this.tajweed = !!Storage.get('mushaf_tajweed'); // v51: ألوان التجويد في المصحف
     let p = parseInt(params.page, 10);
     if (!(p >= 1 && p <= this.TOTAL_PAGES)) {
       // استئناف آخر صفحة مقروءة
@@ -108,7 +109,8 @@ const QuranMushafPage = {
           parts.push('<div class="msh-bismillah">بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ</div>');
         }
       }
-      parts.push(`<span class="msh-ayah" data-surah="${s}" data-ayah="${a}">${Validate.escapeHTML(txt)}<span class="msh-ayah-end">﴿${this.arDigits(a)}﴾</span></span>`);
+      const ayahHtml = (this.tajweed && typeof TajweedColors !== 'undefined') ? TajweedColors.colorize(txt) : Validate.escapeHTML(txt);
+      parts.push(`<span class="msh-ayah" data-surah="${s}" data-ayah="${a}">${ayahHtml}<span class="msh-ayah-end">﴿${this.arDigits(a)}﴾</span></span>`);
     }
 
     return `
@@ -126,6 +128,9 @@ const QuranMushafPage = {
           </button>
           <button class="top-bar-btn" onclick="QuranMushafPage.cycleFont()" title="${t('fontSize')}">
             <i class="fas fa-text-height"></i>
+          </button>
+          <button class="top-bar-btn msh-tjw-btn ${this.tajweed ? 'active' : ''}" onclick="QuranMushafPage.toggleTajweed()" title="${t('tajweedColors')}" aria-label="${t('tajweedColors')}">
+            <i class="fas fa-palette"></i>
           </button>
         </div>
 
@@ -287,6 +292,14 @@ const QuranMushafPage = {
     showToast('🔠 ' + this.fontSize, 1000);
   },
 
+  // v51: تفعيل/إطفاء ألوان التجويد في صفحة المصحف
+  toggleTajweed() {
+    this.tajweed = !this.tajweed;
+    Storage.set('mushaf_tajweed', this.tajweed);
+    this.showPage(null, this.page, 0);
+    showToast('🎨 ' + t('tajweedColors'), 1200);
+  },
+
   // ☰ فهرس المصحف: السور / الأجزاء / الأحزاب / الأرباع + بحث موحّد
   openPicker(mode) {
     this._pickerMode = mode || 'surah';
@@ -302,7 +315,7 @@ const QuranMushafPage = {
         <button class="modal-close" onclick="closeModal()">×</button>
       </div>
       <div class="picker-search">
-        <i class="fas fa-search"></i>
+        <i class="fas fa-hashtag"></i>
         <input type="text" id="msh-picker-input" placeholder="${t('mushafSearchGo')}" autocomplete="off"
                oninput="QuranMushafPage._renderPickerList(this.value)">
         <button class="btn-primary" style="padding: 8px 16px;" onclick="QuranMushafPage.jumpToQuery()">${t('mushafGo')}</button>
