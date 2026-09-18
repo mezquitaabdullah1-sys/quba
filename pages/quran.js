@@ -722,14 +722,14 @@ const QuranPage = {
         <button class="toolbar-btn" onclick="QuranPage.openSurahPicker()">
           <i class="fas fa-list-ul"></i> <span>${surah.number}. ${Validate.escapeHTML(displayName)}</span>
         </button>
-        <button class="toolbar-btn" onclick="QuranPage.openAyahPicker()">
-          <i class="fas fa-bookmark"></i> <span>${t('ayah')} 1</span>
+        <button class="toolbar-btn" onclick="QuranPage.openAyahPicker()" title="${t('jumpToAyah')}">
+          <i class="fas fa-hashtag"></i> <span>${t('ayah')} 1</span>
         </button>
         <button class="toolbar-btn" onclick="QuranPage.openMushaf()" title="${t('mushafOpenBtn')}" aria-label="${t('mushafOpenBtn')}">
           <i class="fas fa-book-open"></i>
         </button>
         <button class="toolbar-btn" onclick="QuranPage.openQuranSearch()" title="${t('quranSearchTitle')}" aria-label="${t('quranSearchTitle')}">
-          <i class="fas fa-hashtag"></i>
+          <i class="fas fa-search"></i>
         </button>
         <button class="toolbar-btn ${this.repeatMode !== 'off' ? 'active' : ''}" onclick="QuranPage.openRepeatOptions()" title="${repeatLabel}">
           <i class="fas ${repeatIcon}"></i>
@@ -804,10 +804,6 @@ const QuranPage = {
         </div>
       </div>
 
-      <!-- v51: البحث برقم الآية أصبح بأيقونة # — العدسة الطائفة أُزيلت -->
-      <button class="ayah-fab ayah-fab-hash" onclick="QuranPage.openAyahPicker()" title="${t('jumpToAyah')}">
-        <i class="fas fa-hashtag"></i>
-      </button>
     `;
 
     // v36: تفعيل السحب الأفقي للتنقل بين السور مثل صفحة المصحف الكامل
@@ -1784,6 +1780,7 @@ const QuranPage = {
   // وضع التكرار + عدد التكرارات (للسورة/للآية) + نطاق من آية إلى آية.
   openRepeatOptions(ayahNum) {
     if (!this.currentSurah) return;
+    this._repeatSheetAyah = ayahNum ?? null; // v52: تذكّر الآية صاحبة الزر عند إعادة رسم النافذة
     const cfg = this.repeatConfig || { ayah: 0, surah: 0, from: 1, to: this.currentSurah.numberOfAyahs };
     const total = this.currentSurah.numberOfAyahs;
     const chips = [1, 2, 3, 5, 10, 0];
@@ -1805,14 +1802,11 @@ const QuranPage = {
             `).join('')}
           </div>
         </div>
+        ${this.repeatMode === 'ayah' ? `
         <div class="settings-group">
           <div class="settings-label">${t('repeatCountAyah')}</div>
           <div class="rp-chips">
             ${chips.map(c => `<button class="rp-chip ${cfg.ayah === c ? 'active' : ''}" onclick="QuranPage.setRepeatCount('ayah', ${c}, this)">${c === 0 ? '∞' : this._num(c)}</button>`).join('')}
-          </div>
-          <div class="settings-label" style="margin-top:10px;">${t('repeatCountSurah')}</div>
-          <div class="rp-chips">
-            ${chips.map(c => `<button class="rp-chip ${cfg.surah === c ? 'active' : ''}" onclick="QuranPage.setRepeatCount('surah', ${c}, this)">${c === 0 ? '∞' : this._num(c)}</button>`).join('')}
           </div>
         </div>
         <div class="settings-group">
@@ -1822,6 +1816,15 @@ const QuranPage = {
             <label>${t('repeatToAyah')} <input type="number" id="rp-to" class="rp-num-input" min="1" max="${total}" value="${Math.min(cfg.to, total)}"></label>
           </div>
         </div>
+        ` : ''}
+        ${this.repeatMode === 'surah' ? `
+        <div class="settings-group">
+          <div class="settings-label">${t('repeatCountSurah')}</div>
+          <div class="rp-chips">
+            ${chips.map(c => `<button class="rp-chip ${cfg.surah === c ? 'active' : ''}" onclick="QuranPage.setRepeatCount('surah', ${c}, this)">${c === 0 ? '∞' : this._num(c)}</button>`).join('')}
+          </div>
+        </div>
+        ` : ''}
         <button class="btn-primary rp-apply" onclick="QuranPage.applyRepeatOptions(${ayahNum ?? 'null'})">
           <i class="fas fa-check"></i> ${t('repeatAudio')}
         </button>
@@ -1838,6 +1841,9 @@ const QuranPage = {
       btn.parentElement.querySelectorAll('.rp-mode').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     }
+    // v52: أعد رسم النافذة لإظهار إعدادات الوضع المختار فقط
+    // (تكرار آية ⇐ عدد تكرار الآية + النطاق | تكرار سورة ⇐ عدد تكرار السورة)
+    if (mode !== 'off') this.openRepeatOptions(this._repeatSheetAyah);
   },
 
   setRepeatCount(kind, val, btn) {
@@ -1851,18 +1857,22 @@ const QuranPage = {
 
   applyRepeatOptions(ayahNum) {
     const total = this.currentSurah?.numberOfAyahs || 1;
-    let from = parseInt(document.getElementById('rp-from')?.value, 10) || 1;
-    let to = parseInt(document.getElementById('rp-to')?.value, 10) || total;
+    // حقول النطاق تظهر فقط في وضع تكرار الآية — بدونها يبقى النطاق كاملاً
+    const fromEl = document.getElementById('rp-from');
+    const toEl = document.getElementById('rp-to');
+    let from = fromEl ? (parseInt(fromEl.value, 10) || 1) : 1;
+    let to = toEl ? (parseInt(toEl.value, 10) || total) : total;
     from = Math.min(Math.max(1, from), total);
     to = Math.min(Math.max(1, to), total);
     if (to < from) { const tmp = from; from = to; to = tmp; }
     this.repeatConfig.from = from;
     this.repeatConfig.to = to;
     this._repeatCount = 0;
-    // زر التكرار تحت آية: التكرار يخص تلك الآية نفسها
+    // زر التكرار تحت آية: يبدأ النطاق من تلك الآية نفسها
+    // (إن لم يحدّد المستخدم «إلى آية» يبقى حتى نهاية السورة)
     if (this.repeatMode === 'ayah' && ayahNum) {
       this.repeatConfig.from = ayahNum;
-      this.repeatConfig.to = ayahNum;
+      if (!toEl) this.repeatConfig.to = total;
     }
     this.saveRepeatMode();
     closeModal();
@@ -1975,19 +1985,25 @@ const QuranPage = {
       const next = this.currentSurah?.ayahs.find(a => a.number === num + 1);
 
       if (this.repeatMode === 'ayah') {
+        // v52: كل آية تُكرَّر cfg.ayah مرّة قبل الانتقال للتي بعدها،
+        // وعند بلوغ نهاية النطاق يُعاد من أول آية فيه (∞ إن كان العدد 0).
         if (keepRepeating) {
           this._repeatCount++;
-          if (rangeFrom < rangeTo && num >= rangeTo) {
-            // نطاق آيات: العودة لأول آية في النطاق
-            const firstR = this.currentSurah?.ayahs.find(a => a.number === rangeFrom);
-            if (firstR) { setTimeout(() => { this.scrollToAyah(rangeFrom); this.playAyah(rangeFrom, firstR.audio); }, 300); return; }
-          }
           setTimeout(() => this.playAyah(num, audioUrl), 300);
           return;
         }
-        // استُنفد عدد التكرارات: تابع داخل النطاق أو توقّف
+        // استُنفد عدد تكرارات هذه الآية: انتقل للآية التالية داخل النطاق
         this._repeatCount = 0;
-        if (num < rangeTo && next) { this.scrollToAyah(num + 1); this.playAyah(num + 1, next.audio); return; }
+        if (num < rangeTo && next) {
+          this.scrollToAyah(num + 1);
+          this.playAyah(num + 1, next.audio);
+          return;
+        }
+        // بلغنا نهاية النطاق: عُد لأول آية فيه (نطاق متعدد الآيات فقط)
+        if (rangeFrom < rangeTo) {
+          const firstR = this.currentSurah?.ayahs.find(a => a.number === rangeFrom);
+          if (firstR) { this.scrollToAyah(rangeFrom); this.playAyah(rangeFrom, firstR.audio); return; }
+        }
         if (typeof WakeLockService !== 'undefined') WakeLockService.release();
         return;
       }

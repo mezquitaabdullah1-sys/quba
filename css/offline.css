@@ -107,9 +107,9 @@
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  border: none;
-  background: rgba(15, 76, 58, 0.12);
-  color: var(--primary);
+  border: 1px solid rgba(212, 175, 55, 0.55);
+  background: rgba(212, 175, 55, 0.16);
+  color: #B8860B;
   font-size: 17px;
   cursor: pointer;
   display: flex;
@@ -120,9 +120,9 @@
 }
 [dir="rtl"] .quran-list-download-btn { right: auto; left: 12px; }
 .quran-list-download-btn:hover,
-.quran-list-download-btn:focus-visible { background: rgba(15, 76, 58, 0.25); transform: translateY(2px); }
+.quran-list-download-btn:focus-visible { background: rgba(212, 175, 55, 0.32); transform: translateY(2px); }
 .quran-list-download-btn.downloading { background: rgba(212, 175, 55, 0.18); color: var(--accent); }
-[data-theme="dark"] .quran-list-download-btn { background: rgba(255,255,255,0.1); color: #8FD6BD; }
+[data-theme="dark"] .quran-list-download-btn { background: rgba(212, 175, 55, 0.22); color: #E8C766; border-color: rgba(212, 175, 55, 0.5); }
 
 .quran-dl-badge {
   position: absolute;

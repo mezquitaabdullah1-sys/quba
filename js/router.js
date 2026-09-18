@@ -142,10 +142,8 @@ const Router = {
       }
     });
 
-    // v43: السحب يميناً/يساراً في الصفحات الرئيسية ينقّل بينها
-    // (البداية ← القرآن ← الصلاة ← الحكمة ← حسابي) — بينما يبقى سحب السور
-    // والمصحف حكراً على صفحات القرآن المفتوحة (يُتجاوز هناك).
-    this._bindMainSwipe();
+    // v52: أُزيل السحب بين الصفحات الرئيسية تماماً — يبقى السحب فقط داخل
+    // صفحات القرآن (قارئ السور والمصحف) للتنقل بين السور/الصفحات.
 
     // Ruta inicial desde hash (para deep-linking / F5)
     const initial = this.parseInitialRoute();
@@ -158,59 +156,6 @@ const Router = {
     }
   },
 
-  // v43: سحب أفقي للتنقل بين الصفحات الخمس الرئيسية
-  _bindMainSwipe() {
-    const ORDER = ['home', 'quran', 'prayer', 'wisdom', 'profile'];
-    const THRESHOLD = 90;
-    let sx = null, sy = null;
-
-    // هل المسار الحالي من الصفحات الرئيسية (وليس صفحة قرآن مفتوحة أو فرعية)؟
-    const activeRoot = () => {
-      if (!this.current) return null;
-      const name = this.current.name;
-      // داخل قارئ السور أو المصحف: السحب مخصص للتنقل بين السور/الصفحات
-      if (name === 'surah' || name === 'mushaf') return null;
-      if (name === 'quran' && document.getElementById('msh-page')) return null;
-      if (name === 'quran' && document.querySelector('.surah-nav-footer')) return null;
-      if (this.current.route && this.current.route.tabId) return this.current.route.tabId;
-      return null;
-    };
-
-    const mc = document.getElementById('main-content');
-    if (!mc) return;
-
-    mc.addEventListener('touchstart', (e) => {
-      if (!activeRoot()) { sx = null; return; }
-      const tt = e.touches[0];
-      sx = tt.clientX; sy = tt.clientY;
-    }, { passive: true });
-
-    mc.addEventListener('touchend', (e) => {
-      if (sx === null) return;
-      const root = activeRoot();
-      if (!root) { sx = null; return; }
-      const tt = e.changedTouches[0];
-      const dx = tt.clientX - sx;
-      const dy = tt.clientY - sy;
-      sx = null;
-      // تجاهل: سحب عمودي، قصير، أو بدأ فوق عنصر تفاعلي داخلي
-      if (Math.abs(dx) < THRESHOLD || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-      if (e.target && e.target.closest &&
-          e.target.closest('input, textarea, select, .mushaf-container, .qibla-compass')) return;
-
-      const idx = ORDER.indexOf(root);
-      if (idx < 0) return;
-      const rtl = document.documentElement.dir === 'rtl';
-      // في الواجهة العربية (RTL) ترتيب الصفحات مرئياً معكوس
-      const nextIdx = (dx < 0) !== rtl ? idx + 1 : idx - 1;
-      if (nextIdx < 0 || nextIdx >= ORDER.length) return;
-      const target = ORDER[nextIdx];
-      if (target !== this.current.name) {
-        this.history = [];
-        this.go(target);
-      }
-    }, { passive: true });
-  },
 };
 
 document.querySelectorAll('.bottom-tabs .tab').forEach(tab => {

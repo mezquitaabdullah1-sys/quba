@@ -27,8 +27,9 @@ const PRIVACY_POLICY = {
       {
         h: '١. بياناتك محفوظة على جهازك فقط',
         p:
-          'لا يملك التطبيق خوادم خاصة بنا، ولا نطلب منك إنشاء حساب أو إدخال اسمك أو بريدك ' +
-          'أو رقم هاتفك. جميع تفضيلاتك وإعداداتك وعدّاد المسبحة وسجلاتك تُحفظ محلياً على ' +
+          'لا يملك التطبيق خوادم خاصة بنا، ولا نطلب منك إنشاء حساب أو إدخال بريدك ' +
+          'أو رقم هاتفك. الاسم الذي تدخله اختياري ويُستخدم فقط ليظهر في شهادات الدورات ' +
+          'التعليمية. جميع تفضيلاتك وإعداداتك وعدّاد المسبحة وسجلاتك تُحفظ محلياً على ' +
           'جهازك فقط. لا يحتوي التطبيق على إعلانات أو أدوات تتبّع أو تحليلات.',
       },
       {
@@ -96,10 +97,11 @@ const PRIVACY_POLICY = {
       {
         h: '1. Tus datos se quedan en tu dispositivo',
         p:
-          'No tenemos servidores propios y no te pedimos crear una cuenta, ni tu nombre, ' +
-          'correo ni teléfono. Todas tus preferencias, ajustes, contador de tasbih y tu ' +
-          'progreso se guardan localmente en tu dispositivo. La app no contiene anuncios, ' +
-          'ni analíticas, ni rastreadores.',
+          'No tenemos servidores propios y no te pedimos crear una cuenta, ni tu correo ' +
+          'ni tu teléfono. El nombre que introduces es opcional y se usa solo para que ' +
+          'aparezca en los certificados de los cursos. Todas tus preferencias, ajustes, ' +
+          'contador de tasbih y tu progreso se guardan localmente en tu dispositivo. ' +
+          'La app no contiene anuncios, ni analíticas, ni rastreadores.',
       },
       {
         h: '2. Permisos de acceso y su uso',
@@ -171,10 +173,11 @@ const PRIVACY_POLICY = {
       {
         h: '1. Your data stays on your device',
         p:
-          'We own no servers and we never ask you to create an account or provide your name, ' +
-          'email or phone number. All your preferences, settings, tasbih counter and records ' +
-          'are stored locally on your device only. The app contains no ads, no analytics and ' +
-          'no trackers.',
+          'We own no servers and we never ask you to create an account or provide your ' +
+          'email or phone number. The name you enter is optional and is used only so it ' +
+          'can appear on course certificates. All your preferences, settings, tasbih ' +
+          'counter and records are stored locally on your device only. The app contains ' +
+          'no ads, no analytics and no trackers.',
       },
       {
         h: '2. Access permissions and how they are used',

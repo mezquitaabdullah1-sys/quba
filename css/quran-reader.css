@@ -189,18 +189,6 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-.ayah-fab {
-  position: fixed; bottom: 80px; right: 16px;
-  width: 50px; height: 50px; border-radius: 50%;
-  background: var(--primary); color: white;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px; cursor: pointer;
-  box-shadow: 0 4px 16px rgba(15,76,58,0.4);
-  z-index: 50; border: none; transition: transform 0.2s;
-}
-.ayah-fab:active { transform: scale(0.9); }
-[dir="rtl"] .ayah-fab { right: auto; left: 16px; }
-
 .picker-search {
   display: flex; align-items: center; gap: 8px;
   padding: 10px 14px; background: var(--surface-alt);
@@ -731,6 +719,3 @@
   color: var(--text); font-size: 15px; font-weight: 700; text-align: center;
 }
 .rp-apply { width: 100%; margin-top: 14px; padding: 12px; }
-
-/* v51: أيقونة # بدل عدسة البحث الطائفة */
-.ayah-fab-hash { font-size: 20px; font-weight: 800; }

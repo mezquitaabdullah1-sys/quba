@@ -391,6 +391,8 @@ const TasbihPage = {
     if (confirm(t('confirmResetAll') || '¿Limpiar contador y total de sesión? (El histórico se conserva)')) {
       this.count = 0;
       this.totalCount = 0;
+      // v52: «تنظيف الكل» يمسح أيضاً إحصائيات اليوم والأسبوع (سجل tasbih_log)
+      Storage.set('tasbih_log', {});
       this.saveState();
       this.renderUI(document.getElementById('main-content'));
     }

@@ -8,6 +8,14 @@
 const CITY_LIST = [
   // ─── América Latina (capitales y ciudades principales) ───
   { id: 'havana',        name: 'La Habana',        ar: 'هافانا',           country: 'Cuba',               countryAr: 'كوبا',               flag: '🇨🇺', lat: 23.1136,  lon: -82.3666 },
+  // v50: Santiago de Cuba y Holguín — misma tabla (Cities.LIST) y mismo
+  // huso (America/Havana en DualTiming._tzFor) que La Habana. Cuba usa UN
+  // SOLO huso horario oficial en todo el país (America/Havana, UTC-5/-4);
+  // la diferencia real de varios minutos entre estas ciudades y La Habana
+  // se debe SOLO a la longitud (cálculo solar), no al huso horario — igual
+  // que ocurre, p. ej., entre Nueva York y Chicago dentro de su propio país.
+  { id: 'santiago_de_cuba', name: 'Santiago de Cuba', ar: 'سانتياغو دي كوبا', country: 'Cuba',             countryAr: 'كوبا',               flag: '🇨🇺', lat: 20.0217,  lon: -75.8294 },
+  { id: 'holguin',       name: 'Holguín',          ar: 'هولغين',           country: 'Cuba',               countryAr: 'كوبا',               flag: '🇨🇺', lat: 20.8869,  lon: -76.2592 },
   { id: 'mexico_city',   name: 'Ciudad de México', ar: 'مكسيكو سيتي',      country: 'México',             countryAr: 'المكسيك',            flag: '🇲🇽', lat: 19.4326,  lon: -99.1332 },
   { id: 'guadalajara',   name: 'Guadalajara',      ar: 'غوادالاخارا',      country: 'México',             countryAr: 'المكسيك',            flag: '🇲🇽', lat: 20.6597,  lon: -103.3496 },
   { id: 'monterrey',     name: 'Monterrey',        ar: 'مونتيري',          country: 'México',             countryAr: 'المكسيك',            flag: '🇲🇽', lat: 25.6866,  lon: -100.3161 },

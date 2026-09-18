@@ -141,9 +141,10 @@ const MuslimProSync = {
     if (!g.ok) return null;
     const a = (await g.json()).address || {};
     const city = a.city || a.town || a.village || a.county || '';
+    const country = a.country || '';
     if (!city) return null;
 
-    const q = encodeURIComponent(`muslimpro prayer times ${city} ${a.country || ''}`);
+    const q = encodeURIComponent(`muslimpro prayer times ${city} ${country}`);
     const r = await fetch(`https://html.duckduckgo.com/html/?q=${q}`);
     if (!r.ok) return null;
     let html = await r.text();
@@ -154,8 +155,41 @@ const MuslimProSync = {
       /muslimpro\.com\/((?:prayer-times\/[a-z0-9-]+\/[a-z0-9-]+\/\d+)|(?:[a-z]{2}\/prayer-times\/[a-z0-9-]+(?:\/[a-z0-9-]+)*\/\d+)|(?:Prayer-times-[A-Za-z0-9-]+-\d+))/i
     );
     const slug = m ? m[1] : null;
-    if (slug && typeof Storage !== 'undefined') Storage.set(ck, slug, this.SLUG_TTL);
+    if (!slug) return null;
+
+    // v50: verificar que el slug encontrado sea del MISMO país que las
+    // coordenadas antes de aceptarlo. Causa raíz del desfase reportado en
+    // ciudades homónimas (p. ej. «Santiago» de Cuba/Chile/Colombia/México/
+    // España): la búsqueda por texto puede devolver, como resultado más
+    // popular, la página de Muslim Pro de OTRA ciudad con el mismo nombre
+    // en OTRO país — el regex anterior aceptaba cualquier URL de
+    // muslimpro.com sin comprobar el país, adoptando a veces un huso
+    // horario completamente distinto. Sin coincidencia de país: se
+    // descarta el resultado y se cae a Aladhan (que resuelve el huso
+    // directamente por coordenadas, sin este riesgo).
+    if (country && !this._slugMatchesCountry(slug, country)) return null;
+
+    if (typeof Storage !== 'undefined') Storage.set(ck, slug, this.SLUG_TTL);
     return slug;
+  },
+
+  /** Normaliza un nombre de país a la forma usada en los slugs de Muslim Pro
+   *  (inglés, minúsculas, con guiones: «Dominican Republic» → «dominican-republic»). */
+  _slugCountrySlug(countryName) {
+    return String(countryName || '')
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quitar acentos
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  },
+
+  /** ¿El slug/URL resuelto pertenece al país esperado? Comprobación por
+   *  substring tolerante (cubre tanto el formato nuevo con el país en la
+   *  ruta como el antiguo "Prayer-times-Ciudad-Pais-id"). */
+  _slugMatchesCountry(slug, countryName) {
+    const expected = this._slugCountrySlug(countryName);
+    if (!expected) return true; // sin país conocido: no se puede validar, se deja pasar
+    return slug.toLowerCase().includes(expected);
   },
 
   /** Da al resultado la misma forma que una respuesta de Aladhan. */

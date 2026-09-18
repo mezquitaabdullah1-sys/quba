@@ -286,7 +286,16 @@ const DualTiming = {
     // Mapa de ciudades con DST/zonas no triviales; el resto se deduce por país
     const TZ = {
       // América Latina
-      havana: 'America/Havana', mexico_city: 'America/Mexico_City',
+      // v50: TODAS las ciudades de Cuba comparten el mismo huso oficial
+      // (America/Havana) — sin esta entrada, una ciudad cubana añadida a
+      // Cities.LIST sin su propio huso caía al huso del DISPOSITIVO (offset
+      // 0 en _tzOffsetMs), lo que sí podía producir una diferencia horaria
+      // GRANDE e incorrecta frente a La Habana cuando el dispositivo del
+      // usuario no estaba en Cuba (p. ej. horario secundario consultado
+      // desde el extranjero). Con el huso explícito, solo queda la
+      // diferencia real (y pequeña) por longitud dentro del mismo huso.
+      havana: 'America/Havana', santiago_de_cuba: 'America/Havana', holguin: 'America/Havana',
+      mexico_city: 'America/Mexico_City',
       guadalajara: 'America/Mexico_City', monterrey: 'America/Monterrey',
       bogota: 'America/Bogota', medellin: 'America/Bogota', cali: 'America/Bogota',
       buenos_aires: 'America/Argentina/Buenos_Aires', cordoba_ar: 'America/Argentina/Cordoba',
