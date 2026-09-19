@@ -10,6 +10,7 @@ const RadioService = {
   quran: null,          // { folder, reciterName, lang, surah, ayah, total, tr } (وضع quran)
   sleep: { endAt: 0, minutes: 0, timeoutId: null, tickId: null },
   _vol: 1,
+  amb: { ctx: null, gain: null, nodes: [], type: null, on: false, vol: 0.15 }, // v58: أصوات خلفية
   _bar: null,
   _barBuilt: false,
 
@@ -35,8 +36,18 @@ const RadioService = {
     });
     this.audio.addEventListener('ended', () => {
       if (this.mode === 'quran' && this.quran) {
-        if (this.quran.ayah < this.quran.total) this._playAyah(this.quran.ayah + 1);
-        else this.stopAll(); // نهاية السورة
+        if (this.quran.ayah < this.quran.total) { this._playAyah(this.quran.ayah + 1); return; }
+        // v58: قائمة قرآن النوم — عند نهاية السورة تنتقل تلقائياً للسورة التالية
+        if (this.quran.playlist && this.quran.plIdx < this.quran.playlist.length - 1) {
+          this.quran.plIdx++;
+          const ns = this.quran.playlist[this.quran.plIdx];
+          this.quran.surah = ns;
+          this.quran.total = RadioData.surahInfo(ns).ayahs;
+          this.quran.ayah = 0;
+          this._playAyah(1);
+          return;
+        }
+        this.stopAll(); // نهاية السورة / القائمة
       }
     });
   },
@@ -57,24 +68,28 @@ const RadioService = {
 
   // ---------- تلاوة مترجمة (آية/آية) ----------
   async playQuran(cfg) {
-    // cfg: { folder, reciterName, lang, surah }
+    // cfg: { folder, reciterName, lang, surah, sleep?, playlist? }
     this.ensureAudio();
     this.mode = 'quran';
     this.station = null;
     const info = RadioData.surahInfo(cfg.surah);
     this.quran = {
-      folder: cfg.folder, reciterName: cfg.reciterName, lang: cfg.lang,
+      folder: cfg.folder, reciterName: cfg.reciterName, lang: cfg.lang || null,
       surah: cfg.surah, ayah: 0, total: info.ayahs, tr: null,
+      sleep: !!cfg.sleep, playlist: cfg.playlist || null, plIdx: 0,
     };
     this.state = 'loading';
     this._emit();
     // v57: نجلب الترجمة أولاً ونملأ quran.tr قبل بدء الصوت، حتى تظهر الترجمة
     // منذ الآية الأولى. عند الفشل تبدأ التلاوة دون انتظار.
-    try {
-      this.quran.tr = await RadioData.getTranslation(cfg.surah, cfg.lang);
-      this._emit();
-    } catch (e) { /* نكمل بلا ترجمة */ }
-    if (!this.quran || this.quran.surah !== cfg.surah) return; // غيّر المستخدم السورة أثناء الجلب
+    // v58: وضع النوم (lang = null) لا يجلب أي ترجمة.
+    if (cfg.lang) {
+      try {
+        this.quran.tr = await RadioData.getTranslation(cfg.surah, cfg.lang);
+        this._emit();
+      } catch (e) { /* نكمل بلا ترجمة */ }
+      if (!this.quran || this.quran.surah !== cfg.surah) return; // غيّر المستخدم السورة أثناء الجلب
+    }
     this._playAyah(1);
   },
 
@@ -121,6 +136,7 @@ const RadioService = {
     this.station = null;
     this.quran = null;
     this.clearSleep();
+    this.stopAmbience(false);
     if ('mediaSession' in navigator) { try { navigator.mediaSession.metadata = null; } catch (e) {} }
     this._emit();
   },
@@ -185,6 +201,70 @@ const RadioService = {
         this.stopAll();
       }
     }, 500);
+  },
+
+  // ---------- v58: أصوات خلفية لطيفة (مطر/أمواج/رياح/ضوضاء بيضاء) ----------
+  // مولّدة محلياً عبر WebAudio — تعمل أوفلاين وبلا ملفات خارجية، وتُمزج
+  // بمستوى خفيف خلف التلاوة مثل تطبيق Quranify.
+  toggleAmbience(type) {
+    if (this.amb.on && this.amb.type === type) this.stopAmbience();
+    else this.startAmbience(type);
+  },
+
+  startAmbience(type) {
+    this.stopAmbience(false);
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      this.amb.ctx = this.amb.ctx || new Ctx();
+      const ctx = this.amb.ctx;
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      const len = 4 * ctx.sampleRate;
+      const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      let last = 0;
+      for (let i = 0; i < len; i++) {
+        const w = Math.random() * 2 - 1;
+        last = (last + 0.02 * w) / 1.02; // ضوضاء بنّية للأمواج والرياح
+        d[i] = (type === 'rain' || type === 'white') ? w * 0.6 : last * 3.2;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buf; src.loop = true;
+      const filter = ctx.createBiquadFilter();
+      filter.type = (type === 'rain') ? 'bandpass' : 'lowpass';
+      filter.frequency.value = { rain: 1800, white: 2200, wind: 400, waves: 500 }[type] || 800;
+      const gain = ctx.createGain();
+      gain.gain.value = 0;
+      gain.gain.linearRampToValueAtTime(this.amb.vol, ctx.currentTime + 2); // دخول ناعم
+      src.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+      let lfo = null;
+      if (type === 'waves' || type === 'wind') {
+        lfo = ctx.createOscillator();
+        lfo.frequency.value = type === 'waves' ? 0.08 : 0.05; // مدّ وجزر بطيء
+        const lfoGain = ctx.createGain();
+        lfoGain.gain.value = this.amb.vol * 0.5;
+        lfo.connect(lfoGain); lfoGain.connect(gain.gain); lfo.start();
+      }
+      src.start();
+      this.amb.nodes = [src, lfo];
+      this.amb.gain = gain;
+      this.amb.type = type;
+      this.amb.on = true;
+    } catch (e) { /* الصوت إضافة اختيارية */ }
+    this._emit();
+  },
+
+  stopAmbience(emit = true) {
+    try { (this.amb.nodes || []).forEach(n => { try { n && n.stop && n.stop(); } catch (e) {} }); } catch (e) {}
+    this.amb.nodes = [];
+    this.amb.on = false;
+    this.amb.type = null;
+    if (emit) this._emit();
+  },
+
+  setAmbienceVolume(v) {
+    this.amb.vol = Math.max(0, Math.min(1, Number(v) || 0));
+    if (this.amb.gain) { try { this.amb.gain.gain.value = this.amb.vol; } catch (e) {} }
   },
 
   // ---------- مشاركة ----------

@@ -765,7 +765,7 @@ const QuranPage = {
           ${pageGroups
             ? pageGroups.map(g => `
                 <div class="reader-page-section" data-page="${g.page}" id="reader-page-${g.page}">
-                  <div class="reader-page-header" onclick="QuranPage.openMushafPage(${g.page})" title="${t('mushafPage')} ${g.page}">
+                  <div class="reader-page-header" onclick="QuranPage.openReaderPagePicker()" title="${t('mushafPage')}">
                     <span class="reader-page-orn">۞</span>
                     <span class="reader-page-label">${t('mushafPage')} <span class="reader-page-num">${this._num(g.page)}</span> / ${this._num(604)}</span>
                     <span class="reader-page-orn">۞</span>
@@ -808,6 +808,61 @@ const QuranPage = {
   // v36: يفتح المصحف الكامل على الصفحة المحددة
   openMushafPage(pageNum) {
     Router.push('mushaf', { page: pageNum });
+  },
+
+  // v58: اختيار رقم الصفحة داخل القرآن المترجم — التنقل بين مقاطع الصفحات
+  // داخل القارئ نفسه (لا يفتح المصحف العربي). إن كانت الصفحة خارج السورة
+  // الحالية يفتح السورة التي تبدأ بها تلك الصفحة عند أول آية فيها.
+  openReaderPagePicker() {
+    const surah = this.currentSurah;
+    if (!surah) return;
+    const groups = this._groupAyahsByPage(surah) || [];
+    const html = `
+      <div class="modal-header">
+        <div class="modal-title">${t('mushafPage')} (1–604)</div>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="picker-search">
+        <i class="fas fa-hashtag"></i>
+        <input type="number" id="reader-page-input" min="1" max="604" placeholder="${t('mushafPage')} #" autocomplete="off">
+        <button class="btn-primary" style="padding: 8px 16px;" onclick="QuranPage.jumpToReaderPageInput()">${t('mushafGo')}</button>
+      </div>
+      ${groups.length ? `
+        <div class="settings-label" style="padding:12px 4px 6px;">${Validate.escapeHTML(QuranHelpers.surahDisplayName(surah))}</div>
+        <div class="ayah-number-grid">
+          ${groups.map(g => `<button class="ayah-num-btn" onclick="QuranPage.jumpToReaderPage(${g.page})">${this._num(g.page)}</button>`).join('')}
+        </div>
+      ` : ''}
+    `;
+    document.getElementById('modal-content').innerHTML = html;
+    document.getElementById('modal-overlay').classList.remove('hidden');
+    setTimeout(() => document.getElementById('reader-page-input')?.focus(), 100);
+    document.getElementById('reader-page-input')?.addEventListener('keypress', e => {
+      if (e.key === 'Enter') this.jumpToReaderPageInput();
+    });
+  },
+
+  jumpToReaderPageInput() {
+    const input = document.getElementById('reader-page-input');
+    if (!input) return;
+    const n = parseInt(input.value, 10);
+    if (n >= 1 && n <= 604) this.jumpToReaderPage(n);
+  },
+
+  jumpToReaderPage(pageNum) {
+    closeModal();
+    const el = document.getElementById('reader-page-' + pageNum);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el.classList.add('highlight');
+      setTimeout(() => el.classList.remove('highlight'), 1500);
+      return;
+    }
+    // الصفحة ليست ضمن السورة الحالية — انتقل للسورة التي تحتوي بدايتها
+    const all = (typeof window !== 'undefined') && window.QURAN_FULL_AR;
+    const pg = all && all.pages ? all.pages.find(x => x.n === pageNum) : null;
+    const first = pg && pg.ayahs && pg.ayahs[0];
+    if (first) Router.push('surah', { surahNumber: first[0], ayah: first[1] });
   },
 
   // v36: السحب الأفقي في القرآن المترجم — للتنقل بين السور (كامل السورة
@@ -1580,6 +1635,13 @@ const QuranPage = {
           </div>
         </div>
 
+        <div class="am-all-row">
+          <button class="btn-ghost am-all-btn" ${svc._audioDownloading || this._dlAllActive ? 'disabled' : ''} onclick="QuranPage.downloadAllReciterAudio()">
+            <i class="fas fa-cloud-arrow-down"></i> ${t('audioDownloadAll') || 'تحميل كل السور لهذا القارئ'}
+          </button>
+          ${this._dlAllActive ? `<button class="btn-ghost am-danger" onclick="QuranPage.cancelDownloadAll()"><i class="fas fa-stop"></i> ${t('audioCancel')}</button>` : ''}
+        </div>
+
         <div class="am-target-card">
           <div class="am-target-info">
             <div class="am-target-name">${surahNum}. ${Validate.escapeHTML(surahName)}</div>
@@ -1730,6 +1792,37 @@ const QuranPage = {
     this.updateAudioDownloadBadge();
     if (ok) showToast('✅ ' + t('audioDownloaded'));
     this._renderAudioManagerBody();
+  },
+
+  // v58: تحميل كل السور دفعة واحدة للقارئ المختار (مع إمكانية الإيقاف)
+  async downloadAllReciterAudio() {
+    const svc = QuranOfflineService;
+    if (this._dlAllActive) return;
+    const reciter = this._amReciter || AppState.settings.reciter;
+    if (!navigator.onLine) { showToast('📴 ' + t('quranDownloadPaused')); return; }
+    const list = svc.getSurahList ? svc.getSurahList() : [];
+    if (!list.length) return;
+    this._dlAllActive = true;
+    this._dlAllStop = false;
+    this._renderAudioManagerBody();
+    let doneCount = 0;
+    for (const s of list) {
+      if (this._dlAllStop || svc._cancelRequested) break;
+      if (svc.isSurahAudioDownloaded(reciter, s.number)) { doneCount++; continue; }
+      if (!navigator.onLine) { showToast('📴 ' + t('quranDownloadPaused')); break; }
+      const ok = await svc.downloadSurahAudio(reciter, s.number);
+      if (ok) doneCount++;
+      this.updateAudioDownloadBadge();
+      if (svc._cancelRequested || this._dlAllStop) break;
+    }
+    this._dlAllActive = false;
+    showToast(doneCount >= list.length ? ('✅ ' + t('audioDownloaded')) : ('⏸️ ' + doneCount + '/' + list.length), 2500);
+    this._renderAudioManagerBody();
+  },
+
+  cancelDownloadAll() {
+    this._dlAllStop = true;
+    QuranOfflineService.cancelDownload();
   },
 
   async deleteSurahAudio() {

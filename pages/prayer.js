@@ -196,7 +196,7 @@ const PrayerPage = {
               ${next?.name === p.name ? `<div class="prayer-remaining" data-prayer-remaining="${p.name}"><i class="fas fa-hourglass-half"></i> <span class="prayer-remaining-text">${formatCountdown(next.diffMs)}</span></div>` : ''}
               ${p.iqamah ? `<div class="prayer-iqamah"><i class="fas fa-bell"></i> ${t('iqamah') || 'Iqamah'} ${formatTime12h(p.iqamah)} <span class="iqamah-off">+${p.iqamahOffset} ${t('minShort') || 'min'}</span></div>` : ''}
             </div>
-            ${(typeof HomePage !== 'undefined' && HomePage._prayerBellHtml) ? HomePage._prayerBellHtml(p.name) : ''}
+            ${(typeof HomePage !== 'undefined' && HomePage._prayerBellHtml) ? (HomePage._prayerBellHtml(p.name) || '<span class="prayer-bell-spacer" aria-hidden="true"></span>') : ''}
             ${canCheck ? `
               <button class="prayer-check ${isDone ? 'checked' : ''}"
                       aria-label="${t('prayerCheckinTitle')}"
@@ -207,14 +207,16 @@ const PrayerPage = {
           </div>`;
         }).join('')}
         <div style="padding: 8px;">
-          <button class="btn-ghost pdf-btn" onclick="PrayerPdf.downloadDaily(this)" aria-label="${t('downloadPdf') || 'PDF'}">
-            <span><i class="fas fa-file-pdf"></i> ${t('downloadPdf') || 'Descargar PDF'}</span>
-            <i class="fas fa-download"></i>
-          </button>
-          <button class="btn-ghost pdf-btn" onclick="PrayerPdf.saveDailyImage(this)" aria-label="${t('saveImage') || 'PNG'}">
-            <span><i class="fas fa-image"></i> ${t('saveImage') || 'حفظ كصورة'}</span>
-            <i class="fas fa-download"></i>
-          </button>
+          <div class="pdf-btn-row">
+            <button class="btn-ghost pdf-btn" onclick="PrayerPdf.downloadDaily(this)" aria-label="${t('downloadPdf') || 'PDF'}">
+              <span><i class="fas fa-file-pdf"></i> ${t('downloadPdf') || 'Descargar PDF'}</span>
+              <i class="fas fa-download"></i>
+            </button>
+            <button class="btn-ghost pdf-btn pdf-btn-img" onclick="PrayerPdf.saveDailyImage(this)" aria-label="${t('saveImage') || 'PNG'}">
+              <span><i class="fas fa-image"></i> ${t('saveImage') || 'حفظ كصورة'}</span>
+              <i class="fas fa-download"></i>
+            </button>
+          </div>
           <button class="btn-ghost" onclick="Router.go('calendar')">
             <span><i class="fas fa-calendar"></i> ${t('hijriCalendar')}</span>
             <i class="fas fa-chevron-${currentLocale === 'ar' ? 'left' : 'right'}"></i>

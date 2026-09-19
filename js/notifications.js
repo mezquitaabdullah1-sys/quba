@@ -268,9 +268,7 @@ const PrayerNotifications = {
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('🕌 ' + title, { body, icon: 'assets/icon.png' });
     }
-
-    // Aviso visual dentro de la app por si está abierta en primer plano
-    if (typeof showToast === 'function') showToast('🕌 ' + body, 5000);
+    // v58: لا إشعار داخل التطبيق — التنبيه يظهر في خانة إشعارات النظام فقط
   },
 
   /**
@@ -288,8 +286,7 @@ const PrayerNotifications = {
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('⏰ ' + title, { body, icon: 'assets/icon.png' });
     }
-
-    if (typeof showToast === 'function') showToast('⏰ ' + body, 5000);
+    // v58: لا toast داخل التطبيق — خانة الإشعارات فقط
   },
 };
 

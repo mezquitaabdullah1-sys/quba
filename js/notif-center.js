@@ -174,19 +174,61 @@ const NotifCenter = {
 
   // ============ 1) بطاقة تنبيه الأذان ============
   // تُستدعى من PrayerNotifications.notify عند دخول وقت الصلاة
-  showAdhanAlert(prayerKey, fallbackName) {
+  // v58: تنبيه الأذان يظهر في خانة إشعارات النظام (لا داخل التطبيق) مع
+  // زرّي «إيقاف الأذان» و«تذكير بعد ١٥ دقيقة» أسفل الإشعار مباشرة.
+  async showAdhanAlert(prayerKey, fallbackName) {
     const name = this._loc() === 'ar' ? this.prayerNameAr(prayerKey) : (fallbackName || prayerKey);
     const title = this._t('adhanTitle', name);
     const hadithRow = this.PRAYER_HADITHS[prayerKey] || this.PRAYER_HADITHS.Dhuhr;
     const hadith = hadithRow[this._loc()] || hadithRow.ar;
 
     if (this.isOn('adhanAlert')) {
-      this._notify('🕌 ' + title, hadith, 'quba-adhan-' + prayerKey);
-      this._renderOverlay(prayerKey, title, hadith);
+      const actions = [{ action: 'stop', title: '🔇 ' + this._t('stopAdhan') }];
+      if (this.isOn('snooze')) actions.push({ action: 'snooze', title: this._t('snooze15') });
+      const shown = await this._notifyActions('🕌 ' + title, hadith, 'quba-adhan-' + prayerKey, actions);
+      // البطاقة داخل التطبيق تظهر فقط إن رفض المستخدم إذن الإشعارات كلياً
+      if (!shown && (typeof Notification === 'undefined' || Notification.permission !== 'granted')) {
+        this._renderOverlay(prayerKey, title, hadith);
+      }
     } else {
       // التنبيه مقفل من الإعدادات — إشعار بسيط فقط (سلوك ما قبل v55)
       this._notify('🕌 ' + title, hadith, 'quba-adhan-' + prayerKey);
     }
+  },
+
+  // إشعار نظام مع أزرار (عبر الـ Service Worker ليظهر في خانة الإشعارات)
+  async _notifyActions(title, body, tag, actions) {
+    try {
+      if ('serviceWorker' in navigator && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg && reg.showNotification) {
+          await reg.showNotification(title, {
+            body, tag, icon: 'assets/icon.png',
+            requireInteraction: true, renotify: true,
+            actions: actions || [],
+          });
+          return true;
+        }
+      }
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body, tag, icon: 'assets/icon.png' });
+        return true;
+      }
+    } catch (e) { console.warn('notifyActions:', e); }
+    return false;
+  },
+
+  // استقبال ضغطات أزرار الإشعار (إيقاف الأذان / تذكير) من الـ Service Worker
+  _attachSwActions() {
+    if (this._swActionsAttached || !('serviceWorker' in navigator)) return;
+    this._swActionsAttached = true;
+    navigator.serviceWorker.addEventListener('message', (e) => {
+      const d = (e && e.data) || {};
+      if (d.type !== 'quba-notif-action') return;
+      const pk = String(d.tag || '').replace('quba-adhan-', '');
+      if (d.action === 'stop') this.stopAdhan('tray');
+      else if (d.action === 'snooze') this.snoozePrayer(pk);
+    });
   },
 
   _renderOverlay(prayerKey, title, hadith) {
@@ -388,6 +430,7 @@ const NotifCenter = {
     this.scheduleDailyExtras();
     this.startPersistent();
     this.attachStopSensors();
+    this._attachSwActions();
   },
 };
 

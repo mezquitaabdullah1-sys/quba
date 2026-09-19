@@ -1541,3 +1541,16 @@
 .quran-quick-chip:active { transform: scale(0.95); }
 .quran-quick-chip:hover { background: rgba(15, 76, 58, 0.08); }
 [data-theme="dark"] .quran-quick-chip { background: #1f2937; border-color: rgba(212, 175, 55, 0.3); color: #f3f4f6; }
+
+/* v58: محاذاة موعد صلاة الضحى مع باقي الصلوات — فراغ بنفس عرض الجرس */
+.prayer-bell-spacer {
+  width: 34px;
+  flex-shrink: 0;
+  margin-inline-end: 6px;
+}
+.prayer-time-block {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 52px;
+}

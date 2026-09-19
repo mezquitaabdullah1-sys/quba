@@ -319,3 +319,31 @@
 }
 .city-gps-option i { color: #0F4C3A; }
 .city-gps-option:active { background: rgba(15, 76, 58, 0.16); }
+
+/* v58: زرّا تحميل الصلوات (PDF + صورة) جنباً إلى جنب يتقاسمان المساحة */
+.pdf-btn-row {
+  display: flex;
+  gap: 8px;
+}
+.pdf-btn-row .pdf-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+}
+.pdf-btn-row .pdf-btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pdf-btn-row .pdf-btn.pdf-btn-img { color: #0F766E !important; }
+
+/* v58: زر «تحميل كل السور لقارئ واحد» في مدير تحميلات الصوت */
+.am-all-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.am-all-row .am-all-btn {
+  flex: 1;
+  justify-content: center;
+}

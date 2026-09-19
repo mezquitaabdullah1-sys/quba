@@ -10,6 +10,7 @@ const RadioPage = {
     { id: 'reciters', key: 'tabReciters', icon: 'fa-microphone-lines' },
     { id: 'translated', key: 'tabTranslated', icon: 'fa-language' },
     { id: 'extra', key: 'tabExtra', icon: 'fa-moon' },
+    { id: 'sleep', key: 'tabSleep', icon: 'fa-bed' },
   ],
 
   async render(container, params = {}) {
@@ -47,6 +48,10 @@ const RadioPage = {
   switchTab(tab) {
     this.tab = tab;
     document.querySelectorAll('.radio-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    // v58: شاشة التحكم تتبع التبويب الجديد ما لم يكن هناك تشغيل فعلي
+    if (!RadioService.mode || RadioService.state === 'idle' || RadioService.state === 'error') {
+      this._renderHero();
+    }
     this._renderBody();
   },
 
@@ -58,10 +63,10 @@ const RadioPage = {
       return {
         kind: 'quran',
         img: q.lang ? null : RadioData.IMG.quran,
-        chip: RadioData.L('tabTranslated'),
+        chip: q.sleep ? RadioData.L('tabSleep') : RadioData.L('tabTranslated'),
         title: RadioData.surahName(q.surah),
         sub: `${q.reciterName} • ${RadioData.L('ayah')} ${q.ayah || 1} ${RadioData.L('of')} ${q.total}`,
-        liveTL: true,
+        liveTL: !!q.lang,
       };
     }
     if (S.mode === 'stream' && S.station) {
@@ -74,12 +79,26 @@ const RadioPage = {
         liveTL: false,
       };
     }
-    // الحالة الافتراضية: أول محطة رئيسية
-    const st = RadioData.MAIN[0];
+    // v58: الحالة الافتراضية تتبع التبويب المفتوح — شاشة التحكم تعكس القسم
+    // الحالي (القرّاء/الأذكار/المترجم/النوم) بدل البقاء على إذاعة القاهرة.
+    if (this.tab === 'translated' || this.tab === 'sleep') {
+      const isSleep = this.tab === 'sleep';
+      return {
+        kind: 'idle',
+        img: RadioData.IMG.quran2,
+        chip: RadioData.L(isSleep ? 'tabSleep' : 'tabTranslated'),
+        title: RadioData.surahName(isSleep ? RadioData.SLEEP_SURAHS[0] : 1),
+        sub: RadioData.L('tapToListen'),
+        liveTL: false,
+      };
+    }
+    const st = this.tab === 'reciters' ? RadioData.RECITERS[0]
+             : this.tab === 'extra' ? RadioData.EXTRA[0] : RadioData.MAIN[0];
+    const chipKey = { main: 'tabMain', reciters: 'tabReciters', extra: 'tabExtra' }[this.tab] || 'tabMain';
     return {
       kind: 'idle',
       img: RadioData.IMG[st.img],
-      chip: RadioData.L('tabMain'),
+      chip: RadioData.L(chipKey),
       title: RadioData.name(st),
       sub: RadioData.L('tapToListen'),
       liveTL: false,
@@ -166,7 +185,11 @@ const RadioPage = {
   _mainAction() {
     const S = RadioService;
     if (S.state === 'idle' || S.state === 'error') {
-      this.playStation(RadioData.MAIN[0]);
+      if (this.tab === 'sleep') { this.playSleep(null); return; }
+      if (this.tab === 'translated') { this.playTranslated(1); return; }
+      const st = this.tab === 'reciters' ? RadioData.RECITERS[0]
+               : this.tab === 'extra' ? RadioData.EXTRA[0] : RadioData.MAIN[0];
+      this.playStation(st);
     } else {
       S.toggle();
     }
@@ -195,6 +218,7 @@ const RadioPage = {
     const body = document.getElementById('radio-body');
     if (!body) return;
     if (this.tab === 'translated') { this._renderTranslated(body); return; }
+    if (this.tab === 'sleep') { this._renderSleep(body); return; }
 
     let list = [];
     if (this.tab === 'main') list = RadioData.MAIN;
@@ -320,6 +344,88 @@ const RadioPage = {
       lang: this.tl.lang,
       surah,
     });
+  },
+
+  // ---------- v58: تبويب قرآن قبل النوم (مع أصوات خلفية لطيفة) ----------
+  _renderSleep(body) {
+    const S = RadioService;
+    const AMBIENTS = [
+      { id: 'rain',  icon: 'fa-cloud-rain' },
+      { id: 'waves', icon: 'fa-water' },
+      { id: 'wind',  icon: 'fa-wind' },
+      { id: 'white', icon: 'fa-fan' },
+    ];
+    body.innerHTML = `
+      <div class="tl-note"><i class="fas fa-bed"></i> ${RadioData.L('sleepHint')}</div>
+
+      <button class="btn-primary sleep-play-all" onclick="RadioPage.playSleep(null)">
+        <i class="fas fa-play"></i> ${RadioData.L('sleepPlayAll')}
+      </button>
+
+      <div class="tl-group-label">${RadioData.L('chooseSurah')}</div>
+      <div class="surah-list">
+        ${RadioData.SLEEP_SURAHS.map(n => {
+          const info = RadioData.surahInfo(n);
+          const cur = S.mode === 'quran' && S.quran && S.quran.sleep && S.quran.surah === n;
+          const nm = (typeof currentLocale !== 'undefined' && currentLocale === 'ar') ? info.ar : (currentLocale === 'en' ? info.en : info.es);
+          return `
+            <div class="surah-row ${cur ? 'active' : ''}" data-surah="${n}" onclick="RadioPage.playSleep(${n})">
+              <span class="surah-num">${n}</span>
+              <div class="surah-names">
+                <div class="surah-name">${escapeHtml(nm)}</div>
+                <div class="surah-meta">${info.ar} • ${info.ayahs} ${RadioData.L('ayah')}</div>
+              </div>
+              <i class="fas ${cur ? 'fa-volume-high' : 'fa-play'} surah-play-ic"></i>
+            </div>`;
+        }).join('')}
+      </div>
+
+      <div class="tl-group-label">${RadioData.L('ambTitle')}</div>
+      <div class="tl-chips">
+        ${AMBIENTS.map(a => `
+          <button class="tl-chip ${S.amb.on && S.amb.type === a.id ? 'active' : ''}" onclick="RadioPage.toggleAmb('${a.id}')">
+            <i class="fas ${a.icon}"></i> ${RadioData.L('amb_' + a.id)}
+          </button>`).join('')}
+        ${S.amb.on ? `<button class="tl-chip" onclick="RadioPage.stopAmb()"><i class="fas fa-xmark"></i> ${RadioData.L('ambOff')}</button>` : ''}
+      </div>
+      ${S.amb.on ? `
+        <div class="amb-vol-row">
+          <i class="fas fa-volume-low"></i>
+          <input type="range" min="0" max="60" value="${Math.round(S.amb.vol * 100)}" oninput="RadioService.setAmbienceVolume(this.value / 100)">
+          <i class="fas fa-volume-high"></i>
+        </div>` : ''}
+      <div class="tl-note" style="margin-top:10px;"><i class="fas fa-moon"></i> ${RadioData.L('sleepTimer')}: ${RadioData.L('stopsAtEnd')}</div>
+    `;
+  },
+
+  playSleep(surah) {
+    const list = RadioData.SLEEP_SURAHS;
+    const r0 = RadioData.AV_RECITERS[0];
+    // نفس السورة تعمل: إيقاف مؤقت/استئناف
+    if (surah && RadioService.mode === 'quran' && RadioService.quran &&
+        RadioService.quran.sleep && RadioService.quran.surah === surah) {
+      RadioService.toggle();
+      return;
+    }
+    const idx = Math.max(0, surah ? list.indexOf(surah) : 0);
+    RadioService.playQuran({
+      folder: r0.folder,
+      reciterName: RadioData.name(r0),
+      lang: null,
+      surah: list[idx],
+      playlist: list.slice(idx),
+      sleep: true,
+    });
+  },
+
+  toggleAmb(type) {
+    RadioService.toggleAmbience(type);
+    this._renderBody();
+  },
+
+  stopAmb() {
+    RadioService.stopAmbience();
+    this._renderBody();
   },
 
   // ---------- مؤقّت النوم ----------

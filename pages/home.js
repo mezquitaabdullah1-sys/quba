@@ -226,7 +226,7 @@ const HomePage = {
                 <div class="prayer-time">${formatTime12h(p.time)}</div>
                 ${nextPrayer?.name === p.name ? `<div class="prayer-remaining" data-prayer-remaining="${p.name}"><i class="fas fa-hourglass-half"></i> <span class="prayer-remaining-text">${formatCountdown(nextPrayer.diffMs)}</span></div>` : ''}
               </div>
-              ${this._prayerBellHtml(p.name)}
+              ${this._prayerBellHtml(p.name) || '<span class="prayer-bell-spacer" aria-hidden="true"></span>'}
               ${canCheck ? `
                 <button class="prayer-check ${isDone ? 'checked' : ''} ${passed ? '' : 'locked'}"
                         aria-label="${t('prayerCheckinTitle')}"

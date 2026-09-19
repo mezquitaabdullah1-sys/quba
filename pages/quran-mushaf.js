@@ -157,6 +157,16 @@ const QuranMushafPage = {
   _afterRender() {
     const mc = document.getElementById('main-content');
     if (mc) mc.scrollTop = 0;
+    // v58: ضغطة واحدة على نص الصفحة = وضع القراءة المجرّد (إخفاء كل
+    // التبويبات والأشرطة)، وضغطة أخرى تُعيدها — قراءة بلا تشتيت.
+    const page = document.getElementById('msh-page');
+    if (page && !page._immBound) {
+      page._immBound = true;
+      page.addEventListener('click', (e) => {
+        if (e.target.closest('button, a, input, select, textarea')) return;
+        document.body.classList.toggle('msh-immersive');
+      });
+    }
   },
 
   // حركة التقليب السلسة: الصفحات القادمة جهة اليسار
@@ -518,6 +528,7 @@ const QuranMushafPage = {
   },
 
   cleanup() {
+    document.body.classList.remove('msh-immersive');
     this._touchX = null;
     this._animating = false;
     if (this._keyHandler) {

@@ -191,3 +191,10 @@
 
 /* v51: زر ألوان التجويد في شريط المصحف */
 .msh-tjw-btn.active { color: var(--gold-soft, #D4AF37); background: rgba(212,175,55,.12); border-radius: 50%; }
+
+/* v58: وضع القراءة المجرّد — ضغطة واحدة تخفي كل الأشرطة وضغطة تُعيدها */
+body.msh-immersive .msh-top-bar,
+body.msh-immersive .msh-pager-bar,
+body.msh-immersive .bottom-tabs {
+  display: none !important;
+}

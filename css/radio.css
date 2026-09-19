@@ -408,3 +408,19 @@
 /* ===== v57 FIX: ضمان ظهور الترجمة تحت النص العربي في «القرآن المترجم» ===== */
 .radio-live-tl { max-height: 190px; overflow-y: auto; }
 .tl-ar { max-height: 114px; overflow-y: auto; }
+
+/* v58: قرآن قبل النوم — زر التشغيل الكامل وشريط مستوى صوت الخلفية */
+.sleep-play-all {
+  width: 100%;
+  margin-bottom: 12px;
+}
+.amb-vol-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px 0;
+  color: var(--text-secondary, #888);
+}
+.amb-vol-row input[type="range"] {
+  flex: 1;
+}

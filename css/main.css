@@ -511,3 +511,13 @@ textarea:focus-visible,
 .adhan-alert-btn.stop{background:#8e1c1c;color:#fff;}
 .adhan-alert-btn.snooze{background:linear-gradient(135deg,#D4AF37,#b08d1e);color:#1a1a1a;}
 .adhan-alert-hint{margin-top:14px;font-size:11.5px;line-height:1.7;color:var(--text-secondary,#999);}
+
+/* v58: مفاتيح إعدادات الإشعارات (وكل التطبيق) خضراء في وضع التفعيل */
+.toggle-switch input:checked + .toggle-slider,
+.settings-toggle input:checked ~ .toggle-slider {
+  background: #1E9E6A !important;
+}
+.toggle-switch input:checked + .toggle-slider::before,
+.settings-toggle input:checked ~ .toggle-slider::before {
+  background: #fff;
+}

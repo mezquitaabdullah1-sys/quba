@@ -54,6 +54,15 @@ const RadioData = {
       homeAdhkarAudio: 'الأذكار صوتياً',
       stationSaudiDesc: 'بث مباشر ٢٤/٧ — إذاعة القرآن الكريم السعودية',
       stationMixDesc: 'تلاوات متنوعة على مدار الساعة لعدد كبير من القرّاء',
+      tabSleep: 'قرآن قبل النوم',
+      sleepPlayAll: 'تشغيل قائمة النوم كاملة',
+      sleepHint: 'تلاوات هادئة تساعد على النوم — يمكنك إضافة أصوات طبيعية خفيفة في الخلفية',
+      ambTitle: 'أصوات خلفية لطيفة',
+      ambOff: 'إيقاف الصوت',
+      amb_rain: 'صوت المطر',
+      amb_waves: 'صوت الأمواج',
+      amb_wind: 'صوت الرياح',
+      amb_white: 'ضوضاء بيضاء',
     },
     es: {
       radioTitle: 'Radio Islámica',
@@ -103,6 +112,15 @@ const RadioData = {
       homeAdhkarAudio: 'Adhkar en audio',
       stationSaudiDesc: 'Directo 24/7 — Radio del Corán de Arabia Saudí',
       stationMixDesc: 'Recitaciones variadas 24/7 de muchos recitadores',
+      tabSleep: 'Corán antes de dormir',
+      sleepPlayAll: 'Reproducir toda la lista para dormir',
+      sleepHint: 'Recitaciones calmadas para conciliar el sueño — añade sonidos suaves de fondo',
+      ambTitle: 'Sonidos de fondo suaves',
+      ambOff: 'Detener sonido',
+      amb_rain: 'Lluvia',
+      amb_waves: 'Olas del mar',
+      amb_wind: 'Viento',
+      amb_white: 'Ruido blanco',
     },
     en: {
       radioTitle: 'Islamic Radio',
@@ -152,6 +170,15 @@ const RadioData = {
       homeAdhkarAudio: 'Adhkar audio',
       stationSaudiDesc: 'Live 24/7 — Saudi Quran Radio',
       stationMixDesc: 'Recitations 24/7 by many reciters',
+      tabSleep: 'Quran before sleep',
+      sleepPlayAll: 'Play full sleep playlist',
+      sleepHint: 'Calming recitations to fall asleep — add gentle nature sounds in the background',
+      ambTitle: 'Gentle background sounds',
+      ambOff: 'Stop sound',
+      amb_rain: 'Rain',
+      amb_waves: 'Ocean waves',
+      amb_wind: 'Wind',
+      amb_white: 'White noise',
     },
   },
 
@@ -237,6 +264,9 @@ const RadioData = {
     { id: 'sira',   name: { ar: 'في ظلال السيرة النبوية', es: 'A la sombra de la Sîra', en: 'In the Shade of the Seerah' }, url: 'https://backup.qurango.net/radio/fi_zilal_alsiyra', img: 'quran', badge: '📜' },
     { id: 'sahabah', name: { ar: 'صور من حياة الصحابة', es: 'Escenas de la vida de los Compañeros', en: 'Scenes from the Companions’ lives' }, url: 'https://backup.qurango.net/radio/sahabah', img: 'quran2', badge: '🕌' },
   ],
+
+  // ============ v58: قرآن قبل النوم — سور هادئة تُشغَّل بالتتابع ============
+  SLEEP_SURAHS: [67, 32, 55, 56, 112, 113, 114],
 
   // ============ التلاوة المترجمة (آية/آية عبر everyayah — متحقق منه) ============
   AV_RECITERS: [

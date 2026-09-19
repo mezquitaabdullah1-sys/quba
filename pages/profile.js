@@ -34,9 +34,9 @@ const ProfilePage = {
         <!-- ===== Grupos de ajustes ===== -->
         <div class="section-label"><i class="fas fa-sliders"></i> ${t('settings')}</div>
 
+        ${groupCard('palette', '#6a5acd', t('generalSettings'), t('generalSettingsDesc'), "ProfilePage.renderGroup('general')")}
         ${groupCard('mosque', '#2e8b57', t('prayerSettings'), t('prayerSettingsDesc'), "ProfilePage.renderGroup('prayer')")}
         ${groupCard('bullhorn', '#b8860b', t('adhanSettings'), t('adhanGroupDesc'), "ProfilePage.renderGroup('adhan')")}
-        ${groupCard('palette', '#6a5acd', t('generalSettings'), t('generalSettingsDesc'), "ProfilePage.renderGroup('general')")}
         ${groupCard('database', '#c0392b', t('dataZone'), t('dataZoneGroupDesc'), "ProfilePage.renderGroup('data')")}
 
         <!-- ===== Funciones de la app ===== -->

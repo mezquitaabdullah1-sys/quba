@@ -228,3 +228,17 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// v58: أزرار إشعار الأذان (إيقاف / تذكير بعد ١٥ دقيقة) — تُمرَّر للتطبيق
+self.addEventListener('notificationclick', (event) => {
+  const action = event.action || '';
+  const tag = (event.notification && event.notification.tag) || '';
+  try { event.notification.close(); } catch (e) {}
+  if (action !== 'stop' && action !== 'snooze') return;
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((cs) => {
+      cs.forEach(c => { try { c.postMessage({ type: 'quba-notif-action', action, tag }); } catch (e) {} });
+      if (cs[0] && cs[0].focus) return cs[0].focus();
+    })
+  );
+});
