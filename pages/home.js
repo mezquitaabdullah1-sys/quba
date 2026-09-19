@@ -191,22 +191,6 @@ const HomePage = {
         </button>
       </div>
 
-      <!-- v56: قسم «اسمع وتدبّر» — القرّاء، الراديو، السبحة -->
-      <div class="listen-hub-row">
-        <button class="listen-tile tile-reciters" onclick="Router.go('radio',{tab:'reciters'})" aria-label="${RadioData.L('hubReciters')}">
-          <span class="lt-icon"><i class="fas fa-microphone-lines"></i></span>
-          <span class="lt-label">${RadioData.L('hubReciters')}</span>
-        </button>
-        <button class="listen-tile tile-radio" onclick="Router.go('radio')" aria-label="${RadioData.L('hubRadio')}">
-          <span class="lt-icon"><i class="fas fa-radio"></i></span>
-          <span class="lt-label">${RadioData.L('hubRadio')}</span>
-        </button>
-        <button class="listen-tile tile-tasbih" onclick="Router.go('wisdom/tasbih')" aria-label="${RadioData.L('hubTasbih')}">
-          <span class="lt-icon"><i class="fas fa-hand-pointer"></i></span>
-          <span class="lt-label">${RadioData.L('hubTasbih')}</span>
-        </button>
-      </div>
-
       <div style="padding: var(--sp-md);">
         <!-- Oraciones del día + ubicación y fechas (hijri / gregoriana) -->
         <div class="prayers-header">
@@ -242,6 +226,7 @@ const HomePage = {
                 <div class="prayer-time">${formatTime12h(p.time)}</div>
                 ${nextPrayer?.name === p.name ? `<div class="prayer-remaining" data-prayer-remaining="${p.name}"><i class="fas fa-hourglass-half"></i> <span class="prayer-remaining-text">${formatCountdown(nextPrayer.diffMs)}</span></div>` : ''}
               </div>
+              ${this._prayerBellHtml(p.name)}
               ${canCheck ? `
                 <button class="prayer-check ${isDone ? 'checked' : ''} ${passed ? '' : 'locked'}"
                         aria-label="${t('prayerCheckinTitle')}"
@@ -292,6 +277,20 @@ const HomePage = {
           </button>
         </div>
 
+        <!-- v57: الراديو الإسلامي — أسفل دعاء اليوم بألوان التطبيق -->
+        <h2 class="section-title"><i class="fas fa-radio"></i> ${RadioData.L('radioTitle')}</h2>
+        <div class="radio-hub-grid">
+          <button class="radio-hub-btn rh-quran" onclick="Router.go('radio')" aria-label="${RadioData.L('homeQuranRadio')}">
+            <i class="fas fa-tower-broadcast"></i><span>${RadioData.L('homeQuranRadio')}</span>
+          </button>
+          <button class="radio-hub-btn rh-translated" onclick="Router.go('radio',{tab:'translated'})" aria-label="${RadioData.L('homeQuranTranslated')}">
+            <i class="fas fa-language"></i><span>${RadioData.L('homeQuranTranslated')}</span>
+          </button>
+          <button class="radio-hub-btn rh-adhkar" onclick="Router.go('radio',{tab:'extra'})" aria-label="${RadioData.L('homeAdhkarAudio')}">
+            <i class="fas fa-moon"></i><span>${RadioData.L('homeAdhkarAudio')}</span>
+          </button>
+        </div>
+
         <!-- Virtud del día -->
         ${virtue ? `
           <h2 class="section-title"><i class="fas fa-sparkles"></i> ${virtue.title}</h2>
@@ -309,6 +308,28 @@ const HomePage = {
   // El estado se guarda por fecha: mañana las casillas vuelven a estar vacías.
   // v35: ¿ya pasó la hora del adhan de esta oración hoy?
   // Sunrise no está en la lista de check-in; aquí solo llegan las 5 oraciones.
+  // v57: جرس الإشعارات بجانب كل صلاة — يطفئ/يشغّل إشعارها وصوت أذانها
+  _prayerBellHtml(name) {
+    if (typeof PrayerNotifications === 'undefined' || !PrayerNotifications.PRAYERS ||
+        PrayerNotifications.PRAYERS.indexOf(name) === -1) return '';
+    const on = PrayerNotifications.isPrayerOn(name);
+    return `<button class="prayer-bell ${on ? '' : 'off'}" data-prayer-bell="${name}" aria-pressed="${on}" title="${t('prayerBellTitle') || 'إشعار وأذان هذه الصلاة'}" onclick="event.stopPropagation(); HomePage.togglePrayerNotif('${name}')"><i class="fas ${on ? 'fa-bell' : 'fa-bell-slash'}"></i></button>`;
+  },
+
+  togglePrayerNotif(name) {
+    if (typeof PrayerNotifications === 'undefined' || !PrayerNotifications.setPrayerOn) return;
+    const on = !PrayerNotifications.isPrayerOn(name);
+    PrayerNotifications.setPrayerOn(name, on);
+    document.querySelectorAll('[data-prayer-bell="' + name + '"]').forEach(b => {
+      b.classList.toggle('off', !on);
+      b.setAttribute('aria-pressed', String(on));
+      const ic = b.querySelector('i');
+      if (ic) ic.className = 'fas ' + (on ? 'fa-bell' : 'fa-bell-slash');
+    });
+    const pname = t('prayers.' + name) || name;
+    if (typeof showToast === 'function') showToast((on ? '🔔 ' : '🔕 ') + pname, 1400);
+  },
+
   isAdhanPassed(name) {
     const raw = (typeof AppState !== 'undefined' && AppState.timings) ? AppState.timings[name] : null;
     if (!raw) return true; // sin horario disponible → no bloquear

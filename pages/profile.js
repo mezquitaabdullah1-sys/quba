@@ -308,17 +308,31 @@ const ProfilePage = {
     } else {
       if (!AppState.settings.adhan.mode) AppState.settings.adhan.mode = 'full';
       if (!AppState.settings.adhan.takbeerDuration) AppState.settings.adhan.takbeerDuration = 12;
+      if (!AppState.settings.adhan.fajrVoice) AppState.settings.adhan.fajrVoice = 'fajr_makkah'; // v57
     }
     const adhanVoice1 = AdhanService.VOICES.find(v => v.id === AppState.settings.adhan.voice1) || AdhanService.VOICES[0];
     const adhanVoice2 = AdhanService.VOICES.find(v => v.id === AppState.settings.adhan.voice2) || AdhanService.VOICES[1];
+    const adhanFajrVoice = AdhanService.VOICES.find(v => v.id === (AppState.settings.adhan.fajrVoice || 'fajr_makkah')) || AdhanService.VOICES[0]; // v57
     const chevron = currentLocale === 'ar' ? 'left' : 'right';
 
     container.innerHTML = `
       ${this._subHeader('bullhorn', t('adhanSettings'))}
       <div style="padding: 0 var(--sp-md);">
 
-        <div class="section-label"><i class="fas fa-mosque"></i> ${t('adhanSettings')}</div>
+        <div class="section-label"><i class="fas fa-bell"></i> ${t('adhanAlerts') || 'تنبيهات الصلاة'}</div>
         <div class="card" style="padding:0;overflow:hidden;">
+          <!-- v57: «إشعارات الصلاة» و«تنبيه الأذان» ميزة واحدة — مفتاح رئيسي أولاً -->
+          <div class="list-row">
+            <div class="list-row-icon"><i class="fas fa-bell"></i></div>
+            <div class="list-row-info">
+              <div class="list-row-label">${t('adhanAlertToggle') || 'تنبيه الأذان'}</div>
+              <div class="list-row-value">${t('adhanAlertToggleDesc') || 'تنبيه عند دخول وقت كل صلاة مع صوت الأذان'}</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" ${(typeof PrayerNotifications !== 'undefined' && PrayerNotifications.isEnabled()) ? 'checked' : ''} onchange="ProfilePage.setPrayerNotifEnabled(this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
           <div class="list-row" onclick="ProfilePage.pickAdhanMode()">
             <div class="list-row-icon"><i class="fas fa-sliders"></i></div>
             <div class="list-row-info">
@@ -352,6 +366,19 @@ const ProfilePage = {
             </button>
             <i class="fas fa-chevron-${chevron} list-row-chevron"></i>
           </div>
+          <!-- v57: صوت أذان الفجر — نسخ التثويب «الصلاة خير من النوم» -->
+          <div class="list-row" onclick="ProfilePage.pickAdhanFajrVoice()">
+            <div class="list-row-icon">🌅</div>
+            <div class="list-row-info">
+              <div class="list-row-label">${t('adhanFajrVoice') || 'صوت أذان الفجر'}</div>
+              <div class="list-row-value">${AdhanService.voiceName(adhanFajrVoice)}</div>
+              <div class="list-row-value" style="opacity:.75;">${t('adhanFajrVoiceDesc') || 'أذان خاص بالفجر مع التثويب: «الصلاة خير من النوم»'}</div>
+            </div>
+            <button class="list-row-btn" onclick="event.stopPropagation(); AdhanService.preview('${adhanFajrVoice.id}')">
+              <i class="fas fa-play"></i>
+            </button>
+            <i class="fas fa-chevron-${chevron} list-row-chevron"></i>
+          </div>
           <div class="list-row">
             <div class="list-row-icon"><i class="fas fa-${AppState.settings.adhan.muted ? 'volume-mute' : 'volume-up'}"></i></div>
             <div class="list-row-info">
@@ -377,25 +404,29 @@ const ProfilePage = {
               onchange="ProfilePage.setAdhanVolume(this.value)"
               style="width:100%;margin-top:12px;">
           </div>
-        </div>
 
-        <div class="section-label"><i class="fas fa-bell"></i> ${t('notifications')}</div>
-        <div class="card" style="padding:0;overflow:hidden;">
-          <div class="list-row">
-            <div class="list-row-icon"><i class="fas fa-bell"></i></div>
-            <div class="list-row-info">
-              <div class="list-row-label">${t('prayerNotif') || 'Notificaciones de oración'}</div>
-              <div class="list-row-value">${(typeof PrayerNotifications !== 'undefined' && PrayerNotifications.isEnabled()) ? (t('active') || 'Activo') : (t('inactive') || 'Inactivo')}</div>
+          <!-- v57: صوت مستقل لكل صلاة — جرس لكل صلاة يطفئ/يشغّل إشعارها وأذانها -->
+          <div class="list-row" style="flex-direction:column;align-items:stretch;">
+            <div style="display:flex;align-items:center;gap:14px;">
+              <div class="list-row-icon"><i class="fas fa-bell-concierge"></i></div>
+              <div class="list-row-info">
+                <div class="list-row-label">${t('perPrayerSound') || 'صوت مستقل لكل صلاة'}</div>
+                <div class="list-row-value">${t('perPrayerSoundDesc') || 'فعّل أو أطفئ الأذان والإشعار لكل صلاة على حدة'}</div>
+              </div>
             </div>
-            <label class="toggle-switch">
-              <input type="checkbox" ${(typeof PrayerNotifications !== 'undefined' && PrayerNotifications.isEnabled()) ? 'checked' : ''} onchange="ProfilePage.setPrayerNotifEnabled(this.checked)">
-              <span class="toggle-slider"></span>
-            </label>
+            <div class="prayer-bells-row">
+              ${['Fajr','Dhuhr','Asr','Maghrib','Isha'].map(pn => {
+                const on = (typeof PrayerNotifications !== 'undefined' && PrayerNotifications.isPrayerOn) ? PrayerNotifications.isPrayerOn(pn) : true;
+                return `<button class="prayer-bell ${on ? '' : 'off'}" data-prayer-bell="${pn}" aria-pressed="${on}" title="${t('prayers.' + pn)}" onclick="HomePage.togglePrayerNotif('${pn}')"><i class="fas ${on ? 'fa-bell' : 'fa-bell-slash'}"></i><span class="pb-name">${t('prayers.' + pn)}</span></button>`;
+              }).join('')}
+            </div>
           </div>
+
+          <!-- v57: تنبيه قبل الصلاة والإقامة (١٥ دقيقة) -->
           <div class="list-row">
             <div class="list-row-icon"><i class="fas fa-hourglass-half"></i></div>
             <div class="list-row-info">
-              <div class="list-row-label">${t('prayerReminder') || 'Recordatorio antes de la oración'}</div>
+              <div class="list-row-label">${t('prePrayerAlert') || 'تنبيه قبل الصلاة والإقامة'}</div>
               <div class="list-row-value">${(typeof PrayerNotifications !== 'undefined' && PrayerNotifications.isReminderEnabled()) ? (t('active') || 'Activo') : (t('inactive') || 'Inactivo')} · ${t('reminderHint') || '15 minutos antes'}</div>
             </div>
             <label class="toggle-switch">
@@ -403,6 +434,9 @@ const ProfilePage = {
               <span class="toggle-slider"></span>
             </label>
           </div>
+
+          <!-- v57: الوقت المتبقي في شريط الإشعارات (تصميم جديد مع موعد الصلاة) -->
+          ${this._ncRow('persistent', 'hourglass-half', t('persistentBar') || 'الوقت المتبقي في شريط الإشعارات', t('persistentBarDesc') || 'إشعار ثابت: الصلاة القادمة وموعدها والوقت المتبقي')}
         </div>
 
         <!-- v55: إعدادات مركز الإشعارات — كل ميزة بمفتاح مستقل -->
@@ -414,7 +448,6 @@ const ProfilePage = {
           ${this._ncRow('salawatVoice', 'microphone', t('ncSalawatVoice') || 'نطق الصلاة على النبي صوتياً', '')}
           ${this._ncRow('duaMorning', 'sun', t('ncDuaMorning') || 'دعاء الصباح (٧:٠٠ صباحاً)', '')}
           ${this._ncRow('duaEvening', 'moon', t('ncDuaEvening') || 'دعاء المساء (٧:٠٠ مساءً)', '')}
-          ${this._ncRow('persistent', 'thumbtack', t('ncPersistent') || 'إشعار ثابت بالصلاة القادمة والوقت المتبقي', '')}
           ${this._ncRow('flipToStop', 'mobile-screen', t('ncStopFlip') || 'إيقاف الأذان عند قلب الهاتف', '')}
           ${this._ncRow('volumeToStop', 'volume-low', t('ncStopVolume') || 'إيقاف الأذان بأزرار الصوت', '')}
           ${this._ncRow('powerToStop', 'power-off', t('ncStopPower') || 'إيقاف الأذان بزر التشغيل (إطفاء الشاشة)', '')}
@@ -819,6 +852,22 @@ const ProfilePage = {
     showModal(title, options, currentId, id => {
       if (takbeerNum === 1) AppState.settings.adhan.voice1 = id;
       else AppState.settings.adhan.voice2 = id;
+      Storage.saveSettings();
+      this.renderGroup('adhan');
+      AdhanService.preview(id);
+    });
+  },
+
+  // v57: اختيار صوت أذان الفجر (نسخ التثويب: «الصلاة خير من النوم»)
+  pickAdhanFajrVoice() {
+    const fajrVoices = AdhanService.VOICES.filter(v => v.id.indexOf('fajr_') === 0);
+    const options = fajrVoices.map(v => ({
+      id: v.id,
+      label: `${v.flag || '🌅'} ${AdhanService.voiceName(v)} · ${AdhanService.voiceCountry(v)}`,
+    }));
+    const currentId = (AppState.settings.adhan && AppState.settings.adhan.fajrVoice) || 'fajr_makkah';
+    showModal(t('adhanFajrVoice') || 'صوت أذان الفجر', options, currentId, id => {
+      AppState.settings.adhan.fajrVoice = id;
       Storage.saveSettings();
       this.renderGroup('adhan');
       AdhanService.preview(id);

@@ -32,8 +32,9 @@ const AdhanService = {
     { id: 'turkey',   name: 'Turquía — Adhan Turkish', nameAr: 'الأذان التركي — تركيا', nameEn: 'Türkiye — Turkish Adhan', country: 'Turquía', countryAr: 'تركيا', countryEn: 'Türkiye', flag: '🇹🇷', url: 'https://cdn.aladhan.com/audio/adhans/a4.mp3',      fallbackUrl: 'https://www.islamcan.com/audio/adhan/azan4.mp3' },
     { id: 'aqsa',     name: 'Al-Aqsa — Adhan Al-Aqsa', nameAr: 'أذان المسجد الأقصى — القدس', nameEn: 'Al-Aqsa — Al-Aqsa Adhan', country: 'Palestina', countryAr: 'فلسطين', countryEn: 'Palestine', flag: '🇵🇸', url: 'https://www.islamcan.com/audio/adhan/azan1.mp3', fallbackUrl: 'https://cdn.aladhan.com/audio/adhans/a1.mp3' },
     { id: 'algeria',  name: 'Argelia — Adhan Algerian', nameAr: 'الأذان الجزائري — الجزائر', nameEn: 'Algeria — Algerian Adhan', country: 'Argelia', countryAr: 'الجزائر', countryEn: 'Algeria', flag: '🇩🇿', url: 'https://www.islamcan.com/audio/adhan/azan2.mp3', fallbackUrl: 'https://cdn.aladhan.com/audio/adhans/a2.mp3' },
-    { id: 'fajr_makkah',  name: 'Fajr — Makkah', nameAr: 'أذان الفجر — مكة المكرمة', nameEn: 'Fajr Adhan — Makkah', country: 'Arabia Saudí', countryAr: 'السعودية', countryEn: 'Saudi Arabia', flag: '🌅', url: 'https://cdn.aladhan.com/audio/adhans/a3.mp3', fallbackUrl: 'https://www.islamcan.com/audio/adhan/azan3.mp3' },
-    { id: 'fajr_madinah', name: 'Fajr — Madinah', nameAr: 'أذان الفجر — المدينة المنورة', nameEn: 'Fajr Adhan — Madinah', country: 'Arabia Saudí', countryAr: 'السعودية', countryEn: 'Saudi Arabia', flag: '🌅', url: 'https://cdn.aladhan.com/audio/adhans/a4.mp3', fallbackUrl: 'https://www.islamcan.com/audio/adhan/azan4.mp3' },
+    // v57: أذان الفجر — نسخ خاصة بالتثويب («الصلاة خير من النوم» مرتين بعد الحيعلة)
+    { id: 'fajr_makkah',  name: 'Fajr — Makkah (Tathwib)', nameAr: 'أذان الفجر — مكة المكرمة (بالتثويب)', nameEn: 'Fajr Adhan — Makkah (Tathwib)', country: 'Arabia Saudí', countryAr: 'السعودية', countryEn: 'Saudi Arabia', flag: '🌅', url: 'https://www.islamcan.com/audio/adhan/azan5.mp3', fallbackUrl: 'https://cdn.aladhan.com/audio/adhans/a5.mp3' },
+    { id: 'fajr_madinah', name: 'Fajr — Madinah (Tathwib)', nameAr: 'أذان الفجر — المدينة المنورة (بالتثويب)', nameEn: 'Fajr Adhan — Madinah (Tathwib)', country: 'Arabia Saudí', countryAr: 'السعودية', countryEn: 'Saudi Arabia', flag: '🌅', url: 'https://cdn.aladhan.com/audio/adhans/a5.mp3', fallbackUrl: 'https://www.islamcan.com/audio/adhan/azan5.mp3' },
   ],
 
   audio: null,
@@ -50,6 +51,7 @@ const AdhanService = {
       muted: false,
       mode: 'full',          // 'full' | 'takbeer'
       takbeerDuration: 12,   // segundos aprox. que cubren las 2 primeras takbeer
+      fajrVoice: 'fajr_makkah', // v57: voz del adhan de Fajr (con tathwib)
     }, (typeof AppState !== 'undefined' && AppState.settings.adhan) || {});
   },
 
@@ -208,10 +210,16 @@ const AdhanService = {
    *  - 'full'    → las dos voces en secuencia (adhan completo)
    *  - 'takbeer' → solo las dos primeras takbeer (1ª voz, corte a los N seg)
    */
-  async playFullAdhan(onEnded) {
+  async playFullAdhan(onEnded, prayerKey) {
     const settings = this.getSettings();
     if (settings.muted) { if (onEnded) onEnded(); return false; }
-    const voice1 = this.VOICES.find(v => v.id === settings.voice1) || this.VOICES[0];
+    // v57: للفجر صوت خاص (تثويب: «الصلاة خير من النوم»). prayerKey يصل من
+    // PrayerNotifications.notify(tag). ندعم أيضاً النداء القديم playFullAdhan('Fajr').
+    if (typeof onEnded === 'string') { prayerKey = onEnded; onEnded = null; }
+    const isFajr = String(prayerKey || '').toLowerCase() === 'fajr';
+    const fajrV = this.VOICES.find(v => v.id === (settings.fajrVoice || 'fajr_makkah'))
+      || this.VOICES.find(v => v.id === 'fajr_makkah');
+    const voice1 = (isFajr && fajrV) ? fajrV : (this.VOICES.find(v => v.id === settings.voice1) || this.VOICES[0]);
     const voice2 = this.VOICES.find(v => v.id === settings.voice2) || this.VOICES[1];
 
     this.stopPreview();

@@ -196,6 +196,7 @@ const PrayerPage = {
               ${next?.name === p.name ? `<div class="prayer-remaining" data-prayer-remaining="${p.name}"><i class="fas fa-hourglass-half"></i> <span class="prayer-remaining-text">${formatCountdown(next.diffMs)}</span></div>` : ''}
               ${p.iqamah ? `<div class="prayer-iqamah"><i class="fas fa-bell"></i> ${t('iqamah') || 'Iqamah'} ${formatTime12h(p.iqamah)} <span class="iqamah-off">+${p.iqamahOffset} ${t('minShort') || 'min'}</span></div>` : ''}
             </div>
+            ${(typeof HomePage !== 'undefined' && HomePage._prayerBellHtml) ? HomePage._prayerBellHtml(p.name) : ''}
             ${canCheck ? `
               <button class="prayer-check ${isDone ? 'checked' : ''}"
                       aria-label="${t('prayerCheckinTitle')}"

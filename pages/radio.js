@@ -8,7 +8,6 @@ const RadioPage = {
   TABS: [
     { id: 'main', key: 'tabMain', icon: 'fa-tower-broadcast' },
     { id: 'reciters', key: 'tabReciters', icon: 'fa-microphone-lines' },
-    { id: 'qiraat', key: 'tabQiraat', icon: 'fa-book-open-reader' },
     { id: 'translated', key: 'tabTranslated', icon: 'fa-language' },
     { id: 'extra', key: 'tabExtra', icon: 'fa-moon' },
   ],
@@ -150,6 +149,13 @@ const RadioPage = {
     if (!q) return '';
     const ar = RadioData.arabicAyah(q.surah, q.ayah);
     const tr = q.tr && q.tr[q.ayah] ? q.tr[q.ayah] : '…';
+    // v57 FIX: الترجمة قد تصل بعد أول رسم للبطاقة — نطلبها هنا أيضاً ونحدّث
+    // الواجهة فور وصولها، ليظهر النص العربي وتحته الترجمة دائماً للمستخدم.
+    if (!q.tr) {
+      RadioData.getTranslation(q.surah, q.lang).then(map => {
+        if (map && RadioService.quran === q && !q.tr) { q.tr = map; RadioService._emit(); }
+      }).catch(() => {});
+    }
     return `
       <div class="tl-label"><i class="fas fa-language"></i> ${RadioData.L('liveTranslation')}</div>
       <div class="tl-ar">${escapeHtml(ar)}</div>
@@ -179,6 +185,9 @@ const RadioPage = {
       const cur = RadioService.mode === 'quran' && RadioService.quran && RadioService.quran.surah === n;
       row.classList.toggle('active', !!cur);
     });
+    // v57: تحديث نص الترجمة الحيّة عند كل نبضة (وصول الترجمة متأخرة / تغير الآية)
+    const tlBox = document.getElementById('radio-live-tl');
+    if (tlBox && RadioService.mode === 'quran') tlBox.innerHTML = this._liveTlHtml();
   },
 
   // ---------- جسم الصفحة حسب التبويب ----------
@@ -190,7 +199,6 @@ const RadioPage = {
     let list = [];
     if (this.tab === 'main') list = RadioData.MAIN;
     else if (this.tab === 'reciters') list = RadioData.RECITERS;
-    else if (this.tab === 'qiraat') list = RadioData.QIRAAT;
     else if (this.tab === 'extra') list = RadioData.EXTRA;
 
     body.innerHTML = list.map(st => {
@@ -209,11 +217,11 @@ const RadioPage = {
   },
 
   _listName() {
-    return { main: 'MAIN', reciters: 'RECITERS', qiraat: 'QIRAAT', extra: 'EXTRA' }[this.tab] || 'MAIN';
+    return { main: 'MAIN', reciters: 'RECITERS', extra: 'EXTRA' }[this.tab] || 'MAIN';
   },
 
   playStation(_unused, id) {
-    const lists = { main: RadioData.MAIN, reciters: RadioData.RECITERS, qiraat: RadioData.QIRAAT, extra: RadioData.EXTRA };
+    const lists = { main: RadioData.MAIN, reciters: RadioData.RECITERS, extra: RadioData.EXTRA };
     let st = null;
     if (id) {
       for (const k in lists) { st = lists[k].find(s => s.id === id); if (st) break; }
@@ -242,7 +250,7 @@ const RadioPage = {
 
       <div class="tl-group-label">${RadioData.L('chooseReciter')}</div>
       <div class="tl-chips">
-        ${RadioData.AV_RECITERS.map(r => `
+        ${RadioData.AV_RECITERS.concat(RadioData.EXTRA_RECITERS || []).map(r => `
           <button class="tl-chip ${this.tl.folder === r.folder ? 'active' : ''}" onclick="RadioPage.setTlReciter('${r.folder}')">
             <i class="fas fa-user"></i> ${escapeHtml(RadioData.name(r))}
           </button>`).join('')}
@@ -281,7 +289,7 @@ const RadioPage = {
 
   setTlReciter(folder) {
     this.tl.folder = folder;
-    const r = RadioData.AV_RECITERS.find(x => x.folder === folder);
+    const r = RadioData.AV_RECITERS.concat(RadioData.EXTRA_RECITERS || []).find(x => x.folder === folder);
     this.tl.reciterName = r ? RadioData.name(r) : '';
     this._renderBody();
   },

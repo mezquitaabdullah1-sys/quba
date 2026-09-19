@@ -10,6 +10,8 @@ const PrayerNotifications = {
   timers: [],
   enabledKey: 'prayer_notif_enabled',
   reminderKey: 'prayer_reminder_enabled',
+  perPrayerKey: 'prayer_notif_prayers', // v57: جرس مستقل لكل صلاة
+  PRAYERS: ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'],
   REMINDER_MINUTES: 15, // recordatorio 15 min antes del adhan
 
   isEnabled() {
@@ -18,6 +20,26 @@ const PrayerNotifications = {
 
   isReminderEnabled() {
     return Storage.get(this.reminderKey) === true && Notification.permission === 'granted';
+  },
+
+  // ============ v57: جرس لكل صلاة (تفعيل/إطفاء إشعارها وأذانها) ============
+  _perPrayer() {
+    const saved = (typeof Storage !== 'undefined' && Storage.get(this.perPrayerKey)) || {};
+    const out = {};
+    this.PRAYERS.forEach(p => { out[p] = saved[p] !== false; }); // الافتراضي: مفعّل
+    return out;
+  },
+
+  isPrayerOn(name) { return this._perPrayer()[name] !== false; },
+
+  setPrayerOn(name, on) {
+    const m = this._perPrayer();
+    m[name] = !!on;
+    Storage.set(this.perPrayerKey, m);
+    // إعادة برمجة تنبيهات اليوم فوراً بالإعداد الجديد
+    if (typeof AppState !== 'undefined' && AppState.timings) {
+      this.scheduleDay(AppState.timings, (AppState.settings && AppState.settings.locale) || 'es');
+    }
   },
 
   async requestPermission() {
@@ -127,6 +149,9 @@ const PrayerNotifications = {
 
       const prayerName = prayerNames[prayer] || prayer;
 
+      // v57: الجرس المطفأ لهذه الصلاة = لا أذان ولا تذكير لها إطلاقاً
+      if (!this.isPrayerOn(prayer)) return;
+
       // 1) Adhan automático a la hora exacta de la oración
       let target;
       if (cityDeltaMs && typeof CityClock !== 'undefined') {
@@ -229,7 +254,7 @@ const PrayerNotifications = {
 
     // Play adhan via AdhanService if available (respeta modo full/takbeer y mute)
     if (typeof AdhanService !== 'undefined' && AdhanService.playFullAdhan) {
-      try { AdhanService.playFullAdhan(); } catch(e) { console.warn('Adhan play failed:', e); }
+      try { AdhanService.playFullAdhan(null, tag); } catch(e) { console.warn('Adhan play failed:', e); } // v57: tag=مفتاح الصلاة — الفجر يرن بأذانه الخاص (تثويب)
     }
 
     // v55: بطاقة تنبيه الأذان — «حان وقت أذان صلاة X» مع حديث مناسب للصلاة

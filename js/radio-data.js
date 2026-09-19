@@ -49,6 +49,11 @@ const RadioData = {
       sleepCancelToast: 'تم إلغاء مؤقّت النوم',
       stopsAtEnd: 'سيتوقف الصوت عند انتهاء الوقت',
       continueBg: 'يستمر الصوت حتى مع إطفاء الشاشة',
+      homeQuranRadio: 'إذاعة القرآن الكريم',
+      homeQuranTranslated: 'القرآن مترجم',
+      homeAdhkarAudio: 'الأذكار صوتياً',
+      stationSaudiDesc: 'بث مباشر ٢٤/٧ — إذاعة القرآن الكريم السعودية',
+      stationMixDesc: 'تلاوات متنوعة على مدار الساعة لعدد كبير من القرّاء',
     },
     es: {
       radioTitle: 'Radio Islámica',
@@ -93,6 +98,11 @@ const RadioData = {
       sleepCancelToast: 'Temporizador cancelado',
       stopsAtEnd: 'El audio se detendrá al acabar el tiempo',
       continueBg: 'El audio continúa aunque apagues la pantalla',
+      homeQuranRadio: 'Radio del Corán',
+      homeQuranTranslated: 'Corán traducido',
+      homeAdhkarAudio: 'Adhkar en audio',
+      stationSaudiDesc: 'Directo 24/7 — Radio del Corán de Arabia Saudí',
+      stationMixDesc: 'Recitaciones variadas 24/7 de muchos recitadores',
     },
     en: {
       radioTitle: 'Islamic Radio',
@@ -137,6 +147,11 @@ const RadioData = {
       sleepCancelToast: 'Sleep timer cancelled',
       stopsAtEnd: 'Audio will stop when time is up',
       continueBg: 'Audio keeps playing even with the screen off',
+      homeQuranRadio: 'Quran Radio',
+      homeQuranTranslated: 'Translated Quran',
+      homeAdhkarAudio: 'Adhkar audio',
+      stationSaudiDesc: 'Live 24/7 — Saudi Quran Radio',
+      stationMixDesc: 'Recitations 24/7 by many reciters',
     },
   },
 
@@ -164,6 +179,20 @@ const RadioData = {
       url: 'https://stream.radiojar.com/0tpy1h0kxtzuv',
       img: 'kaaba',
     },
+    {
+      id: 'saudi',
+      name: { ar: 'إذاعة القرآن الكريم — السعودية', es: 'Radio del Corán — Arabia Saudí', en: 'Quran Radio — Saudi Arabia' },
+      descKey: 'stationSaudiDesc',
+      url: 'https://stream.radiojar.com/0tpy1h0kxtzuv',
+      img: 'kaaba2',
+    },
+    {
+      id: 'mix',
+      name: { ar: 'إذاعة التلاوات المتنوعة — لعدد من القرّاء', es: 'Emisora general — varios recitadores', en: 'General station — various reciters' },
+      descKey: 'stationMixDesc',
+      url: 'https://backup.qurango.net/radio/mix',
+      img: 'quran',
+    },
   ],
 
   // ============ القرّاء (بث متواصل ٢٤/٧ — MP3Quran / qurango) ============
@@ -175,13 +204,28 @@ const RadioData = {
     { id: 'hussary',  name: { ar: 'محمود خليل الحصري', es: 'M. Khalil Al-Husary', en: 'M. Khalil Al-Husary' }, url: 'https://backup.qurango.net/radio/mahmoud_khalil_alhussary', img: 'kaaba' },
     { id: 'hussary_mj', name: { ar: 'الحصري (مجوَّد)', es: 'Al-Husary (Muyawwad)', en: 'Al-Husary (Mujawwad)' }, url: 'https://backup.qurango.net/radio/mahmoud_khalil_alhussary_mojawwad', img: 'kaaba2' },
     { id: 'tarateel', name: { ar: 'تراتيل قصيرة متميزة', es: 'Tarâteel cortas selectas', en: 'Short selected Tarateel' }, url: 'https://backup.qurango.net/radio/tarateel', img: 'quran2' },
+    // v57: المزيد من القرّاء (بث متواصل ٢٤/٧ من MP3Quran)
+    { id: 'sudais',   name: { ar: 'عبدالرحمن السديس', es: 'Abdulrahman Al-Sudais', en: 'Abdulrahman Al-Sudais' }, url: 'https://backup.qurango.net/radio/abdulrahman_alsudaes', img: 'kaaba' },
+    { id: 'shuraim',  name: { ar: 'سعود الشريم', es: 'Saud Al-Shuraim', en: 'Saud Al-Shuraim' }, url: 'https://backup.qurango.net/radio/saud_alshuraim', img: 'kaaba2' },
+    { id: 'ghamdi',   name: { ar: 'سعد الغامدي', es: 'Saad Al-Ghamdi', en: 'Saad Al-Ghamdi' }, url: 'https://backup.qurango.net/radio/saad_alghamdi', img: 'quran' },
+    { id: 'ajmy',     name: { ar: 'أحمد بن علي العجمي', es: 'Ahmed Al-Ajmi', en: 'Ahmed Al-Ajmi' }, url: 'https://backup.qurango.net/radio/ahmad_alajmy', img: 'quran2' },
+    { id: 'juhany',   name: { ar: 'عبدالله عواد الجهني', es: 'Abdullah Awad Al-Juhany', en: 'Abdullah Awad Al-Juhany' }, url: 'https://backup.qurango.net/radio/abdullah_aljohany', img: 'kaaba' },
+    { id: 'qatami',   name: { ar: 'ناصر القطامي', es: 'Nasser Al-Qatami', en: 'Nasser Al-Qatami' }, url: 'https://backup.qurango.net/radio/nasser_alqatami', img: 'quran' },
+    { id: 'dosari',   name: { ar: 'ياسر الدوسري', es: 'Yasser Al-Dosari', en: 'Yasser Al-Dosari' }, url: 'https://backup.qurango.net/radio/yasser_aldosari', img: 'quran2' },
+    { id: 'banna',    name: { ar: 'محمود علي البنا', es: 'Mahmoud Ali Al-Banna', en: 'Mahmoud Ali Al-Banna' }, url: 'https://backup.qurango.net/radio/mahmoud_ali__albanna', img: 'kaaba2' },
+    { id: 'abdulbasit', name: { ar: 'عبدالباسط عبدالصمد', es: 'Abdulbasit Abdulsamad', en: 'Abdulbasit Abdulsamad' }, url: 'https://backup.qurango.net/radio/abdulbasit_abdulsamad', img: 'quran' },
+    { id: 'jibreel',  name: { ar: 'محمد جبريل', es: 'Muhammad Jibreel', en: 'Muhammad Jibreel' }, url: 'https://backup.qurango.net/radio/mohammed_jibreel', img: 'kaaba' },
+    { id: 'shatri',   name: { ar: 'أبو بكر الشاطري', es: 'Abu Bakr Al-Shatri', en: 'Abu Bakr Al-Shatri' }, url: 'https://backup.qurango.net/radio/shaik_abu_bakr_al_shatri', img: 'quran2' },
+    { id: 'ayyub',    name: { ar: 'محمد أيوب', es: 'Muhammad Ayyub', en: 'Muhammad Ayyub' }, url: 'https://backup.qurango.net/radio/mohammed_ayyub', img: 'kaaba2' },
   ],
 
-  // ============ القراءات العشر (روايات) ============
-  QIRAAT: [
-    { id: 'hussary_warsh', name: { ar: 'الحصري — رواية ورش عن نافع', es: 'Al-Husary — Warsh an-Nafi', en: 'Al-Husary — Warsh an-Nafi' }, url: 'https://backup.qurango.net/radio/mahmoud_khalil_alhussary_warsh', img: 'quran' },
-    { id: 'khalaf', name: { ar: 'عبدالله الخلف — قراءات وروايات', es: 'Abdullah Al-Khalaf — Lecturas', en: 'Abdullah Al-Khalaf — Readings' }, url: 'https://backup.qurango.net/radio/abdullah_alkhalaf', img: 'quran2' },
-    // ملاحظة: يمكن إضافة المزيد من محطات الروايات (قالون، الدوري…) فور توفّرها في مصدر البث
+  // ============ v57: قرّاء إضافيون للتلاوة المترجمة (آية/آية — everyayah) ============
+  // (أُزيل قسم «القراءات العشر» بناءً على طلب المستخدم)
+  EXTRA_RECITERS: [
+    { id: 'husary_tl',  folder: 'Husary_128kbps', name: { ar: 'محمود خليل الحصري', es: 'M. Khalil Al-Husary', en: 'M. Khalil Al-Husary' } },
+    { id: 'minshawi_tl', folder: 'Minshawy_Murattal_128kbps', name: { ar: 'محمد صديق المنشاوي', es: 'M. Siddiq Al-Minshawi', en: 'M. Siddiq Al-Minshawi' } },
+    { id: 'basit_tl',   folder: 'Abdul_Basit_Murattal_192kbps', name: { ar: 'عبد الباسط عبد الصمد (مرتّل)', es: 'Abdul Basit (Murattal)', en: 'Abdul Basit (Murattal)' } },
+    { id: 'ajmy_tl',    folder: 'Ahmed_ibn_Ali_al-Ajamy_128kbps_ketaballah.net', name: { ar: 'أحمد بن علي العجمي', es: 'Ahmed Al-Ajmi', en: 'Ahmed Al-Ajmi' } },
   ],
 
   // ============ الأذكار والرقية الشرعية وتكبيرات العيد ============

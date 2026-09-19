@@ -18,7 +18,13 @@ const RadioService = {
     if (this.audio) return;
     this.audio = new Audio();
     this.audio.preload = 'auto';
-    this.audio.addEventListener('playing', () => { this.state = 'playing'; this._emit(); });
+    this.audio.addEventListener('playing', () => {
+      this.state = 'playing';
+      this._emit();
+      // v57: في وضع التلاوة المترجمة نعيد البث بعد لحظة قصيرة — إن وصلت الترجمة
+      // متأخرة (شبكة بطيئة) تظهر للمستخدم فوراً دون انتظار الآية التالية.
+      if (this.mode === 'quran') setTimeout(() => { if (this.mode === 'quran') this._emit(); }, 700);
+    });
     this.audio.addEventListener('pause', () => { if (this.state !== 'idle') { this.state = 'paused'; this._emit(); } });
     this.audio.addEventListener('waiting', () => { this.state = 'loading'; this._emit(); });
     this.audio.addEventListener('error', () => {
@@ -62,10 +68,13 @@ const RadioService = {
     };
     this.state = 'loading';
     this._emit();
-    // الترجمة تُجلب بالتوازي مع بدء الصوت — التلاوة لا تنتظرها
-    RadioData.getTranslation(cfg.surah, cfg.lang).then(tr => {
-      if (this.quran && this.quran.surah === cfg.surah) { this.quran.tr = tr; this._emit(); }
-    });
+    // v57: نجلب الترجمة أولاً ونملأ quran.tr قبل بدء الصوت، حتى تظهر الترجمة
+    // منذ الآية الأولى. عند الفشل تبدأ التلاوة دون انتظار.
+    try {
+      this.quran.tr = await RadioData.getTranslation(cfg.surah, cfg.lang);
+      this._emit();
+    } catch (e) { /* نكمل بلا ترجمة */ }
+    if (!this.quran || this.quran.surah !== cfg.surah) return; // غيّر المستخدم السورة أثناء الجلب
     this._playAyah(1);
   },
 

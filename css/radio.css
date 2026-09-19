@@ -370,3 +370,41 @@
 [data-theme="dark"] .sleep-modal-head { color: #eee; }
 [data-theme="dark"] .sleep-opt { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); color: #eee; }
 [data-theme="dark"] .sleep-opt.active { background: #5C6BC0; border-color: #5C6BC0; color: #fff; }
+
+/* ===== v57: قسم «الراديو الإسلامي» أسفل دعاء اليوم (بألوان التطبيق) ===== */
+.radio-hub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.radio-hub-btn {
+  border: none; border-radius: 18px; padding: 16px 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  color: #fff; font-family: inherit; font-size: 12.5px; font-weight: 700;
+  cursor: pointer; box-shadow: 0 6px 16px rgba(15,76,58,0.18);
+  transition: transform 0.12s ease;
+}
+.radio-hub-btn:active { transform: scale(0.95); }
+.radio-hub-btn i { font-size: 20px; }
+.radio-hub-btn.rh-quran      { background: linear-gradient(150deg, var(--emerald-bright, #2B8A6B), var(--emerald-deep, #0F4C3A)); }
+.radio-hub-btn.rh-translated { background: linear-gradient(150deg, var(--gold-light, #E6C868), #b8860b); }
+.radio-hub-btn.rh-adhkar     { background: linear-gradient(150deg, var(--midnight-blue, #1A2B4A), var(--midnight-deep, #0D1829)); }
+
+/* ===== v57: جرس الإشعار بجانب كل صلاة ===== */
+.prayer-bell {
+  border: none; background: rgba(15,118,110,0.10); color: #0F766E;
+  width: 34px; height: 34px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; cursor: pointer; flex-shrink: 0;
+  transition: all 0.15s ease; margin-inline-end: 6px;
+}
+.prayer-bell.off { background: rgba(120,120,120,0.12); color: #9aa0a6; }
+.prayer-bell:active { transform: scale(0.88); }
+.prayer-bells-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.prayer-bells-row .prayer-bell {
+  width: auto; height: auto; border-radius: 999px;
+  padding: 8px 12px; gap: 6px; margin-inline-end: 0; font-size: 12px;
+}
+.prayer-bells-row .prayer-bell .pb-name { font-weight: 700; }
+[data-theme="dark"] .prayer-bell { background: rgba(255,255,255,0.08); color: #7fd4c9; }
+[data-theme="dark"] .prayer-bell.off { background: rgba(255,255,255,0.05); color: #777; }
+
+/* ===== v57 FIX: ضمان ظهور الترجمة تحت النص العربي في «القرآن المترجم» ===== */
+.radio-live-tl { max-height: 190px; overflow-y: auto; }
+.tl-ar { max-height: 114px; overflow-y: auto; }

@@ -316,8 +316,11 @@ const NotifCenter = {
       const loc = this._loc();
       const name = loc === 'ar' ? this.prayerNameAr(np.name) : (t('prayers.' + np.name) || np.name);
       const left = typeof formatCountdown === 'function' ? formatCountdown(np.diffMs) : '';
-      const title = '🕌 ' + this._t('nextPrayer') + ': ' + name;
-      const body = '⏳ ' + this._t('remaining') + ' ' + left;
+      // v57: تصميم جديد للإشعار الثابت — اسم الصلاة + موعدها الفعلي + الوقت المتبقي
+      const atTime = (np.time && typeof formatTime12h === 'function') ? formatTime12h(np.time) : '';
+      const atLabel = { ar: 'الموعد', es: 'Hora', en: 'At' }[loc] || 'Hora';
+      const title = '🕌 ' + name + (atTime ? ' • ' + atTime : '');
+      const body = (atTime ? '🕐 ' + atLabel + ': ' + atTime + '  •  ' : '') + '⏳ ' + this._t('remaining') + ': ' + left;
       // عبر Service Worker ليبقى ثابتاً في مركز الإشعارات
       if ('serviceWorker' in navigator) {
         const reg = await navigator.serviceWorker.getRegistration();
