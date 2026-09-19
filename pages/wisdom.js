@@ -71,6 +71,14 @@ const WisdomPage = {
         color: '#0F766E',
         route: 'radio',
       },
+      // v57: مقتطفات دينية — فيديوهات يوتيوب داخل التطبيق
+      {
+        id: 'clips', icon: '<i class="fas fa-circle-play"></i>',
+        title: ClipsData.L('clipsTitle'),
+        desc: ClipsData.L('wisdomClipsDesc'),
+        color: '#B91C1C',
+        route: 'videos',
+      },
     ];
 
     container.innerHTML = `

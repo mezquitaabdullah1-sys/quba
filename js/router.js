@@ -16,6 +16,8 @@ const Router = {
     'wisdom/courses': { page: CoursesPage, tabId: 'wisdom', method: 'renderHub' },
     // v56: الراديو الإسلامي — يُبرز تبويب الحكمة في الشريط السفلي
     radio: { page: RadioPage, tabId: 'wisdom' },
+    // v57: مقتطفات دينية (فيديوهات يوتيوب داخل التطبيق) — تاب الحكمة أيضًا
+    videos: { page: ClipsPage, tabId: 'wisdom' },
   },
 
   current: null,

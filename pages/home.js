@@ -291,6 +291,24 @@ const HomePage = {
           </button>
         </div>
 
+        <!-- v57: مقتطفات دينية — تحت الراديو مباشرة، بطاقتان أسبوعيتان + زر «الكل» -->
+        <div class="clips-home-head">
+          <h2 class="section-title"><i class="fas fa-circle-play"></i> ${ClipsData.L('clipsTitle')}</h2>
+          <button class="clips-home-all" onclick="Router.go('videos')">${ClipsData.L('clipsAll')} <i class="fas fa-chevron-${document.documentElement.dir === 'rtl' ? 'left' : 'right'}"></i></button>
+        </div>
+        <div class="clips-home-row">
+          ${ClipsData.VIDEOS.slice((Math.floor(Date.now() / 604800000) * 2) % ClipsData.VIDEOS.length, (Math.floor(Date.now() / 604800000) * 2) % ClipsData.VIDEOS.length + 2).map(v => `
+            <button class="clip-home-card" onclick="Router.go('videos')" aria-label="${escapeAttr(v.title)}">
+              <span class="clip-home-thumb">
+                <img src="${ClipsData.thumb(v.id)}" alt="" loading="lazy" draggable="false" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/mqdefault.jpg';">
+                <span class="clip-play"><i class="fas fa-play"></i></span>
+              </span>
+              <span class="clip-home-title">${escapeHtml(v.title)}</span>
+              <span class="clip-home-watch"><i class="fas fa-circle-play"></i> ${ClipsData.L('clipsWatch')}</span>
+            </button>
+          `).join('')}
+        </div>
+
         <!-- Virtud del día -->
         ${virtue ? `
           <h2 class="section-title"><i class="fas fa-sparkles"></i> ${virtue.title}</h2>

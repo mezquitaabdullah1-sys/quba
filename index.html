@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0F4C3A">
 
   <!-- 🔒 Content Security Policy — relaxed (inline handlers/scripts aún permitidos, se irán eliminando) -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https:; media-src 'self' https: data: blob: https://cdn.aladhan.com https://www.islamcan.com https://backup.qurango.net https://qurango.net https://stream.radiojar.com; connect-src 'self' https://api.aladhan.com https://www.muslimpro.com https://app.muslimpro.com https://html.duckduckgo.com https://api.alquran.cloud https://cdn.islamic.network https://api.mymemory.translated.net https://nominatim.openstreetmap.org https://api.open-meteo.com https://ummahapi.com https://lingva.ml https://libretranslate.com https://libretranslate.de https://cdn.jsdelivr.net https://download.quranicaudio.com https://everyayah.com https://mp3quran.net; manifest-src 'self'; worker-src 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https:; media-src 'self' https: data: blob: https://cdn.aladhan.com https://www.islamcan.com https://backup.qurango.net https://qurango.net https://stream.radiojar.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com; child-src https://www.youtube.com https://www.youtube-nocookie.com; connect-src 'self' https://api.aladhan.com https://www.youtube.com https://www.youtube-nocookie.com https://www.muslimpro.com https://app.muslimpro.com https://html.duckduckgo.com https://api.alquran.cloud https://cdn.islamic.network https://api.mymemory.translated.net https://nominatim.openstreetmap.org https://api.open-meteo.com https://ummahapi.com https://lingva.ml https://libretranslate.com https://libretranslate.de https://cdn.jsdelivr.net https://download.quranicaudio.com https://everyayah.com https://mp3quran.net; manifest-src 'self'; worker-src 'self';">
 
   <!-- 📦 App shell offline + carga instantánea — ver sw.js para el porqué.
        v1.0.32 desregistraba cualquier Service Worker en cada carga (ver
@@ -71,6 +71,7 @@
   <link rel="stylesheet" href="css/offline.css">
   <link rel="stylesheet" href="css/share-card.css">
   <link rel="stylesheet" href="css/radio.css"> <!-- v56: الراديو الإسلامي -->
+  <link rel="stylesheet" href="css/clips.css"> <!-- v57: مقتطفات دينية (فيديوهات يوتيوب) -->
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -179,6 +180,7 @@
   <script src="js/garcia-data.js"></script>
   <script src="js/tafsir.js"></script>
   <script src="js/radio-data.js"></script> <!-- v56: بيانات الراديو -->
+  <script src="js/videos-data.js"></script> <!-- v57: بيانات المقتطفات الدينية -->
   <script src="js/radio-service.js"></script> <!-- v56: محرّك التشغيل العالمي -->
   <script src="js/adhan.js"></script>
   <script src="js/notifications.js"></script>
@@ -253,6 +255,7 @@
   <script src="pages/wisdom/duas.js"></script>
   <script src="pages/wisdom.js"></script>
   <script src="pages/radio.js"></script> <!-- v56: صفحة الراديو الإسلامي -->
+  <script src="pages/videos.js"></script> <!-- v57: صفحة المقتطفات الدينية -->
 
   <!-- App core -->
   <script src="js/router.js"></script>
