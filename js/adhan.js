@@ -58,11 +58,25 @@ const AdhanService = {
    * (red, 403, CORS...), intenta la URL alternativa antes de rendirse.
    * v24: parámetro opcional maxMs — corta el audio tras N milisegundos
    * (usado por el modo "solo las dos primeras takbeer").
+   *
+   * v53 FIX (corte prematuro, antes de completar ni una takbeera):
+   * con CDNs inestables, la conexión puede cerrarse a mitad de la
+   * descarga — el navegador interpreta eso como que el audio "terminó"
+   * (dispara 'ended') aunque solo se hayan reproducido 1-2 segundos de
+   * un archivo mucho más largo. El código anterior lo daba por bueno
+   * (finish(true)) y saltaba a la siguiente voz / cerraba el modo
+   * takbeer casi al instante. Ahora se compara currentTime con la
+   * duración real reportada por el archivo: si el hueco es grande, se
+   * trata como un fallo de red y se reintenta (fallback y, si hace
+   * falta, un reintento extra) en vez de aceptarlo como final legítimo.
    * @returns {Promise<boolean>} true si empezó a sonar
    */
   _playVoice(voice, volume, onEnded, maxMs = 0) {
     return new Promise((resolve) => {
       let settled = false;
+      let usedFallback = false;
+      let extraRetryUsed = false;
+
       const clearCut = () => {
         if (this._cutTimer) { clearTimeout(this._cutTimer); this._cutTimer = null; }
       };
@@ -75,21 +89,41 @@ const AdhanService = {
         if (onEnded) onEnded();
       };
 
+      // v53: ¿el 'ended' llegó mucho antes del final real del archivo?
+      // (stream truncado por la red, no un final legítimo)
+      const endedPrematurely = (a) => {
+        const dur = a.duration;
+        return isFinite(dur) && dur > 1 && (dur - a.currentTime) > 1.5;
+      };
+
       const tryUrl = (url, isFallback) => {
         const a = new Audio();
         a.volume = volume;
         a.preload = 'auto';
         a.src = url;
-        a.onerror = () => {
-          if (!isFallback && voice.fallbackUrl) {
-            console.warn('Adhan: fallo URL principal, probando fallback…', voice.id);
+
+        // v53: punto único para decidir qué hacer ante cualquier fallo
+        // (carga, red o corte prematuro) — antes cada handler decidía por
+        // su cuenta y solo probaba el fallback una vez, sin red de
+        // seguridad si ESE también fallaba a mitad de camino.
+        const handleFailure = (reason) => {
+          console.warn('Adhan: ' + reason, voice.id, url);
+          if (!usedFallback && voice.fallbackUrl) {
+            usedFallback = true;
             tryUrl(voice.fallbackUrl, true);
+          } else if (!extraRetryUsed) {
+            extraRetryUsed = true;
+            tryUrl(url, isFallback); // último intento: misma fuente, puede ser un simple corte de red
           } else {
-            console.warn('Adhan: no se pudo cargar', voice.id);
             finish(a, false);
           }
         };
-        a.onended = () => finish(a, true);
+
+        a.onerror = () => handleFailure('fallo de carga/red');
+        a.onended = () => {
+          if (endedPrematurely(a)) { handleFailure('corte prematuro (stream incompleto)'); return; }
+          finish(a, true);
+        };
         // v25: corte por progreso real del audio (modo takbeer) — garantía
         // extra por si el temporizador se retrasa (pestaña en 2º plano):
         // en cuanto la reproducción alcanza maxMs se corta, pase lo que pase.
@@ -120,12 +154,7 @@ const AdhanService = {
               finish(a, false);
               return;
             }
-            if (!isFallback && voice.fallbackUrl) {
-              tryUrl(voice.fallbackUrl, true);
-            } else {
-              console.warn('Adhan play failed:', err);
-              finish(a, false);
-            }
+            handleFailure('play() rechazado: ' + (err && err.name));
           });
         }
         this.audio = a;

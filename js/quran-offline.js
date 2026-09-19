@@ -655,7 +655,7 @@ const QuranOfflineService = {
       if (conn && conn.saveData) return;
 
       const translation = (typeof AppState !== 'undefined' && AppState.settings.translation) || 'es.garcia_pdf';
-      const reciter = (typeof AppState !== 'undefined' && AppState.settings.reciter) || 'ar.mahermuaiqly';
+      const reciter = (typeof AppState !== 'undefined' && AppState.settings.reciter) || 'ar.husary';
       const status = await this.getDownloadStatus(translation, reciter);
       if (status.downloaded >= status.total) return; // ya completo
 

@@ -158,6 +158,11 @@ const PrayerNotifications = {
     // v24: refresco automático pasada la medianoche (horarios del nuevo día)
     this._scheduleMidnightRefresh(locale);
 
+    // v55: الإشعار الثابت بالصلاة القادمة يعتمد على هذه المواقيت
+    if (typeof NotifCenter !== 'undefined') {
+      try { NotifCenter.onDayScheduled(); } catch (e) {}
+    }
+
     console.log(`🔔 ${this.timers.length} alarmas programadas (adhan=${wantAdhan}, recordatorio=${wantReminder})`);
   },
 
@@ -227,7 +232,14 @@ const PrayerNotifications = {
       try { AdhanService.playFullAdhan(); } catch(e) { console.warn('Adhan play failed:', e); }
     }
 
-    // Show notification directly (v22: sin service worker)
+    // v55: بطاقة تنبيه الأذان — «حان وقت أذان صلاة X» مع حديث مناسب للصلاة
+    // + زر إيقاف الأذان + زر «تذكير بعد ١٥ دقيقة» (مركز الإشعارات).
+    // tag = مفتاح الصلاة (Fajr/Dhuhr/Asr/Maghrib/Isha).
+    if (typeof NotifCenter !== 'undefined') {
+      try { NotifCenter.showAdhanAlert(tag, title); return; } catch (e) { console.warn(e); }
+    }
+
+    // Respaldo (sin NotifCenter): notificación directa (v22: sin service worker)
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('🕌 ' + title, { body, icon: 'assets/icon.png' });
     }
@@ -242,6 +254,11 @@ const PrayerNotifications = {
    */
   notifyReminder(title, body, tag) {
     if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+
+    // v55: إشعار «اقتربت الصلاة» الآن مع صوت تنبيه قصير (نغمتان)
+    if (typeof NotifCenter !== 'undefined' && NotifCenter.chimeReminder) {
+      try { NotifCenter.chimeReminder(); } catch (e) {}
+    }
 
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('⏰ ' + title, { body, icon: 'assets/icon.png' });

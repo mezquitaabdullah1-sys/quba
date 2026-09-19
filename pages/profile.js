@@ -405,8 +405,40 @@ const ProfilePage = {
           </div>
         </div>
 
+        <!-- v55: إعدادات مركز الإشعارات — كل ميزة بمفتاح مستقل -->
+        <div class="section-label"><i class="fas fa-bell"></i> ${t('ncSection') || 'المزيد من الإشعارات'}</div>
+        <div class="card" style="padding:0;overflow:hidden;">
+          ${this._ncRow('adhanAlert', 'mosque', t('ncAdhanAlert') || 'بطاقة تنبيه الأذان', t('ncAdhanAlertDesc') || 'حديث مناسب للصلاة + زر إيقاف الأذان + تذكير بعد ١٥ دقيقة')}
+          ${this._ncRow('snooze', 'hourglass-half', t('ncSnooze') || 'زر «تذكير بعد ١٥ دقيقة» (هل صليت؟)', '')}
+          ${this._ncRow('salawat', 'heart', t('ncSalawat') || 'الصلاة على النبي ﷺ', t('ncSalawatDesc') || 'كل ٣ ساعات من ٩ صباحاً إلى ٩ مساءً، مع صوت')}
+          ${this._ncRow('salawatVoice', 'microphone', t('ncSalawatVoice') || 'نطق الصلاة على النبي صوتياً', '')}
+          ${this._ncRow('duaMorning', 'sun', t('ncDuaMorning') || 'دعاء الصباح (٧:٠٠ صباحاً)', '')}
+          ${this._ncRow('duaEvening', 'moon', t('ncDuaEvening') || 'دعاء المساء (٧:٠٠ مساءً)', '')}
+          ${this._ncRow('persistent', 'thumbtack', t('ncPersistent') || 'إشعار ثابت بالصلاة القادمة والوقت المتبقي', '')}
+          ${this._ncRow('flipToStop', 'mobile-screen', t('ncStopFlip') || 'إيقاف الأذان عند قلب الهاتف', '')}
+          ${this._ncRow('volumeToStop', 'volume-low', t('ncStopVolume') || 'إيقاف الأذان بأزرار الصوت', '')}
+          ${this._ncRow('powerToStop', 'power-off', t('ncStopPower') || 'إيقاف الأذان بزر التشغيل (إطفاء الشاشة)', '')}
+        </div>
+
       </div>
     `;
+  },
+
+  // v55: صف مفتاح تفعيل لميزة من مركز الإشعارات
+  _ncRow(key, icon, label, desc) {
+    const on = (typeof NotifCenter !== 'undefined') ? NotifCenter.isOn(key) : false;
+    return `
+      <div class="list-row">
+        <div class="list-row-icon"><i class="fas fa-${icon}"></i></div>
+        <div class="list-row-info">
+          <div class="list-row-label">${label}</div>
+          ${desc ? `<div class="list-row-value">${desc}</div>` : ''}
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" ${on ? 'checked' : ''} onchange="ProfilePage.setNotifCenter('${key}', this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>`;
   },
 
   // ================= GRUPO: GENERAL =================
@@ -826,11 +858,9 @@ const ProfilePage = {
     if (checked && typeof AdhanService !== 'undefined') AdhanService.stop();
     Storage.saveSettings();
     this.renderGroup('adhan');
-    // v54: showToast muestra TEXTO plano (las etiquetas <i> aparecían tal
-    // cual en el mensaje de «كتم الأذان») → usar emoji, como el resto de la app
     showToast(checked
-      ? '🔇 ' + (t('adhanMuted') || 'Adhan silenciado')
-      : '🔊 ' + (t('adhanUnmuted') || 'Adhan activo'), 1500);
+      ? '<i class="fas fa-volume-xmark"></i> ' + (t('adhanMuted') || 'Adhan silenciado')
+      : '<i class="fas fa-volume-high"></i> ' + (t('adhanUnmuted') || 'Adhan activo'), 1500);
   },
 
   setAdhanVolume(val) {
@@ -910,6 +940,14 @@ const ProfilePage = {
       }
     }
     this.renderGroup('adhan');
+  },
+
+  // v55: مفاتيح مركز الإشعارات (تفعيل/إيقاف لكل ميزة)
+  async setNotifCenter(key, checked) {
+    if (typeof NotifCenter === 'undefined') return;
+    if (checked) await NotifCenter.ensurePermission().catch(() => {});
+    NotifCenter.set(key, checked);
+    showToast('✅ ' + (t('ncSaved') || 'تم حفظ إعدادات الإشعارات'), 1500);
   },
 
   cleanup() {

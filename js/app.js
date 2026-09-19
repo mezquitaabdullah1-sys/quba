@@ -154,6 +154,16 @@ async function initApp() {
       (PrayerNotifications.isEnabled() || PrayerNotifications.isReminderEnabled())) {
     PrayerNotifications._refreshForNewDay(AppState.settings.locale || 'es');
   }
+
+  // 8) v55: مركز الإشعارات — جدولة الصلاة على النبي (كل ٣ ساعات ٩ص–٩م)،
+  // دعاء الصباح/المساء، الإشعار الثابت بالصلاة القادمة، وحساسات إيقاف الأذان
+  // (قلب الهاتف / أزرار الصوت / زر التشغيل) + طلب إذن الإشعارات.
+  if (typeof NotifCenter !== 'undefined') {
+    NotifCenter.init();
+    NotifCenter.ensurePermission().then((ok) => {
+      if (ok && AppState.timings) NotifCenter.onDayScheduled();
+    }).catch(() => {});
+  }
 }
 
 // v21: avisos discretos de cambio de conectividad (afecta a toda la app,

@@ -1,0 +1,372 @@
+/* 📻 v56 — الراديو الإسلامي: صفحة الراديو + قسم «اسمع وتدبّر» + الشريط العائم + مؤقّت النوم */
+
+/* ===== قسم «اسمع وتدبّر» في الصفحة الرئيسية ===== */
+.listen-hub-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 0 var(--sp-md);
+  margin-top: 12px;
+}
+.listen-tile {
+  position: relative;
+  border: none;
+  border-radius: 22px;
+  padding: 20px 8px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #fff;
+  cursor: pointer;
+  overflow: hidden;
+  min-height: 118px;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  font-family: inherit;
+}
+.listen-tile:active { transform: scale(0.96); }
+.listen-tile .lt-icon {
+  width: 52px; height: 52px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.22);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+}
+.listen-tile .lt-label { font-size: 15px; font-weight: 700; }
+.listen-tile.tile-reciters { background: linear-gradient(150deg, #2b9db8, #1b6f8f); }
+.listen-tile.tile-radio    { background: linear-gradient(150deg, #3fbfa8, #1e8570); }
+.listen-tile.tile-tasbih   { background: linear-gradient(150deg, #b06fd6, #7e3fa8); }
+/* زخرفة خلفية خفيفة */
+.listen-tile::after {
+  content: '';
+  position: absolute; inset-inline-end: -18px; bottom: -22px;
+  width: 90px; height: 90px; border-radius: 50%;
+  background: rgba(255,255,255,0.10);
+}
+
+/* ===== تبويبات صفحة الراديو ===== */
+.radio-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px var(--sp-md) 4px;
+  scrollbar-width: none;
+}
+.radio-tabs::-webkit-scrollbar { display: none; }
+.radio-tab {
+  flex: 0 0 auto;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  background: var(--card-bg, #f2e9e4);
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.radio-tab.active {
+  background: #0F766E;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(15,118,110,0.35);
+}
+
+/* ===== البطاقة الرئيسية ===== */
+.radio-hero {
+  position: relative;
+  margin: 10px var(--sp-md) 0;
+  border-radius: 26px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  background-color: #12233a;
+  min-height: 300px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+}
+.radio-hero.tl-mode { background-image: none !important; background: linear-gradient(160deg, #0d1b2e, #12365a); }
+.radio-hero-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(8,15,30,0.35) 0%, rgba(8,15,30,0.82) 100%);
+}
+.radio-hero.tl-mode .radio-hero-overlay { background: rgba(8,15,30,0.25); }
+.radio-hero-content {
+  position: relative;
+  z-index: 1;
+  padding: 22px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  color: #fff;
+}
+
+/* موجة الصوت */
+.radio-wave { display: flex; gap: 6px; align-items: center; height: 22px; margin-bottom: 4px; }
+.radio-wave span {
+  width: 6px; height: 10px; border-radius: 4px;
+  background: rgba(255,255,255,0.45);
+  transition: background 0.2s;
+}
+.radio-wave.on span { background: #F5C04E; animation: rwave 1s ease-in-out infinite; }
+.radio-wave.on span:nth-child(2) { animation-delay: 0.12s; }
+.radio-wave.on span:nth-child(3) { animation-delay: 0.24s; }
+.radio-wave.on span:nth-child(4) { animation-delay: 0.36s; }
+.radio-wave.on span:nth-child(5) { animation-delay: 0.48s; }
+.radio-wave.on span:nth-child(6) { animation-delay: 0.6s; }
+.radio-wave.on span:nth-child(7) { animation-delay: 0.72s; }
+@keyframes rwave { 0%,100% { transform: scaleY(0.6); } 50% { transform: scaleY(1.8); } }
+
+.radio-hero-chip {
+  background: rgba(20,60,50,0.75);
+  border: 1px solid rgba(245,192,78,0.5);
+  color: #F5C04E;
+  font-size: 11px; font-weight: 700;
+  padding: 4px 14px; border-radius: 999px;
+}
+.radio-hero-title {
+  font-size: 21px; font-weight: 800; line-height: 1.5;
+  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
+.radio-hero-sub { font-size: 13px; opacity: 0.85; }
+
+/* الترجمة الحيّة */
+.radio-live-tl {
+  width: 100%;
+  margin-top: 6px;
+  background: rgba(6,12,24,0.55);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  padding: 12px 14px;
+  backdrop-filter: blur(6px);
+}
+.tl-label { font-size: 11px; color: #F5C04E; font-weight: 700; margin-bottom: 6px; }
+.tl-ar {
+  font-family: 'Scheherazade New', 'Amiri', serif;
+  font-size: 19px; line-height: 2; color: #fff;
+}
+.tl-tr { font-size: 13.5px; line-height: 1.7; color: rgba(255,255,255,0.9); margin-top: 6px; }
+
+/* أزرار التحكم */
+.radio-controls {
+  display: flex; align-items: center; justify-content: center;
+  gap: 16px; margin-top: 12px;
+}
+.radio-ctl {
+  border: none; cursor: pointer; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.12s ease;
+  font-family: inherit;
+}
+.radio-ctl:active { transform: scale(0.92); }
+.radio-ctl.side {
+  width: 46px; height: 46px; border-radius: 50%;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.25);
+  font-size: 16px;
+}
+.radio-ctl.side.sleep-on { background: rgba(245,192,78,0.25); border-color: #F5C04E; color: #F5C04E; }
+.radio-ctl.main {
+  width: 74px; height: 74px; border-radius: 50%;
+  background: linear-gradient(145deg, #F5C04E, #d99a1f);
+  color: #12233a;
+  font-size: 26px;
+  box-shadow: 0 8px 22px rgba(245,192,78,0.45);
+}
+
+/* شارة مؤقّت النوم */
+.radio-sleep-chip {
+  margin-top: 10px;
+  background: rgba(245,192,78,0.16);
+  border: 1px solid rgba(245,192,78,0.45);
+  color: #F5C04E;
+  font-size: 12px; font-weight: 600;
+  padding: 5px 14px; border-radius: 999px;
+}
+.radio-bg-note { margin-top: 10px; font-size: 11px; opacity: 0.65; }
+
+/* ===== بطاقات المحطات ===== */
+.station-card {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  background-color: #12233a;
+  min-height: 92px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  display: flex; align-items: center;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s ease, outline 0.15s ease;
+}
+.station-card:active { transform: scale(0.98); }
+.station-card.active { outline: 2px solid #F5C04E; }
+.station-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(8,15,30,0.85), rgba(8,15,30,0.45));
+}
+.station-info { position: relative; z-index: 1; padding: 14px 16px; flex: 1; }
+.station-name { color: #fff; font-size: 16px; font-weight: 700; font-family: 'Noto Naskh Arabic', 'Amiri', serif; }
+.station-desc { color: rgba(255,255,255,0.75); font-size: 12px; margin-top: 3px; }
+.station-eq { position: relative; z-index: 1; display: flex; gap: 3px; align-items: flex-end; height: 18px; padding: 0 16px; }
+.station-eq i { width: 4px; height: 5px; border-radius: 2px; background: rgba(255,255,255,0.35); }
+.station-eq.on i { background: #F5C04E; animation: rwave 0.9s ease-in-out infinite; }
+.station-eq.on i:nth-child(2) { animation-delay: 0.2s; }
+.station-eq.on i:nth-child(3) { animation-delay: 0.4s; }
+
+/* ===== تبويب القرآن المترجم ===== */
+.tl-note {
+  background: rgba(15,118,110,0.10);
+  border-inline-start: 3px solid #0F766E;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  color: var(--text-secondary, #555);
+  margin-bottom: 14px;
+  line-height: 1.7;
+}
+.tl-group-label { font-size: 13px; font-weight: 700; margin: 14px 0 8px; color: var(--text-primary, #222); }
+.tl-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.tl-chip {
+  border: 1.5px solid var(--border-color, #ddd);
+  background: var(--card-bg, #fff);
+  color: var(--text-primary, #333);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 13px; font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.tl-chip.active { background: #0F766E; border-color: #0F766E; color: #fff; }
+.tl-search {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--card-bg, #fff);
+  border: 1.5px solid var(--border-color, #ddd);
+  border-radius: 14px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  color: var(--text-secondary, #888);
+}
+.tl-search input {
+  border: none; outline: none; background: transparent;
+  flex: 1; font-size: 14px; font-family: inherit;
+  color: var(--text-primary, #222);
+}
+.surah-list { display: flex; flex-direction: column; gap: 6px; }
+.surah-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #eee);
+  border-radius: 14px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.surah-row:active { background: rgba(15,118,110,0.08); }
+.surah-row.active { border-color: #0F766E; background: rgba(15,118,110,0.07); }
+.surah-num {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: rgba(15,118,110,0.12); color: #0F766E;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800; flex-shrink: 0;
+}
+.surah-names { flex: 1; min-width: 0; }
+.surah-name { font-size: 14.5px; font-weight: 700; color: var(--text-primary, #222); }
+.surah-meta { font-size: 11.5px; color: var(--text-secondary, #888); margin-top: 2px; }
+.surah-play-ic { color: #0F766E; font-size: 14px; }
+
+/* ===== الشريط العائم ===== */
+.radio-floatbar {
+  position: fixed;
+  bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 8px);
+  inset-inline: 12px;
+  z-index: 900;
+  display: flex; align-items: center; gap: 4px;
+  background: rgba(13,27,46,0.92);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(245,192,78,0.35);
+  border-radius: 18px;
+  padding: 8px 10px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+  animation: rfb-in 0.25s ease;
+}
+@keyframes rfb-in { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+.rfb-body {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 10px;
+  background: none; border: none; cursor: pointer; font-family: inherit;
+  color: #fff; text-align: start; padding: 2px;
+}
+.rfb-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rfb-eq { display: flex; gap: 2.5px; align-items: flex-end; height: 14px; flex-shrink: 0; }
+.rfb-eq i { width: 3.5px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.4); }
+.rfb-eq.on i { background: #F5C04E; animation: rwave 0.9s ease-in-out infinite; }
+.rfb-eq.on i:nth-child(2) { animation-delay: 0.2s; }
+.rfb-eq.on i:nth-child(3) { animation-delay: 0.4s; }
+.rfb-btn {
+  width: 38px; height: 38px; border-radius: 50%;
+  border: none; cursor: pointer;
+  background: rgba(255,255,255,0.12); color: #fff;
+  font-size: 13px; flex-shrink: 0;
+}
+
+/* ===== نافذة مؤقّت النوم ===== */
+.sleep-modal-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.55);
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: rfb-in 0.2s ease;
+}
+.sleep-modal {
+  width: 100%; max-width: 480px;
+  background: var(--card-bg, #fff);
+  border-radius: 24px 24px 0 0;
+  padding: 20px 18px calc(20px + env(safe-area-inset-bottom, 0px));
+}
+.sleep-modal-head {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 17px; font-weight: 800; color: var(--text-primary, #222);
+}
+.sleep-modal-head .fa-moon { color: #5C6BC0; }
+.sleep-close {
+  margin-inline-start: auto;
+  border: none; background: none; font-size: 26px; cursor: pointer;
+  color: var(--text-secondary, #888); line-height: 1;
+}
+.sleep-modal-sub { font-size: 12.5px; color: var(--text-secondary, #777); margin: 6px 0 14px; }
+.sleep-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.sleep-opt {
+  border: 1.5px solid var(--border-color, #ddd);
+  background: var(--bg-secondary, #f7f5f2);
+  color: var(--text-primary, #333);
+  border-radius: 14px;
+  padding: 14px 6px;
+  font-size: 14px; font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.sleep-opt.active { background: #5C6BC0; border-color: #5C6BC0; color: #fff; }
+.sleep-opt:active { transform: scale(0.95); }
+
+/* الوضع الداكن */
+[data-theme="dark"] .radio-tab { background: rgba(255,255,255,0.08); color: #ccc; }
+[data-theme="dark"] .radio-tab.active { background: #0F766E; color: #fff; }
+[data-theme="dark"] .tl-chip { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); color: #eee; }
+[data-theme="dark"] .tl-chip.active { background: #0F766E; border-color: #0F766E; color: #fff; }
+[data-theme="dark"] .tl-search { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); }
+[data-theme="dark"] .tl-search input { color: #eee; }
+[data-theme="dark"] .surah-row { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
+[data-theme="dark"] .surah-name, [data-theme="dark"] .tl-group-label { color: #eee; }
+[data-theme="dark"] .sleep-modal { background: #16233a; }
+[data-theme="dark"] .sleep-modal-head { color: #eee; }
+[data-theme="dark"] .sleep-opt { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); color: #eee; }
+[data-theme="dark"] .sleep-opt.active { background: #5C6BC0; border-color: #5C6BC0; color: #fff; }

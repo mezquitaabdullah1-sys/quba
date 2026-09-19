@@ -14,6 +14,8 @@ const Router = {
     'wisdom/adhkar': { page: AdhkarPage, tabId: 'wisdom', method: 'renderHub' },
     'wisdom/duas': { page: DuasPage, tabId: 'wisdom', method: 'renderHub' },
     'wisdom/courses': { page: CoursesPage, tabId: 'wisdom', method: 'renderHub' },
+    // v56: الراديو الإسلامي — يُبرز تبويب الحكمة في الشريط السفلي
+    radio: { page: RadioPage, tabId: 'wisdom' },
   },
 
   current: null,
@@ -31,13 +33,20 @@ const Router = {
       return;
     }
 
-    // v41: tocar la pestaña YA ACTIVA no vuelve a renderizar la página —
-    // antes cada toque en la pestaña actual lanzaba skeleton + peticiones de
-    // red (la «recarga al hacer cualquier cosa»). Solo se re-renderiza si la
-    // ruta o los parámetros cambian, o si se fuerza con options.force.
-    if (!options.force && !options.fromPopState && this.current
-        && this.current.name === routeName
-        && JSON.stringify(this.current.params || {}) === JSON.stringify(params || {})) {
+    // v41: tocar la pestaña YA ACTIVA (barra inferior) no vuelve a renderizar
+    // la página — antes cada toque en la pestaña actual lanzaba skeleton +
+    // peticiones de red (la «recarga al hacer cualquier cosa»).
+    // v54: este atajo SOLO se aplica a los toques de la barra inferior
+    // (options.skipIfCurrent). Antes se aplicaba a CUALQUIER llamada a la misma
+    // ruta, y eso rompía la salida de las subvistas internas de Quiz, Cursos,
+    // Du'as y Adhkar: sus botones «atrás / salir / volver» llaman a
+    // Router.go('wisdom/quiz') etc. estando YA en esa ruta (las subvistas se
+    // pintan dentro de la misma ruta) → el guard los ignoraba y el usuario se
+    // quedaba atascado dentro de la categoría/lección/set.
+    const sameRoute = !!this.current
+      && this.current.name === routeName
+      && JSON.stringify(this.current.params || {}) === JSON.stringify(params || {});
+    if (options.skipIfCurrent && !options.force && !options.fromPopState && sameRoute) {
       this.updateTabs(route.tabId);
       return;
     }
@@ -59,7 +68,10 @@ const Router = {
     if (!options.fromPopState) {
       const url = `#/${routeName}${params && Object.keys(params).length ? '?' + new URLSearchParams(this._serializeParams(params)).toString() : ''}`;
       try {
-        history.pushState({ name: routeName, params }, '', url);
+        // v54: volver a la MISMA ruta (salir de una subvista interna) reemplaza
+        // la entrada actual en vez de apilar una duplicada en el historial.
+        if (sameRoute) history.replaceState({ name: routeName, params }, '', url);
+        else history.pushState({ name: routeName, params }, '', url);
       } catch(e) {
         // Fallback si pushState falla (ej: file:// protocol)
         location.hash = url;
@@ -161,6 +173,6 @@ const Router = {
 document.querySelectorAll('.bottom-tabs .tab').forEach(tab => {
   tab.addEventListener('click', () => {
     Router.history = [];
-    Router.go(tab.dataset.page);
+    Router.go(tab.dataset.page, {}, { skipIfCurrent: true });
   });
 });

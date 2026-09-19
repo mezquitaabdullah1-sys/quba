@@ -63,6 +63,14 @@ const WisdomPage = {
         color: '#1A6B52',
         route: 'wisdom/tasbih',
       },
+      // v56: الراديو الإسلامي — الوصول إليه من صفحة الحكمة أيضًا
+      {
+        id: 'radio', icon: '<i class="fas fa-radio"></i>',
+        title: RadioData.L('radioTitle'),
+        desc: RadioData.L('wisdomRadioDesc'),
+        color: '#0F766E',
+        route: 'radio',
+      },
     ];
 
     container.innerHTML = `

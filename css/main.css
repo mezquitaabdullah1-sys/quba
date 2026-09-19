@@ -497,3 +497,17 @@ textarea:focus-visible,
   max-width: 340px;
   margin: 0 auto;
 }
+
+/* ===== v55: بطاقة تنبيه الأذان (مركز الإشعارات) ===== */
+.adhan-alert-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);opacity:0;transition:opacity .25s ease;padding:20px;}
+.adhan-alert-overlay.visible{opacity:1;}
+.adhan-alert-card{position:relative;width:100%;max-width:420px;background:var(--card,#16222f);color:var(--text,#fff);border:2px solid #D4AF37;border-radius:22px;padding:30px 20px 18px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+.adhan-alert-close{position:absolute;top:10px;inset-inline-end:12px;background:transparent;border:none;color:var(--text-secondary,#aaa);font-size:26px;cursor:pointer;line-height:1;padding:4px 8px;}
+.adhan-alert-icon{font-size:44px;margin-bottom:8px;}
+.adhan-alert-title{font-size:20px;font-weight:800;margin-bottom:12px;color:#D4AF37;}
+.adhan-alert-hadith{font-size:15px;line-height:1.9;margin-bottom:18px;color:var(--text,#eee);}
+.adhan-alert-actions{display:flex;gap:10px;}
+.adhan-alert-btn{flex:1;padding:12px 8px;border-radius:14px;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+.adhan-alert-btn.stop{background:#8e1c1c;color:#fff;}
+.adhan-alert-btn.snooze{background:linear-gradient(135deg,#D4AF37,#b08d1e);color:#1a1a1a;}
+.adhan-alert-hint{margin-top:14px;font-size:11.5px;line-height:1.7;color:var(--text-secondary,#999);}

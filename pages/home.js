@@ -191,6 +191,22 @@ const HomePage = {
         </button>
       </div>
 
+      <!-- v56: قسم «اسمع وتدبّر» — القرّاء، الراديو، السبحة -->
+      <div class="listen-hub-row">
+        <button class="listen-tile tile-reciters" onclick="Router.go('radio',{tab:'reciters'})" aria-label="${RadioData.L('hubReciters')}">
+          <span class="lt-icon"><i class="fas fa-microphone-lines"></i></span>
+          <span class="lt-label">${RadioData.L('hubReciters')}</span>
+        </button>
+        <button class="listen-tile tile-radio" onclick="Router.go('radio')" aria-label="${RadioData.L('hubRadio')}">
+          <span class="lt-icon"><i class="fas fa-radio"></i></span>
+          <span class="lt-label">${RadioData.L('hubRadio')}</span>
+        </button>
+        <button class="listen-tile tile-tasbih" onclick="Router.go('wisdom/tasbih')" aria-label="${RadioData.L('hubTasbih')}">
+          <span class="lt-icon"><i class="fas fa-hand-pointer"></i></span>
+          <span class="lt-label">${RadioData.L('hubTasbih')}</span>
+        </button>
+      </div>
+
       <div style="padding: var(--sp-md);">
         <!-- Oraciones del día + ubicación y fechas (hijri / gregoriana) -->
         <div class="prayers-header">

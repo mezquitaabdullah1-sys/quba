@@ -688,7 +688,7 @@ const API = {
     } catch (e) { /* silencioso: nunca romper la lectura */ }
   },
 
-  async getSurahWithTranslation(surahNumber, translation = 'es.garcia_pdf', audio = 'ar.mahermuaiqly') {
+  async getSurahWithTranslation(surahNumber, translation = 'es.garcia_pdf', audio = 'ar.husary') {
     // v30: nunca confiar ciegamente en el valor guardado — se resuelve
     // según el idioma actual para que el modo árabe no muestre traducción
     // y el modo inglés no quede atascado en español.

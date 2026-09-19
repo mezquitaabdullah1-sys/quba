@@ -42,9 +42,9 @@ const QuranPage = {
       this.readerSettings.tafsir = autoTafsir;
       this.saveReaderSettings();
     }
-    // Migration: if user had Mishary saved, switch to Maher Al-Muaiqly
+    // Migration: if user had Mishary saved, switch to the default reciter (Al-Husary)
     if (AppState.settings.reciter === 'ar.alafasy') {
-      AppState.settings.reciter = 'ar.mahermuaiqly';
+      AppState.settings.reciter = 'ar.husary';
       Storage.saveSettings();
     }
     return this.readerSettings;
@@ -99,11 +99,6 @@ const QuranPage = {
           <i class="fas fa-book-open quran-ayah-search-icon"></i>
           <span>${t('mushafOpenBtn')}</span>
           <span class="quran-ayah-search-badge">📖</span>
-        </button>
-        <button class="quran-ayah-search-btn quran-duas-entry-btn" onclick="QuranPage.openReadingDuas()" aria-label="${t('readingDuasTitle')}">
-          <i class="fas fa-hands-praying quran-ayah-search-icon"></i>
-          <span>${t('readingDuasTitle')}</span>
-          <span class="quran-ayah-search-badge">🤲</span>
         </button>
       </div>
       <div id="offline-download-banner"></div>
@@ -592,7 +587,7 @@ const QuranPage = {
     try {
       // Make sure reciter isn't Mishary
       if (AppState.settings.reciter === 'ar.alafasy') {
-        AppState.settings.reciter = 'ar.mahermuaiqly';
+        AppState.settings.reciter = 'ar.husary';
         Storage.saveSettings();
       }
 

@@ -87,9 +87,19 @@ const Storage = {
         }
         Storage.saveSettings();
       }
+      // v54: ترحيل لمرة واحدة — القارئ الافتراضي صار محمود خليل الحصري.
+      // يُطبَّق فقط على من بقي على القارئ الافتراضي القديم (ماهر المعيقلي)
+      // أو القديم جداً (العفاسي)؛ من اختار قارئاً آخر يبقى على اختياره.
+      if (!AppState.settings._v54ReciterMigrated) {
+        AppState.settings._v54ReciterMigrated = true;
+        if (AppState.settings.reciter === 'ar.mahermuaiqly' || AppState.settings.reciter === 'ar.alafasy' || !AppState.settings.reciter) {
+          AppState.settings.reciter = 'ar.husary';
+        }
+        Storage.saveSettings();
+      }
     } else {
-      // Primer uso: selección automática de Maher Al-Muaiqly como recitador base
-      AppState.settings.reciter = 'ar.mahermuaiqly';
+      // Primer uso: selección automática de Al-Husary como recitador base
+      AppState.settings.reciter = 'ar.husary';
     }
     return AppState.settings;
   },

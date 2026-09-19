@@ -594,7 +594,6 @@
 .qd-translit { font-style: italic; font-size: 13px; opacity: 0.75; margin: 6px 0; }
 .qd-translation { font-size: 14px; line-height: 1.6; margin: 6px 0; }
 .qd-source { font-size: 12px; opacity: 0.6; margin-top: 8px; display: flex; align-items: center; gap: 6px; }
-.quran-duas-entry-btn { margin-top: 8px; }
 
 /* v29: traducción de la Basmala (edición Isa García) */
 .bismillah-translation {

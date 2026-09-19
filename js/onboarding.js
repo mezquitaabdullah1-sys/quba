@@ -5,10 +5,7 @@
 //   2) Todo lo que necesitas en una app (funciones reales de Quba)
 //   3) Tu privacidad primero (con enlace a la política completa)
 //   4) Configura tu ubicación (GPS automático o búsqueda manual por ciudad)
-//   5) v54: Elige tu tema (cada opción con muestra de sus colores)
-// Al terminar (o saltarse) se pide el permiso de notificaciones del sistema
-// (requiere gesto del usuario — el botón de la página 5) y se marca como
-// completada (quba_onboardingDone) para no volver a aparecer.
+// Se marca como completada (quba_onboardingDone) y no vuelve a aparecer.
 const Onboarding = {
   idx: 0,
   _el: null,
@@ -19,11 +16,10 @@ const Onboarding = {
       next: 'التالي',
       start: 'ابدأ الآن',
       privacyLink: 'سياسة الخصوصية',
-      freeBadge: 'التطبيق مجاني بالكامل — بلا إعلانات، بلا اشتراكات',
       steps: [
         {
           logo: true,
-          title: 'قُبى',
+          title: 'قُبَّة',
           sub: 'رفيقك اليومي نحو الجنة — القرآن الكريم، مواقيت الصلاة، القبلة والأذكار في مكان واحد، وباللغة التي تفضّلها.',
         },
         {
@@ -62,7 +58,6 @@ const Onboarding = {
         manualHint: 'ابحث عن مدينتك بالاسم',
         skip: 'تخطَّ الآن',
         skipHint: 'يمكنك ضبط الموقع لاحقاً من الإعدادات',
-        next: 'التالي',
         confirmTitle: 'هل هذا موقعك؟',
         confirmNote: 'ستُحسب مواقيت الصلاة والقبلة على أساسه',
         confirm: 'تأكيد',
@@ -72,13 +67,6 @@ const Onboarding = {
         locError: 'تعذّر تحديد الموقع. جرّب البحث اليدوي.',
         noResults: 'لا نتائج — جرّب اسماً آخر',
       },
-      theme: {
-        icon: 'fas fa-palette',
-        title: 'اختر مظهر التطبيق',
-        sub: 'اختر المظهر الذي يريح عينيك — يمكنك تغييره في أي وقت من الإعدادات.',
-        apply: 'تطبيق المظهر والبدء',
-        later: 'اختر لاحقاً',
-      },
     },
 
     es: {
@@ -86,7 +74,6 @@ const Onboarding = {
       next: 'Siguiente',
       start: 'Comenzar',
       privacyLink: 'Política de privacidad',
-      freeBadge: 'La app es 100% gratis — sin anuncios, sin suscripciones',
       steps: [
         {
           logo: true,
@@ -129,7 +116,6 @@ const Onboarding = {
         manualHint: 'Busca tu ciudad por nombre',
         skip: 'Omitir por ahora',
         skipHint: 'Puedes ajustar la ubicación luego en Ajustes',
-        next: 'Siguiente',
         confirmTitle: '¿Es esta tu ubicación?',
         confirmNote: 'Los horarios y la Qibla se calcularán en base a ella',
         confirm: 'Confirmar',
@@ -139,13 +125,6 @@ const Onboarding = {
         locError: 'No se pudo detectar. Prueba la búsqueda manual.',
         noResults: 'Sin resultados — prueba otro nombre',
       },
-      theme: {
-        icon: 'fas fa-palette',
-        title: 'Elige tu tema',
-        sub: 'Elige la apariencia que más te guste — puedes cambiarla cuando quieras desde Ajustes.',
-        apply: 'Aplicar y empezar',
-        later: 'Elegir más tarde',
-      },
     },
 
     en: {
@@ -153,7 +132,6 @@ const Onboarding = {
       next: 'Next',
       start: 'Get started',
       privacyLink: 'Privacy policy',
-      freeBadge: 'The app is 100% free — no ads, no subscriptions',
       steps: [
         {
           logo: true,
@@ -196,7 +174,6 @@ const Onboarding = {
         manualHint: 'Search your city by name',
         skip: 'Skip for now',
         skipHint: 'You can set your location later in Settings',
-        next: 'Next',
         confirmTitle: 'Is this your location?',
         confirmNote: 'Prayer times and Qibla will be calculated from it',
         confirm: 'Confirm',
@@ -206,25 +183,8 @@ const Onboarding = {
         locError: 'Could not detect location. Try manual search.',
         noResults: 'No results — try another name',
       },
-      theme: {
-        icon: 'fas fa-palette',
-        title: 'Choose your theme',
-        sub: 'Pick the appearance that suits you best — you can change it anytime in Settings.',
-        apply: 'Apply and get started',
-        later: 'Choose later',
-      },
     },
   },
-
-  /** v54: muestras de color de cada tema (principal · acento) */
-  THEMES: [
-    { id: 'emerald', i18n: 'themeEmerald', colors: ['#0E3B2E', '#D4AF37'] },
-    { id: 'light',   i18n: 'themeLight',   colors: ['#FFFFFF', '#D4AF37'] },
-    { id: 'dark',    i18n: 'themeDark',    colors: ['#0D1829', '#D4AF37'] },
-    { id: 'maroon',  i18n: 'themeMaroon',  colors: ['#3A0C1B', '#E6C868'] },
-    { id: 'brown',   i18n: 'themeBrown',   colors: ['#FAF6F0', '#6B4F3A'] },
-    { id: 'auto',    i18n: 'themeAuto',    colors: ['#FFFFFF', '#0D1829'] },
-  ],
 
   /** ¿Debe mostrarse? Solo la primera vez (tras elegir idioma). */
   shouldShow() {
@@ -258,21 +218,20 @@ const Onboarding = {
   // ---------- Render ----------
   _render() {
     const d = this._dict();
-    const total = d.steps.length + 2; // pasos + ubicación + tema (v54)
-    const isLoc = this.idx === d.steps.length;   // صفحة الموقع
-    const isTheme = this.idx === d.steps.length + 1; // v54: صفحة اختيار المظهر (الأخيرة)
+    const isLoc = this.idx === d.steps.length; // صفحة الموقع (الأخيرة)
     const el = this._el;
-    const canSkip = this.idx < d.steps.length - 1; // لا "تخطَّ" في صفحة الخصوصية ولا الموقع ولا المظهر
+    const canSkip = this.idx < d.steps.length - 1; // لا "تخطَّ" في صفحة الخصوصية ولا الموقع
 
     el.innerHTML = `
       ${canSkip ? `<button class="ob-skip" id="ob-skip">${esc(d.skip)}</button>` : ''}
-      <div class="ob-body">${isLoc ? this._locHtml(d.loc) : isTheme ? this._themeHtml(d.theme) : this._stepHtml(d.steps[this.idx], d)}</div>
+      <div class="ob-body">${isLoc ? this._locHtml(d.loc) : this._stepHtml(d.steps[this.idx], d)}</div>
       <div class="ob-dots">
-        ${Array.from({ length: total }, (_, i) => `<span class="ob-dot ${i === this.idx ? 'active' : ''}"></span>`).join('')}
+        ${d.steps.map((_, i) => `<span class="ob-dot ${i === this.idx ? 'active' : ''}"></span>`).join('')}
+        <span class="ob-dot ${isLoc ? 'active' : ''}"></span>
       </div>
-      ${(isLoc || isTheme) ? '' : `
+      ${isLoc ? '' : `
         <button class="ob-next" id="ob-next">
-          ${esc(d.next)}
+          ${esc(this.idx === d.steps.length - 1 ? d.next : d.next)}
         </button>`}
     `;
 
@@ -283,8 +242,7 @@ const Onboarding = {
     if (nextBtn) nextBtn.addEventListener('click', () => { this.idx++; this._render(); });
     const priv = el.querySelector('#ob-privacy-link');
     if (priv) priv.addEventListener('click', () => this.openPrivacy());
-    if (isLoc) this._bindLoc(d.loc, d);
-    if (isTheme) this._bindTheme(d.theme);
+    if (isLoc) this._bindLoc(d.loc);
   },
 
   _stepHtml(step, d) {
@@ -299,10 +257,6 @@ const Onboarding = {
         <span class="ob-point-icon"><i class="${esc(p.icon)}"></i></span>
         <span class="ob-point-text">${esc(p.text)}</span>
       </div>`).join('');
-    // v54: شارة «التطبيق مجاني بالكامل» تحت النقاط في صفحة المميزات
-    const freeBadge = (step.icon === 'fas fa-mosque' && d.freeBadge)
-      ? `<div class="ob-free-badge"><i class="fas fa-gift"></i> ${esc(d.freeBadge)}</div>`
-      : '';
     const footer = step.footer
       ? `<div class="ob-footer">${esc(step.footer)}
            <button class="ob-privacy-link" id="ob-privacy-link">${esc(d.privacyLink)}</button>
@@ -313,7 +267,6 @@ const Onboarding = {
       <div class="ob-title">${esc(step.title)}</div>
       ${step.sub ? `<div class="ob-sub">${esc(step.sub)}</div>` : ''}
       ${points ? `<div class="ob-points">${points}</div>` : ''}
-      ${freeBadge}
       ${footer}
     `;
   },
@@ -353,61 +306,15 @@ const Onboarding = {
     `;
   },
 
-  _bindLoc(L, d) {
+  _bindLoc(L) {
     const el = this._el;
-    el.querySelector('#ob-gps').addEventListener('click', () => this._gpsLocate(L, d));
-    el.querySelector('#ob-manual').addEventListener('click', () => this._showSearch(L, d));
-    el.querySelector('#ob-loc-skip').addEventListener('click', () => this._goTheme(d));
-  },
-
-  /** v54: الانتقال من صفحة الموقع إلى صفحة اختيار المظهر (الأخيرة) */
-  _goTheme(d) {
-    this.idx = d.steps.length + 1;
-    this._render();
-  },
-
-  // ---------- v54: صفحة اختيار المظهر ----------
-  _themeHtml(T) {
-    const current = (typeof AppState !== 'undefined' && AppState.settings.theme) || 'emerald';
-    const opts = this.THEMES.map(th => {
-      const label = (typeof t === 'function' && t(th.i18n)) || th.id;
-      const [c1, c2] = th.colors;
-      return `
-        <button class="ob-theme-opt ${th.id === current ? 'selected' : ''}" data-theme-id="${esc(th.id)}">
-          <span class="ob-theme-swatch" style="background:linear-gradient(135deg, ${esc(c1)} 0 50%, ${esc(c2)} 50% 100%);"></span>
-          <span class="ob-theme-name">${esc(label)}</span>
-          <span class="ob-theme-check"><i class="fas fa-check"></i></span>
-        </button>`;
-    }).join('');
-    return `
-      <div class="ob-icon"><i class="${esc(T.icon)}"></i></div>
-      <div class="ob-title">${esc(T.title)}</div>
-      <div class="ob-sub">${esc(T.sub)}</div>
-      <div class="ob-theme-grid">${opts}</div>
-      <button class="ob-next ob-theme-apply" id="ob-theme-apply"><i class="fas fa-check"></i> ${esc(T.apply)}</button>
-      <button class="ob-loc-skip" id="ob-theme-later">${esc(T.later)}</button>
-    `;
-  },
-
-  _bindTheme(T) {
-    const el = this._el;
-    el.querySelectorAll('.ob-theme-opt').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.dataset.themeId;
-        if (typeof AppState !== 'undefined') {
-          AppState.settings.theme = id;
-          if (typeof Storage !== 'undefined') Storage.saveSettings();
-        }
-        if (typeof applyTheme === 'function') applyTheme();
-        this._render(); // re-pintar la selección
-      });
-    });
-    el.querySelector('#ob-theme-apply').addEventListener('click', () => this.finish());
-    el.querySelector('#ob-theme-later').addEventListener('click', () => this.finish());
+    el.querySelector('#ob-gps').addEventListener('click', () => this._gpsLocate(L));
+    el.querySelector('#ob-manual').addEventListener('click', () => this._showSearch(L));
+    el.querySelector('#ob-loc-skip').addEventListener('click', () => this.finish());
   },
 
   /** GPS: pide permiso → geocoding → tarjeta de confirmación */
-  async _gpsLocate(L, d) {
+  async _gpsLocate(L) {
     const zone = this._el.querySelector('#ob-loc-zone');
     zone.innerHTML = `<div class="ob-locating"><i class="fas fa-circle-notch fa-spin"></i> ${esc(L.locating)}</div>`;
     try {
@@ -422,7 +329,7 @@ const Onboarding = {
       };
       const geo = await LocationService.reverseGeocode(coords.latitude, coords.longitude);
       Object.assign(coords, geo);
-      this._showConfirm(L, coords, d);
+      this._showConfirm(L, coords);
     } catch (e) {
       zone.innerHTML = `
         <div class="ob-loc-error"><i class="fas fa-triangle-exclamation"></i> ${esc(L.locError)}</div>
@@ -434,12 +341,12 @@ const Onboarding = {
           </span>
           <i class="fas fa-chevron-left ob-loc-chevron"></i>
         </button>`;
-      this._el.querySelector('#ob-manual2').addEventListener('click', () => this._showSearch(L, d));
+      this._el.querySelector('#ob-manual2').addEventListener('click', () => this._showSearch(L));
     }
   },
 
   /** Tarjeta «هل هذا موقعك؟» */
-  _showConfirm(L, coords, d) {
+  _showConfirm(L, coords) {
     const zone = this._el.querySelector('#ob-loc-zone');
     const match = (typeof Cities !== 'undefined') ? Cities.match(coords.latitude, coords.longitude) : null;
     const label = match
@@ -459,13 +366,13 @@ const Onboarding = {
     this._el.querySelector('#ob-confirm-yes').addEventListener('click', () => {
       Storage.set('last_location', coords, CONFIG.CACHE_TTL * 7);
       AppState.location = coords;
-      this._goTheme(d); // v54: tras confirmar la ubicación → elegir el tema
+      this.finish();
     });
-    this._el.querySelector('#ob-not-mine').addEventListener('click', () => this._showSearch(L, d));
+    this._el.querySelector('#ob-not-mine').addEventListener('click', () => this._showSearch(L));
   },
 
   /** البحث اليدوي عن المدينة */
-  _showSearch(L, d) {
+  _showSearch(L) {
     const zone = this._el.querySelector('#ob-loc-zone');
     zone.innerHTML = `
       <div class="ob-search-wrap">
@@ -490,7 +397,7 @@ const Onboarding = {
             latitude: city.lat, longitude: city.lon,
             city: Cities.plainName(city), country: Cities.plainCountry(city),
             manual: true,
-          }, d);
+          });
         });
       });
     };
@@ -507,18 +414,6 @@ const Onboarding = {
       // que la home no vuelva a pedir GPS por su cuenta.
       if (!Storage.get('last_location') && typeof LocationService !== 'undefined') {
         LocationService.useDefault();
-      }
-    } catch (e) {}
-    // v54: pedir el permiso de notificaciones del sistema (llamadas de
-    // الأذان/التذكير). Debe hacerse aquí — dentro del gesto del usuario del
-    // botón «تطبيق والبدء» — porque los navegadores rechazan la petición si
-    // no viene de una interacción. En Android se pide el permiso nativo a
-    // través del puente (QubaAndroid.requestNotificationPermission).
-    try {
-      if (typeof PrayerNotifications !== 'undefined' && PrayerNotifications.requestPermission) {
-        PrayerNotifications.requestPermission();
-      } else if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission().catch(() => {});
       }
     } catch (e) {}
     this._close(() => {

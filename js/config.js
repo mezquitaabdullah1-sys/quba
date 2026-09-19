@@ -44,12 +44,13 @@ const CONFIG = {
   },
 
   // Recitadores disponibles (Mishary Alafasy removido completamente)
+  // v54: Al-Husary es el recitador principal (primero de la lista) y el predeterminado.
   // v35: nombres/países trilingües — nameAr/countryAr (árabe),
   // nameEn/countryEn (inglés); name/country quedan como español (default).
   RECITERS: [
+    { id: 'ar.husary',             name: 'Mahmoud Khalil Al-Husary', nameAr: 'محمود خليل الحصري', nameEn: 'Mahmoud Khalil Al-Husary', country: 'Egipto', countryAr: 'مصر', countryEn: 'Egypt' },
     { id: 'ar.abdurrahmaansudais', name: 'Abdurrahman As-Sudais', nameAr: 'عبد الرحمن السديس', nameEn: 'Abdul Rahman Al-Sudais', country: 'Arabia Saudí', countryAr: 'السعودية', countryEn: 'Saudi Arabia' },
     { id: 'ar.mahermuaiqly',       name: 'Maher Al-Muaiqly',      nameAr: 'ماهر المعيقلي',     nameEn: 'Maher Al-Muaiqly',        country: 'Arabia Saudí', countryAr: 'السعودية', countryEn: 'Saudi Arabia' },
-    { id: 'ar.husary',             name: 'Mahmoud Khalil Al-Husary', nameAr: 'محمود خليل الحصري', nameEn: 'Mahmoud Khalil Al-Husary', country: 'Egipto', countryAr: 'مصر', countryEn: 'Egypt' },
     { id: 'ar.saadalghamdi',       name: 'Saad Al-Ghamdi',        nameAr: 'سعد الغامدي',       nameEn: 'Saad Al-Ghamdi',          country: 'Arabia Saudí', countryAr: 'السعودية', countryEn: 'Saudi Arabia' },
     { id: 'ar.minshawi',           name: 'Mohamed Siddiq El-Minshawi', nameAr: 'محمد صديق المنشاوي', nameEn: 'Mohamed Siddiq El-Minshawi', country: 'Egipto', countryAr: 'مصر', countryEn: 'Egypt' },
     { id: 'ar.abdulbasitmurattal', name: 'Abdul Basit (Murattal)', nameAr: 'عبد الباسط عبد الصمد (مرتل)', nameEn: 'Abdul Basit (Murattal)', country: 'Egipto', countryAr: 'مصر', countryEn: 'Egypt' },
@@ -111,8 +112,8 @@ const AppState = {
     // v28: ajuste manual por oración, en minutos (−60 … +60). 0 = sin ajuste.
     // Se aplica DESPUÉS de timeShift y de las correcciones regionales.
     prayerOffsets: { Fajr: 0, Sunrise: 0, Dhuhr: 0, Asr: 0, Maghrib: 0, Isha: 0 },
-    // Default reciter: Maher Al-Muaiqly (selección automática en el primer uso)
-    reciter: 'ar.mahermuaiqly',
+    // Default reciter: Mahmoud Khalil Al-Husary (v54 — recitador principal)
+    reciter: 'ar.husary',
     // v29: traducción ES predeterminada = Isa García (del PDF autorizado,
     // 100% local/offline). 'es.cortes' sigue disponible como alternativa.
     translation: 'es.garcia_pdf',
