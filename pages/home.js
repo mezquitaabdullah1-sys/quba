@@ -63,6 +63,8 @@ const HomePage = {
       // Use curated famous verses with wisdom (not random)
       const verse = getFamousVerseOfTheDay();
       const dua = getDuaOfTheDay();
+      // v61: حديث اليوم (أحاديث صحيحة بترجمة معتمدة — js/hadith.js)
+      const hadith = (typeof getHadithOfTheDay === 'function') ? getHadithOfTheDay() : null;
       const virtue = hijri ? getDailyVirtue(
         parseInt(hijri.month?.number, 10),
         parseInt(hijri.day, 10),
@@ -70,7 +72,7 @@ const HomePage = {
         AppState.settings.locale || 'es' // v50: «Día bendecido» sigue el idioma de la UI
       ) : null;
 
-      this.renderContent(container, loc, timings.timings, hijri, verse, dua, virtue);
+      this.renderContent(container, loc, timings.timings, hijri, verse, dua, virtue, hadith);
       this.startCountdown();
     } catch (e) {
       console.warn('Home error:', e);
@@ -94,7 +96,8 @@ const HomePage = {
           AppState.timings = off.timings;
           const verse2 = getFamousVerseOfTheDay();
           const dua2 = getDuaOfTheDay();
-          this.renderContent(container, loc2, off.timings, null, verse2, dua2, null);
+          const hadith2 = (typeof getHadithOfTheDay === 'function') ? getHadithOfTheDay() : null;
+          this.renderContent(container, loc2, off.timings, null, verse2, dua2, null, hadith2);
           this.startCountdown();
           return;
         }
@@ -115,7 +118,7 @@ const HomePage = {
     }
   },
 
-  renderContent(container, loc, timings, hijri, verse, dua, virtue) {
+  renderContent(container, loc, timings, hijri, verse, dua, virtue, hadith) {
     const dailyPrayers = getDailyPrayers(timings);
     const nextPrayer = getNextPrayer(timings);
     const isEstimated = !!(timings && timings._estimated) || !!(hijri && hijri._estimated);
@@ -190,6 +193,9 @@ const HomePage = {
           </div>
         </button>
       </div>
+
+      <!-- v61: شريط «أكمل القراءة» الرفيع — أسفل زرّي التقويم الهجري والجدول الشهري مباشرة -->
+      ${this._resumeStripHtml()}
 
       <div style="padding: var(--sp-md);">
         <!-- Oraciones del día + ubicación y fechas (hijri / gregoriana) -->
@@ -297,8 +303,8 @@ const HomePage = {
           <button class="clips-home-all" onclick="Router.go('videos')">${ClipsData.L('clipsAll')} <i class="fas fa-chevron-${document.documentElement.dir === 'rtl' ? 'left' : 'right'}"></i></button>
         </div>
         <div class="clips-home-row">
-          ${ClipsData.VIDEOS.slice((Math.floor(Date.now() / 604800000) * 2) % ClipsData.VIDEOS.length, (Math.floor(Date.now() / 604800000) * 2) % ClipsData.VIDEOS.length + 2).map(v => `
-            <button class="clip-home-card" onclick="Router.go('videos')" aria-label="${escapeAttr(v.title)}">
+          ${ClipsData.VIDEOS.slice(0, 10).map(v => `
+            <button class="clip-home-card" onclick="Router.go('videos',{play:'${v.id}'})" aria-label="${escapeAttr(v.title)}">
               <span class="clip-home-thumb">
                 <img src="${ClipsData.thumb(v.id)}" alt="" loading="lazy" draggable="false" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/mqdefault.jpg';">
                 <span class="clip-play"><i class="fas fa-play"></i></span>
@@ -309,6 +315,20 @@ const HomePage = {
           `).join('')}
         </div>
 
+        <!-- v61: حديث اليوم — أسفل «مقتطفات دينية» مباشرة، على نمط آية اليوم ودعاء اليوم -->
+        ${hadith ? (() => {
+          const hloc = ['es','ar','en'].includes(AppState.settings.locale) ? AppState.settings.locale : 'es';
+          const htr = hadith['translation_' + hloc];
+          const hsrc = hadith['source_' + hloc] || hadith.source_es || '';
+          return `
+          <h2 class="section-title"><i class="fas fa-scroll"></i> ${t('hadithOfDay')}</h2>
+          <div class="card dua-day-card hadith-day-card">
+            <div class="dua-arabic">${escapeHtml(hadith.arabic)}</div>
+            ${htr ? `<div class="dua-translation">"${escapeHtml(htr)}"</div>` : ''}
+            <div class="dua-source">— ${escapeHtml(hsrc)}</div>
+          </div>`;
+        })() : ''}
+
         <!-- Virtud del día -->
         ${virtue ? `
           <h2 class="section-title"><i class="fas fa-sparkles"></i> ${virtue.title}</h2>
@@ -317,6 +337,13 @@ const HomePage = {
             <div class="virtue-source">— ${virtue.source}</div>
           </div>
         ` : ''}
+
+        <!-- v60: العد التنازلي لرمضان — آخر الصفحة الرئيسية -->
+        ${this._ramadanCountdownHtml()}
+
+        <!-- v61: المناسبة القادمة ويوم الصيام القادم — بطاقتان رفيعتان آخر الصفحة -->
+        ${this._nextEventHtml()}
+        ${this._nextFastHtml()}
 
       </div>
     `;
@@ -327,6 +354,193 @@ const HomePage = {
   // v35: ¿ya pasó la hora del adhan de esta oración hoy?
   // Sunrise no está en la lista de check-in; aquí solo llegan las 5 oraciones.
   // v57: جرس الإشعارات بجانب كل صلاة — يطفئ/يشغّل إشعارها وصوت أذانها
+  // ============ v60: العد التنازلي لرمضان (motor hijri local Umm al-Qura) ============
+  _ramadanMonthName() {
+    const l = currentLocale === 'ar' ? 'ar' : (currentLocale === 'en' ? 'en' : 'es');
+    return { es: 'Ramadán', ar: 'رمضان', en: 'Ramadan' }[l];
+  },
+
+  // Busca el próximo 1 de Ramadán día a día con HijriCalc (local, sin red).
+  _findRamadanTarget() {
+    if (typeof HijriCalc === 'undefined' || !HijriCalc.fromDate) return null;
+    try {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      const h0 = HijriCalc.fromDate(d);
+      // Si ya estamos DENTRO de Ramadán, cuenta atrás hacia el siguiente año
+      if (h0 && h0.month === 9) d.setDate(d.getDate() + Math.max(1, 30 - (h0.day || 1) + 1));
+      for (let guard = 0; guard < 420; guard++) {
+        const h = HijriCalc.fromDate(d);
+        if (h && h.month === 9 && h.day === 1) return new Date(d);
+        d.setDate(d.getDate() + 1);
+      }
+    } catch (e) {}
+    return null;
+  },
+
+  _ramadanCountdownHtml() {
+    const target = this._findRamadanTarget();
+    if (!target) return '';
+    this._ramadanTarget = target;
+    let hijriYear = '';
+    try { const h = HijriCalc.fromDate(target); if (h && h.year) hijriYear = h.year; } catch (e) {}
+    const loc = currentLocale === 'ar' ? 'ar' : (currentLocale === 'en' ? 'en' : 'es');
+    let gFmt;
+    try { gFmt = target.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
+    catch (e) { gFmt = target.toISOString().slice(0, 10); }
+    return `
+      <h2 class="section-title"><i class="fas fa-moon"></i> ${t('ramadanCountdown')}</h2>
+      <div class="ramadan-cd-card">
+        <div class="ramadan-cd-grid">
+          <div class="ramadan-cd-cell"><div class="ramadan-cd-num" id="ramadan-cd-d">–</div><div class="ramadan-cd-lbl">${t('cdDays')}</div></div>
+          <div class="ramadan-cd-cell"><div class="ramadan-cd-num" id="ramadan-cd-h">–</div><div class="ramadan-cd-lbl">${t('cdHours')}</div></div>
+          <div class="ramadan-cd-cell"><div class="ramadan-cd-num" id="ramadan-cd-m">–</div><div class="ramadan-cd-lbl">${t('cdMinutes')}</div></div>
+          <div class="ramadan-cd-cell"><div class="ramadan-cd-num" id="ramadan-cd-s">–</div><div class="ramadan-cd-lbl">${t('cdSeconds')}</div></div>
+        </div>
+        <div class="ramadan-cd-dates">
+          <div class="ramadan-cd-date"><div class="ramadan-cd-date-lbl">${t('hijriDate')}</div><div>1 ${this._ramadanMonthName()} ${hijriYear} ${loc === 'ar' ? 'هـ' : 'AH'}</div></div>
+          <div class="ramadan-cd-date"><div class="ramadan-cd-date-lbl">${t('gregDate')}</div><div>${gFmt}</div></div>
+        </div>
+      </div>
+    `;
+  },
+
+  _tickRamadan() {
+    const target = this._ramadanTarget;
+    if (!target || !document.getElementById('ramadan-cd-d')) return;
+    let diff = target.getTime() - Date.now();
+    if (diff < 0) diff = 0;
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('ramadan-cd-d', Math.floor(diff / 86400000));
+    set('ramadan-cd-h', Math.floor((diff % 86400000) / 3600000));
+    set('ramadan-cd-m', Math.floor((diff % 3600000) / 60000));
+    set('ramadan-cd-s', Math.floor((diff % 60000) / 1000));
+  },
+
+  // ============ v61: شريط «أكمل القراءة» — رفيع وبسيط على نمط تطبيقات المصاحف ============
+  // يقرأ آخر آية محفوظة تلقائيًا أثناء القراءة (QuranPage._trackLastRead) ويعود إليها عند الضغط.
+  _resumeStripHtml() {
+    try {
+      if (typeof QuranPage === 'undefined' || !QuranPage.getLastRead) return '';
+      const lr = QuranPage.getLastRead();
+      if (!lr || !lr.s) return '';
+      const loc = (typeof currentLocale !== 'undefined' && ['es','ar','en'].includes(currentLocale)) ? currentLocale : 'es';
+      const info = (typeof RadioData !== 'undefined' && RadioData.surahInfo) ? RadioData.surahInfo(lr.s) : null;
+      const surahName = info ? (loc === 'ar' ? info.ar : (loc === 'en' ? info.en : info.es)) : '';
+      const page = this._ayahPage(lr.s, lr.a);
+      let rel = '';
+      if (lr.t) {
+        const days = Math.floor((Date.now() - lr.t) / 86400000);
+        rel = days <= 0 ? t('resumeToday') : (days === 1 ? t('resumeYesterday') : t('resumeDaysAgo').replace('{n}', days));
+      }
+      return `
+      <button class="resume-strip" onclick="Router.go('quran',{surahNumber:${lr.s},ayah:${lr.a}})" aria-label="${escapeAttr(t('resumeReading'))}">
+        <span class="resume-strip-ic"><i class="fas fa-bookmark"></i></span>
+        <span class="resume-strip-body">
+          <span class="resume-strip-label">${t('resumeReading')} — ${t('resumeStoppedAt')}</span>
+          <span class="resume-strip-title">${loc === 'ar' ? 'سورة ' : ''}${escapeHtml(surahName)} — ${t('resumeAyah')} ${lr.a}</span>
+          <span class="resume-strip-meta">${page ? t('resumePage') + ' ' + page : ''}${page && rel ? ' · ' : ''}${rel}</span>
+        </span>
+        <i class="fas fa-chevron-${document.documentElement.dir === 'rtl' ? 'left' : 'right'} resume-strip-arrow"></i>
+      </button>`;
+    } catch (e) { return ''; }
+  },
+
+  // صفحة المصحف (مصحف المدينة) التي تقع فيها الآية — من تجزئة المصحف المحلية (أوفلاين)
+  _ayahPage(surah, ayah) {
+    try {
+      // الأدق: المصحف المحلي (مصحف المدينة، أوفلاين) — الصفحة التي تحوي الآية فعلًا
+      const qfa = (typeof window !== 'undefined') && window.QURAN_FULL_AR;
+      if (qfa && qfa.pages) {
+        for (let i = 0; i < qfa.pages.length; i++) {
+          const ay = qfa.pages[i].ayahs || [];
+          for (const a of ay) { if (a[0] === surah && a[1] === ayah) return i + 1; }
+        }
+      }
+      const divs = (typeof window !== 'undefined') && window.MUSHAF_DIVISIONS;
+      if (divs && divs.rubs) {
+        let page = 1;
+        for (const r of divs.rubs) {
+          if (r.s < surah || (r.s === surah && r.a <= ayah)) page = r.page;
+          else break;
+        }
+        return page;
+      }
+    } catch (e) {}
+    return null;
+  },
+
+  _hijriMonthName(m, loc) {
+    const M = {
+      ar: ['محرم', 'صفر', 'ربيع الأول', 'ربيع الآخر', 'جمادى الأولى', 'جمادى الآخرة', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'],
+      es: ['Muharram', 'Safar', 'Rabi al-Awwal', 'Rabi al-Akhir', 'Jumada al-Ula', 'Jumada al-Akhirah', 'Rayab', 'Shaban', 'Ramadán', 'Shawwal', 'Dhul-Qada', 'Dhul-Hiyya'],
+      en: ['Muharram', 'Safar', 'Rabi al-Awwal', 'Rabi al-Thani', 'Jumada al-Ula', 'Jumada al-Akhirah', 'Rajab', 'Shaban', 'Ramadan', 'Shawwal', 'Dhul-Qadah', 'Dhul-Hijjah'],
+    };
+    return ((M[loc] || M.es)[m - 1]) || '';
+  },
+
+  // ============ v61: المناسبة القادمة — بمحرك أم القرى المحلي (دون إنترنت) ============
+  _nextEventHtml() {
+    try {
+      if (typeof ISLAMIC_HOLIDAYS === 'undefined' || typeof HijriCalc === 'undefined' || !HijriCalc.nextOccurrence) return '';
+      let best = null;
+      for (const h of ISLAMIC_HOLIDAYS) {
+        const oc = HijriCalc.nextOccurrence(h.month, h.day);
+        if (oc && (!best || oc.daysLeft < best.daysLeft)) best = { ...oc, h };
+      }
+      if (!best) return '';
+      const loc = (typeof currentLocale !== 'undefined' && ['es','ar','en'].includes(currentLocale)) ? currentLocale : 'es';
+      const name = best.h['name_' + loc] || best.h.name_es;
+      let gFmt;
+      try { gFmt = best.date.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }); }
+      catch (e) { gFmt = best.date.toISOString().slice(0, 10); }
+      const daysTxt = best.daysLeft === 0 ? t('todayWord') : (best.daysLeft === 1 ? t('tomorrowWord') : t('daysLeftTxt').replace('{n}', best.daysLeft));
+      return `
+      <div class="home-mini-card">
+        <span class="home-mini-ic ev"><i class="fas fa-star-and-crescent"></i></span>
+        <span class="home-mini-body">
+          <span class="home-mini-title">${t('nextEventTitle')}</span>
+          <span class="home-mini-main">${escapeHtml(name)}</span>
+          <span class="home-mini-meta">${best.h.day} ${this._hijriMonthName(best.h.month, loc)} ${best.hijriYear} ${loc === 'ar' ? 'هـ' : 'AH'} · ${escapeHtml(gFmt)} · ${daysTxt}</span>
+        </span>
+      </div>`;
+    } catch (e) { return ''; }
+  },
+
+  // ============ v61: يوم الصيام القادم (الاثنين/الخميس · الأيام البيض · عاشوراء وعرفة) ============
+  // داخل رمضان لا يُعرض — لرمضان عدّاده الخاص أعلاه.
+  _nextFastHtml() {
+    try {
+      if (typeof HijriCalc === 'undefined' || !HijriCalc.fromDate) return '';
+      const EVENT_FASTS = { '1,10': true, '12,9': true }; // عاشوراء · يوم عرفة
+      for (let i = 0; i < 60; i++) {
+        const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i);
+        const h = HijriCalc.fromDate(d);
+        if (!h) continue;
+        let kind = null;
+        if (EVENT_FASTS[h.month + ',' + h.day]) kind = 'fastEvent';
+        else if (h.month !== 9 && h.day >= 13 && h.day <= 15) kind = 'fastWhite';
+        else if (h.month !== 9 && (d.getDay() === 1 || d.getDay() === 4)) kind = 'fastWeekday';
+        if (!kind) continue;
+        const loc = (typeof currentLocale !== 'undefined' && ['es','ar','en'].includes(currentLocale)) ? currentLocale : 'es';
+        let gFmt;
+        try { gFmt = d.toLocaleDateString(loc, { day: 'numeric', month: 'long' }); } catch (e) { gFmt = d.toISOString().slice(0, 10); }
+        const wd = (typeof getWeekdayName === 'function') ? getWeekdayName(d.getDay(), loc) : '';
+        const daysTxt = i === 0 ? t('todayWord') : (i === 1 ? t('tomorrowWord') : t('daysLeftTxt').replace('{n}', i));
+        return `
+      <div class="home-mini-card">
+        <span class="home-mini-ic fast"><i class="fas fa-moon"></i></span>
+        <span class="home-mini-body">
+          <span class="home-mini-title">${t('nextFastTitle')} — ${t(kind)}</span>
+          <span class="home-mini-main">${wd} · ${escapeHtml(gFmt)}</span>
+          <span class="home-mini-meta">${h.day} ${this._hijriMonthName(h.month, loc)} ${h.year} ${loc === 'ar' ? 'هـ' : 'AH'} · ${daysTxt}</span>
+        </span>
+      </div>`;
+      }
+    } catch (e) {}
+    return '';
+  },
+
   _prayerBellHtml(name) {
     if (typeof PrayerNotifications === 'undefined' || !PrayerNotifications.PRAYERS ||
         PrayerNotifications.PRAYERS.indexOf(name) === -1) return '';
@@ -419,6 +633,8 @@ const HomePage = {
   startCountdown() {
     if (this.countdownInterval) clearInterval(this.countdownInterval);
     this.countdownInterval = setInterval(() => {
+      // v60: العد التنازلي لرمضان مستقل عن مواقيت الصلاة
+      this._tickRamadan();
       if (!AppState.timings) return;
       const np = getNextPrayer(AppState.timings);
       if (!np) return;
@@ -472,5 +688,6 @@ const HomePage = {
       clearInterval(this.countdownInterval);
       this.countdownInterval = null;
     }
+    this._ramadanTarget = null; // v60
   },
 };

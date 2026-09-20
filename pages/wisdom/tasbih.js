@@ -1,12 +1,19 @@
-// 📿 Tasbih digital con feedback háptico - self-contained, multilenguaje
-// v50: diseño de UNA sola pantalla (sin scroll en móvil), strip deslizable
-// de adhkar en chips compactos y mini tarjeta de estadísticas hoy/semana.
+// 📿 Tasbih digital — v60
+// Rediseño completo: modo TÁCTIL (anillo de progreso) y modo MISBAHA REAL
+// (cuentas que se arrastran con el dedo), conmutables entre sí. Panel de
+// ajustes: meta diaria, vibración, sonido, reinicio por ciclo, conservar
+// contador al salir y borrado total de datos.
 const TasbihPage = {
   count: 0,
   totalCount: 0,
   targetCount: 33,
   currentDhikr: 0,
   soundEnabled: true,
+  mode: 'tap',               // 'tap' | 'beads'
+  _drag: null,
+  _tapCandidate: null,
+  _beadGeom: null,
+  _resizeBound: false,
 
   DHIKRS: [
     {
@@ -51,7 +58,23 @@ const TasbihPage = {
     },
   ],
 
-  // ============ v50: registro diario para estadísticas hoy / semana ============
+  // ============ v60: ajustes del tasbih (persistentes) ============
+  _defaults: { dailyGoal: 100, vibration: 'light', autoResetCycle: false, keepCounter: true, mode: 'tap' },
+
+  _settings() {
+    let s = null;
+    try { s = Storage.get('tasbih_settings'); } catch (e) {}
+    if (!s || typeof s !== 'object') s = {};
+    return Object.assign({}, this._defaults, s);
+  },
+
+  _saveSettings(patch) {
+    try { Storage.set('tasbih_settings', Object.assign(this._settings(), patch)); } catch (e) {}
+  },
+
+  dailyGoal() { return this._settings().dailyGoal || 100; },
+
+  // ============ registro diario para estadísticas hoy / semana ============
   _dayKey(d) {
     d = d || new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -67,7 +90,6 @@ const TasbihPage = {
     const log = this.getLog();
     const k = this._dayKey();
     log[k] = (log[k] || 0) + n;
-    // conservar solo los últimos 45 días
     const keys = Object.keys(log).sort();
     while (keys.length > 45) { delete log[keys.shift()]; }
     Storage.set('tasbih_log', log);
@@ -95,6 +117,7 @@ const TasbihPage = {
     this.currentDhikr = saved.currentDhikr || 0;
     this.soundEnabled = saved.soundEnabled !== false;
     this.targetCount = this.DHIKRS[this.currentDhikr].target;
+    this.mode = this._settings().mode === 'beads' ? 'beads' : 'tap';
     this.renderUI(container);
   },
 
@@ -105,6 +128,7 @@ const TasbihPage = {
     const lang = currentLocale === 'ar' ? 'ar' : (currentLocale === 'en' ? 'en' : 'es');
     const today = this.todayCount();
     const week = this.weekCount();
+    const goal = this.dailyGoal();
     const life = (typeof Gamification !== 'undefined' && Gamification.getState)
       ? (Gamification.getState().stats.tasbihCount || 0) : 0;
     const xpPer100 = (typeof Gamification !== 'undefined' && Gamification.XP_PER_TASBIH_100) || 20;
@@ -117,13 +141,18 @@ const TasbihPage = {
           <i class="fas fa-chevron-${currentLocale === 'ar' ? 'right' : 'left'}"></i>
         </button>
         <div class="top-bar-title"><i class="fas fa-circle-nodes"></i> ${t('tasbihTitle') || 'Tasbih'}</div>
-        <button class="top-bar-btn" onclick="TasbihPage.toggleSound()" title="${t('sound') || 'Sound'}">
-          <i class="fas fa-${this.soundEnabled ? 'volume-up' : 'volume-mute'}"></i>
-        </button>
+        <div style="display:flex; gap:4px;">
+          <button class="top-bar-btn" onclick="TasbihPage.openSettings()" title="${t('tasbihSettings') || 'Ajustes'}">
+            <i class="fas fa-gear"></i>
+          </button>
+          <button class="top-bar-btn" id="tasbih-sound-btn" onclick="TasbihPage.toggleSound()" title="${t('sound') || 'Sound'}">
+            <i class="fas fa-${this.soundEnabled ? 'volume-up' : 'volume-mute'}"></i>
+          </button>
+        </div>
       </div>
 
       <div class="tasbih-container">
-        <!-- v50: شريط صغير قابل للسحب للتنقل بين أذكار المسبحة (chips) -->
+        <!-- Strip deslizable de adhkar (chips compactos) -->
         <div class="dhikr-strip" id="dhikr-strip">
           ${this.DHIKRS.map((d, idx) => `
             <button class="dhikr-chip ${idx === this.currentDhikr ? 'active' : ''}" data-dhikr-idx="${idx}" onclick="TasbihPage.selectDhikr(${idx})">
@@ -133,38 +162,64 @@ const TasbihPage = {
           `).join('')}
         </div>
 
-        <!-- Dhikr text display (compacto, con swipe izquierda/derecha) -->
+        <!-- Dhikr text display -->
         <div class="dhikr-display" id="dhikr-display">
           <div class="dhikr-arabic">${dhikr.ar}</div>
-          <div class="dhikr-trans">${dhikr.tr}</div>
-          <div class="dhikr-es">${dhikr[lang] || dhikr.es}</div>
+          ${lang !== 'ar' ? `
+            <div class="dhikr-trans">${dhikr.tr}</div>
+            <div class="dhikr-es">${dhikr[lang] || dhikr.es}</div>
+          ` : ''}
         </div>
 
-        <!-- Counter circle (220px — cabe en una pantalla sin scroll) -->
-        <div class="tasbih-counter ${isComplete ? 'complete' : ''}" id="tasbih-counter" onclick="TasbihPage.increment()">
-          <svg class="tasbih-ring" width="220" height="220" viewBox="0 0 220 220">
-            <circle cx="110" cy="110" r="${R}" fill="none" stroke="rgba(212,175,55,0.15)" stroke-width="9"/>
-            <circle cx="110" cy="110" r="${R}" fill="none" stroke="url(#tasbih-gradient)" stroke-width="9"
-                    stroke-linecap="round"
-                    stroke-dasharray="${CIRC}"
-                    stroke-dashoffset="${CIRC * (1 - progress)}"
-                    transform="rotate(-90 110 110)"
-                    style="transition: stroke-dashoffset 0.4s cubic-bezier(0.4,0,0.2,1);"/>
-            <defs>
-              <linearGradient id="tasbih-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#0F4C3A"/>
-                <stop offset="100%" stop-color="#D4AF37"/>
-              </linearGradient>
-            </defs>
-          </svg>
-          <div class="tasbih-center">
-            <div class="tasbih-count" id="tasbih-count-val">${this.count}</div>
-            <div class="tasbih-target">/ ${this.targetCount}</div>
-            <div class="tasbih-hint">${isComplete ? '<i class="fas fa-circle-check"></i> ' + (t('completed') || '¡Completo!') : '<i class="fas fa-hand-point-up"></i> ' + (t('tapToCount') || 'Toca para contar')}</div>
+        <!-- v60: الهدف اليومي + مجموع اليوم -->
+        <div class="tasbih-goal-line">
+          <span><i class="fas fa-bullseye"></i> ${t('dailyGoal') || 'Meta diaria'}: <b>${goal}</b></span>
+          <span class="tasbih-goal-today-wrap">${t('todayTasbih') || 'Hoy'}: <b id="tasbih-goal-today">${today}</b>/${goal}</span>
+        </div>
+
+        ${this.mode === 'beads' ? this._beadsHtml() : `
+          <!-- Modo táctil: anillo de progreso -->
+          <div class="tasbih-counter ${isComplete ? 'complete' : ''}" id="tasbih-counter" onclick="TasbihPage.increment()">
+            <svg class="tasbih-ring" width="220" height="220" viewBox="0 0 220 220">
+              <circle cx="110" cy="110" r="${R}" fill="none" stroke="rgba(212,175,55,0.15)" stroke-width="9"/>
+              <circle cx="110" cy="110" r="${R}" fill="none" stroke="url(#tasbih-gradient)" stroke-width="9"
+                      stroke-linecap="round"
+                      stroke-dasharray="${CIRC}"
+                      stroke-dashoffset="${CIRC * (1 - progress)}"
+                      transform="rotate(-90 110 110)"
+                      style="transition: stroke-dashoffset 0.4s cubic-bezier(0.4,0,0.2,1);"/>
+              <defs>
+                <linearGradient id="tasbih-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#0F4C3A"/>
+                  <stop offset="100%" stop-color="#D4AF37"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="tasbih-center">
+              <div class="tasbih-count" id="tasbih-count-val">${this.count}</div>
+              <div class="tasbih-target">/ ${this.targetCount}</div>
+              <div class="tasbih-hint">${isComplete ? '<i class="fas fa-circle-check"></i> ' + (t('completed') || '¡Completo!') : '<i class="fas fa-hand-point-up"></i> ' + (t('tapToCount') || 'Toca para contar')}</div>
+            </div>
           </div>
+        `}
+
+        ${this.mode === 'beads' ? `<div class="tasbih-hint-line"><i class="fas fa-hand-pointer"></i> ${t('dragBeadsHint') || 'Arrastra una cuenta hacia el borde para contar'}</div>` : ''}
+
+        <!-- Botones de acción -->
+        <div class="tasbih-buttons">
+          <button class="btn-ghost tasbih-btn-secondary" onclick="TasbihPage.toggleMode()">
+            <i class="fas fa-${this.mode === 'beads' ? 'hand-pointer' : 'circle-nodes'}"></i>
+            ${this.mode === 'beads' ? (t('tapMode') || 'Modo táctil') : (t('beadsMode') || 'Modo misbaha')}
+          </button>
+          <button class="btn-ghost tasbih-btn-secondary" onclick="TasbihPage.reset()">
+            <i class="fas fa-redo"></i> ${t('resetCounter') || 'Reiniciar'}
+          </button>
+          <button class="btn-ghost tasbih-btn-secondary" onclick="TasbihPage.resetAll()">
+            <i class="fas fa-trash"></i> ${t('clearAll') || 'Limpiar todo'}
+          </button>
         </div>
 
-        <!-- v50: بطاقة صغيرة — إحصائيات اليوم والأسبوع (تُفتح بالضغط) -->
+        <!-- Mini tarjeta de estadísticas hoy / semana -->
         <div class="tasbih-daily-card" id="tasbih-daily-card" onclick="TasbihPage.toggleStatsPanel()" role="button" tabindex="0" aria-expanded="false">
           <div class="tasbih-daily-item">
             <div class="tasbih-daily-value" id="tasbih-today-val">${today}</div>
@@ -203,23 +258,218 @@ const TasbihPage = {
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Action buttons (compactos) -->
-        <div class="tasbih-buttons">
-          <button class="btn-ghost tasbih-btn-secondary" onclick="TasbihPage.reset()">
-            <i class="fas fa-redo"></i> ${t('resetCounter') || 'Reiniciar'}
-          </button>
-          <button class="btn-ghost tasbih-btn-secondary" onclick="TasbihPage.resetAll()">
-            <i class="fas fa-trash"></i> ${t('clearAll') || 'Limpiar todo'}
-          </button>
+      <!-- v60: hoja de ajustes del tasbih -->
+      <div class="tasbih-sheet-overlay hidden" id="tasbih-sheet" onclick="TasbihPage.closeSettings()">
+        <div class="tasbih-sheet" onclick="event.stopPropagation()">
+          <div class="tasbih-sheet-handle"></div>
+          <div class="tasbih-sheet-title"><i class="fas fa-gear"></i> ${t('tasbihSettings') || 'Ajustes del tasbih'}</div>
+          ${this._sheetBodyHtml()}
         </div>
       </div>
     `;
     this._bindDhikrSwipe();
     this._scrollActiveChip();
+    if (this.mode === 'beads') {
+      this._bindBeads();
+      requestAnimationFrame(() => this._layoutBeads());
+      if (!this._resizeBound) {
+        this._resizeBound = true;
+        window.addEventListener('resize', () => { if (this.mode === 'beads') this._layoutBeads(); });
+      }
+    }
   },
 
-  // ============ v50: panel hoy / semana ============
+  // ============ v60: MISBAHA REAL (cuentas arrastrables) ============
+  _beadsHtml() {
+    const n = Math.min(this.targetCount, 33); // la misbaha física muestra hasta 33 cuentas
+    const round = Math.floor(this.count / n) + 1;
+    return `
+      <div class="misbaha-wrap ${this.count >= this.targetCount ? 'complete' : ''}">
+        ${this.targetCount > n ? `<div class="misbaha-round" id="misbaha-round">${t('round') || 'Ronda'} ${round}</div>` : `<div class="misbaha-round" id="misbaha-round"></div>`}
+        <div class="misbaha-big-count" id="tasbih-count-val">${this.count}</div>
+        <div class="misbaha-target-line"><i class="fas fa-pen"></i> / ${this.targetCount}</div>
+        <div class="misbaha-stage" id="misbaha-stage">
+          <div class="misbaha-string"></div>
+          ${Array.from({ length: n }, (_, i) => `<div class="misbaha-bead misbaha-bead-${i % 6}" data-bead="${i}"></div>`).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  _layoutBeads() {
+    const stage = document.getElementById('misbaha-stage');
+    if (!stage) return;
+    const W = stage.clientWidth;
+    if (!W) { requestAnimationFrame(() => this._layoutBeads()); return; }
+    const H = stage.clientHeight || 110;
+    const n = Math.min(this.targetCount, 33);
+    const spacing = (W - 10) / n;
+    const size = Math.max(14, Math.min(38, spacing - 3));
+    const startX = (W - spacing * n) / 2;
+    const rtl = document.documentElement.dir === 'rtl' || currentLocale === 'ar';
+    const pullDir = rtl ? 1 : -1; // lado de arrastre: derecha en RTL, izquierda en LTR
+    let c = this.count % n;
+    if (this.count > 0 && c === 0 && this.count >= this.targetCount) c = n; // ciclo justo completado
+    this._beadGeom = { size, spacing, startX, pullDir, n, c };
+    stage.querySelectorAll('.misbaha-bead').forEach(b => {
+      const i = +b.dataset.bead;
+      let slot;
+      if (pullDir > 0) slot = i < c ? (n - c + i) : (i - c);
+      else slot = i < c ? (c - 1 - i) : i;
+      const x = startX + slot * spacing + spacing / 2;
+      b.style.width = b.style.height = size + 'px';
+      b.style.left = (x - size / 2) + 'px';
+      b.style.top = ((H - size) / 2) + 'px';
+      b.classList.toggle('pulled', i < c);
+      b.classList.toggle('front', i === c && this.count < this.targetCount);
+    });
+  },
+
+  _bindBeads() {
+    const stage = document.getElementById('misbaha-stage');
+    if (!stage) return;
+    stage.style.touchAction = 'none';
+
+    stage.addEventListener('pointerdown', (e) => {
+      this._tapCandidate = { x: e.clientX, y: e.clientY };
+      const bead = e.target.closest('.misbaha-bead');
+      if (!bead || !this._beadGeom) return;
+      const i = +bead.dataset.bead;
+      const c = this._beadGeom.c;
+      // Solo la cuenta «delantera» se puede arrastrar para contar, y la
+      // última contada se puede devolver para restar.
+      if (i !== c && i !== c - 1) return;
+      this._drag = { i, bead, x0: e.clientX, base: parseFloat(bead.style.left) || 0, pulled: i < c };
+      bead.classList.add('dragging');
+      try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+
+    stage.addEventListener('pointermove', (e) => {
+      if (this._tapCandidate) {
+        const dx = e.clientX - this._tapCandidate.x, dy = e.clientY - this._tapCandidate.y;
+        if (Math.hypot(dx, dy) > 12) this._tapCandidate = null;
+      }
+      const d = this._drag, g = this._beadGeom;
+      if (!d || !g) return;
+      const towardPull = (e.clientX - d.x0) * g.pullDir;
+      const max = g.spacing * 2.2;
+      const offset = d.pulled
+        ? Math.max(-max, Math.min(0, towardPull))   // devolver: solo hacia atrás
+        : Math.max(0, Math.min(max, towardPull));   // contar: solo hacia el borde
+      d.bead.style.left = (d.base + offset * g.pullDir) + 'px';
+    });
+
+    const finish = (e) => {
+      const d = this._drag, g = this._beadGeom;
+      if (d && g) {
+        const towardPull = (e.clientX - d.x0) * g.pullDir;
+        d.bead.classList.remove('dragging');
+        const th = g.spacing * 0.9;
+        const tapDist = Math.hypot(e.clientX - d.x0, e.clientY - (this._tapCandidate ? this._tapCandidate.y : e.clientY));
+        this._drag = null;
+        if (!d.pulled && towardPull > th) { this._tapCandidate = null; this.increment(); return; }
+        if (d.pulled && towardPull < -th) { this._tapCandidate = null; this.decrement(); return; }
+        if (!d.pulled && tapDist < 12) { this._tapCandidate = null; this.increment(); return; } // toque directo
+        this._layoutBeads(); // volver a su sitio
+      } else if (this._tapCandidate) {
+        const dx = e.clientX - this._tapCandidate.x, dy = e.clientY - this._tapCandidate.y;
+        this._tapCandidate = null;
+        if (Math.hypot(dx, dy) < 12) this.increment(); // tocar cualquier punto también cuenta
+      }
+      this._tapCandidate = null;
+    };
+    stage.addEventListener('pointerup', finish);
+    stage.addEventListener('pointercancel', () => {
+      if (this._drag) { this._drag.bead.classList.remove('dragging'); this._drag = null; this._layoutBeads(); }
+      this._tapCandidate = null;
+    });
+  },
+
+  // ============ v60: hoja de ajustes ============
+  _sheetBodyHtml() {
+    const s = this._settings();
+    const goals = [33, 100, 500, 1000];
+    const vibs = [
+      ['off', t('vibOff') || 'Apagada'],
+      ['light', t('vibLight') || 'Suave'],
+      ['strong', t('vibStrong') || 'Fuerte'],
+    ];
+    const row = (label, on, handler, icon) => `
+      <div class="tsheet-row">
+        <span class="tsheet-row-label"><i class="fas ${icon}"></i> ${label}</span>
+        <button class="tswitch ${on ? 'on' : ''}" onclick="${handler}" role="switch" aria-checked="${on}"><span class="tswitch-knob"></span></button>
+      </div>`;
+    return `
+      <div class="tsheet-section">${t('dailyGoal') || 'Meta diaria'}</div>
+      <div class="tsheet-chips">
+        ${goals.map(g => `<button class="tsheet-chip ${s.dailyGoal === g ? 'active' : ''}" onclick="TasbihPage.setDailyGoal(${g})">${g}</button>`).join('')}
+      </div>
+      <div class="tsheet-section">${t('vibration') || 'Vibración'}</div>
+      <div class="tsheet-chips">
+        ${vibs.map(([k, l]) => `<button class="tsheet-chip ${s.vibration === k ? 'active' : ''}" onclick="TasbihPage.setVibration('${k}')">${l}</button>`).join('')}
+      </div>
+      <div class="tsheet-rows">
+        ${row(t('tapSound') || 'Sonido del conteo', this.soundEnabled, 'TasbihPage.toggleSheetSound()', 'fa-volume-high')}
+        ${row(t('autoResetCycle') || 'Reinicio automático al completar', s.autoResetCycle, 'TasbihPage.toggleAutoReset()', 'fa-rotate')}
+        ${row(t('keepCounter') || 'Guardar contador al salir', s.keepCounter, 'TasbihPage.toggleKeepCounter()', 'fa-bookmark')}
+      </div>
+      <button class="tsheet-danger" onclick="TasbihPage.resetAll()">
+        <i class="fas fa-trash-can"></i> ${t('deleteTasbihData') || 'Borrar todos los datos del tasbih'}
+      </button>
+    `;
+  },
+
+  openSettings() {
+    const sh = document.getElementById('tasbih-sheet');
+    if (sh) sh.classList.remove('hidden');
+  },
+
+  closeSettings() {
+    const sh = document.getElementById('tasbih-sheet');
+    if (sh) sh.classList.add('hidden');
+  },
+
+  _refreshWithSheet() {
+    this.renderUI(document.getElementById('main-content'));
+    this.openSettings();
+  },
+
+  setDailyGoal(g) {
+    this._saveSettings({ dailyGoal: g });
+    this._refreshWithSheet();
+  },
+
+  setVibration(v) {
+    this._saveSettings({ vibration: v });
+    if (navigator.vibrate && v !== 'off') navigator.vibrate(v === 'strong' ? 90 : 25);
+    this._refreshWithSheet();
+  },
+
+  toggleSheetSound() {
+    this.soundEnabled = !this.soundEnabled;
+    this.saveState();
+    this._refreshWithSheet();
+  },
+
+  toggleAutoReset() {
+    this._saveSettings({ autoResetCycle: !this._settings().autoResetCycle });
+    this._refreshWithSheet();
+  },
+
+  toggleKeepCounter() {
+    this._saveSettings({ keepCounter: !this._settings().keepCounter });
+    this._refreshWithSheet();
+  },
+
+  toggleMode() {
+    this.mode = this.mode === 'beads' ? 'tap' : 'beads';
+    this._saveSettings({ mode: this.mode });
+    this.renderUI(document.getElementById('main-content'));
+  },
+
+  // ============ panel hoy / semana ============
   toggleStatsPanel() {
     const panel = document.getElementById('tasbih-stats-panel');
     if (!panel) return;
@@ -243,7 +493,7 @@ const TasbihPage = {
     if (lbl) lbl.textContent = mode === 'day' ? (t('todayTasbih') || 'Hoy') : (t('weekTasbih') || 'Semana');
   },
 
-  // v50: swipe horizontal sobre el texto del dhikr para cambiar de dhikr
+  // swipe horizontal sobre el texto del dhikr para cambiar de dhikr
   _bindDhikrSwipe() {
     const el = document.getElementById('dhikr-display');
     if (!el || el._swipeBound) return;
@@ -261,7 +511,6 @@ const TasbihPage = {
     });
   },
 
-  // v50: centrar el chip activo dentro del strip
   _scrollActiveChip() {
     const strip = document.getElementById('dhikr-strip');
     if (!strip) return;
@@ -271,14 +520,19 @@ const TasbihPage = {
     }
   },
 
+  _vibrate(pattern) {
+    const v = this._settings().vibration;
+    if (v === 'off' || !navigator.vibrate) return;
+    if (Array.isArray(pattern)) { navigator.vibrate(pattern); return; }
+    navigator.vibrate(v === 'strong' ? Math.round(pattern * 3) : pattern);
+  },
+
   increment() {
     this.count++;
     this.totalCount++;
-    this.recordDailyCount(1); // v50: estadísticas hoy / semana
+    this.recordDailyCount(1);
 
-    if (navigator.vibrate) {
-      navigator.vibrate(this.count === this.targetCount ? [50, 30, 50, 30, 100] : 20);
-    }
+    this._vibrate(this.count === this.targetCount ? [80, 40, 80, 40, 160] : 20);
     if (this.soundEnabled) this.playTick();
 
     if (this.totalCount > 0 && this.totalCount % 100 === 0) {
@@ -287,9 +541,15 @@ const TasbihPage = {
     }
 
     if (this.count === this.targetCount) {
-      if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
+      this._vibrate([120, 60, 120, 60, 240]);
       setTimeout(() => {
-        if (this.currentDhikr < this.DHIKRS.length - 1) {
+        if (this._settings().autoResetCycle) {
+          // v60: تصفير تلقائي للدورة — نفس الذكر يبدأ من جديد
+          showToast(`${this.DHIKRS[this.currentDhikr].tr} ✓`, 2000);
+          this.count = 0;
+          this.saveState();
+          this.updateUI();
+        } else if (this.currentDhikr < this.DHIKRS.length - 1) {
           showToast(`${this.DHIKRS[this.currentDhikr].tr} ${t('completed') || 'completo'}`, 2000);
           this.changeDhikr(1, true);
         } else {
@@ -303,6 +563,16 @@ const TasbihPage = {
     this.updateUI();
   },
 
+  // v60: devolver una cuenta (misbaha) resta 1 al contador
+  decrement() {
+    if (this.count <= 0) return;
+    this.count--;
+    this.totalCount = Math.max(0, this.totalCount - 1);
+    this._vibrate(10);
+    this.saveState();
+    this.updateUI();
+  },
+
   updateUI() {
     const countEl = document.getElementById('tasbih-count-val');
     if (!countEl) return;
@@ -311,11 +581,12 @@ const TasbihPage = {
     const sessionEl = document.getElementById('tasbih-session');
     if (sessionEl) sessionEl.textContent = this.totalCount;
 
-    // v50: actualizar la mini tarjeta hoy / semana en cada toque
     const todayEl = document.getElementById('tasbih-today-val');
     if (todayEl) todayEl.textContent = this.todayCount();
     const weekEl = document.getElementById('tasbih-week-val');
     if (weekEl) weekEl.textContent = this.weekCount();
+    const goalEl = document.getElementById('tasbih-goal-today');
+    if (goalEl) goalEl.textContent = this.todayCount();
     const panel = document.getElementById('tasbih-stats-panel');
     const panelVal = document.getElementById('tasbih-panel-main');
     if (panel && panelVal && !panel.classList.contains('hidden')) {
@@ -326,13 +597,25 @@ const TasbihPage = {
     const ring = document.querySelector('.tasbih-ring circle:last-of-type');
     if (ring) {
       const progress = Math.min(this.count / this.targetCount, 1);
-      const circ = 2 * Math.PI * 98; // v50: radio del nuevo anillo de 220px
+      const circ = 2 * Math.PI * 98;
       ring.setAttribute('stroke-dashoffset', circ * (1 - progress));
     }
 
     const counter = document.getElementById('tasbih-counter');
-    if (this.count >= this.targetCount && counter) {
-      counter.classList.add('complete');
+    if (counter) counter.classList.toggle('complete', this.count >= this.targetCount);
+
+    // v60: misbaha — reordenar cuentas y actualizar la ronda
+    if (this.mode === 'beads') {
+      const n = Math.min(this.targetCount, 33);
+      const roundEl = document.getElementById('misbaha-round');
+      if (roundEl) {
+        roundEl.textContent = this.targetCount > n
+          ? `${t('round') || 'Ronda'} ${Math.floor(this.count / n) + 1}`
+          : '';
+      }
+      const wrap = document.querySelector('.misbaha-wrap');
+      if (wrap) wrap.classList.toggle('complete', this.count >= this.targetCount);
+      this._layoutBeads();
     }
   },
 
@@ -391,7 +674,6 @@ const TasbihPage = {
     if (confirm(t('confirmResetAll') || '¿Limpiar contador y total de sesión? (El histórico se conserva)')) {
       this.count = 0;
       this.totalCount = 0;
-      // v52: «تنظيف الكل» يمسح أيضاً إحصائيات اليوم والأسبوع (سجل tasbih_log)
       Storage.set('tasbih_log', {});
       this.saveState();
       this.renderUI(document.getElementById('main-content'));
@@ -407,5 +689,12 @@ const TasbihPage = {
     });
   },
 
-  cleanup() {},
+  cleanup() {
+    // v60: «حفظ العدّاد عند الخروج» — si está desactivado, el contador de la
+    // ronda actual se pierde al salir de la página (el histórico se conserva).
+    if (!this._settings().keepCounter && this.count > 0) {
+      this.count = 0;
+      try { this.saveState(); } catch (e) {}
+    }
+  },
 };

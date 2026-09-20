@@ -1,12 +1,13 @@
-// 🎬 ClipsPage — مقتطفات دينية: شبكة فيديوهات يوتيوب + مشغّل داخلي + قوائم تشغيل
-// v57: المشاهدة تتم داخل التطبيق عبر مشغّل يوتيوب المدمج (iframe رسمي) —
-// يدعم ملء الشاشة، الترجمة (CC)، وجودة العرض من داخل المشغّل نفسه.
+// 🎬 ClipsPage — مقتطفات دينية: فيديوهات مصنّفة حسب اللغة (إسبانية/عربية/إنجليزية)
+// v59: فئات اللغة مع عدّاد لكل فئة + فتح فيديو مباشرة من الرئيسية (params.play)
 const ClipsPage = {
-  _tab: 'videos',
+  _tab: 'es',
 
   render(container, params = {}) {
-    this._tab = (params && params.tab === 'albums') ? 'albums' : 'videos';
+    this._tab = (params && ['es', 'ar', 'en', 'albums'].includes(params.tab)) ? params.tab : 'es';
     this._renderList(container);
+    // v59: الضغط على فيديو في الرئيسية يفتح مشغّله مباشرة داخل الصفحة
+    if (params && params.play) this.openVideo(params.play);
   },
 
   // ============ عرض القائمة ============
@@ -14,8 +15,11 @@ const ClipsPage = {
     const L = (k) => ClipsData.L(k);
     const isAr = document.documentElement.dir === 'rtl';
     const backIcon = isAr ? 'fa-arrow-right' : 'fa-arrow-left';
+    const catKey = (c) => 'clipsCat' + c.charAt(0).toUpperCase() + c.slice(1);
 
-    const videosHtml = ClipsData.VIDEOS.map(v => `
+    const list = this._tab === 'albums' ? [] : ClipsData.byCat(this._tab);
+
+    const videosHtml = list.map(v => `
       <button class="clip-card" onclick="ClipsPage.openVideo('${v.id}')" aria-label="${escapeAttr(v.title)}">
         <span class="clip-thumb">
           <img src="${ClipsData.thumb(v.id)}" alt="" loading="lazy" draggable="false"
@@ -58,16 +62,17 @@ const ClipsPage = {
         </div>
 
         <div class="clips-tabs">
-          <button class="clips-tab ${this._tab === 'videos' ? 'active' : ''}" onclick="ClipsPage.switchTab('videos')">
-            <i class="fas fa-film"></i> ${L('clipsVideosTab')} · ${ClipsData.VIDEOS.length}
-          </button>
+          ${['es', 'ar', 'en'].map(c => `
+            <button class="clips-tab ${this._tab === c ? 'active' : ''}" onclick="ClipsPage.switchTab('${c}')">
+              <i class="fas fa-film"></i> ${L(catKey(c))} · ${ClipsData.byCat(c).length}
+            </button>`).join('')}
           <button class="clips-tab ${this._tab === 'albums' ? 'active' : ''}" onclick="ClipsPage.switchTab('albums')">
             <i class="fas fa-list-video"></i> ${L('clipsAlbumsTab')} · ${ClipsData.PLAYLISTS.length}
           </button>
         </div>
 
         <div class="clips-grid">
-          ${this._tab === 'videos' ? videosHtml : albumsHtml}
+          ${this._tab === 'albums' ? albumsHtml : videosHtml}
         </div>
       </div>
     `;

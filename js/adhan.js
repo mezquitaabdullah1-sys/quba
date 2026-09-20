@@ -50,7 +50,7 @@ const AdhanService = {
       volume: 0.8,
       muted: false,
       mode: 'full',          // 'full' | 'takbeer'
-      takbeerDuration: 12,   // segundos aprox. que cubren las 2 primeras takbeer
+      takbeerDuration: 16,   // v59: antes 12 — cortaba la 2ª takbeer a mitad en varias voces; ajustable en Perfil
       fajrVoice: 'fajr_makkah', // v57: voz del adhan de Fajr (con tathwib)
     }, (typeof AppState !== 'undefined' && AppState.settings.adhan) || {});
   },
@@ -229,7 +229,7 @@ const AdhanService = {
       // v25: solo las DOS primeras takbeer — se reproduce la 1ª voz con
       // doble mecanismo de corte (temporizador + progreso del audio) y NO
       // se continúa con la segunda voz ni con el adhan completo.
-      const durMs = Math.max(5, settings.takbeerDuration || 12) * 1000;
+      const durMs = Math.max(5, settings.takbeerDuration || 16) * 1000;
       const ok = await this._playVoice(voice1, settings.volume, onEnded, durMs);
       if (!ok && typeof showToast === 'function') {
         showToast('⚠️ ' + (t('adhanPlayError') || 'No se pudo reproducir'), 3000);

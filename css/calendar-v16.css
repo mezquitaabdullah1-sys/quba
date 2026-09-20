@@ -464,6 +464,15 @@
   border-color: #2a3a5a;
 }
 
+/* v1.0.58: nota de precisión bajo «Próximas ocasiones» */
+.countdowns-note {
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  text-align: center;
+  margin: 10px 4px 0;
+}
+
 /* ============ Accessibility ============ */
 @media (prefers-reduced-motion: reduce) {
   .cal-day, .countdown-card { transition: none !important; }

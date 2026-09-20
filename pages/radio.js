@@ -2,7 +2,7 @@
 // v56 — الصوت لا يتوقف عند مغادرة الصفحة (محرّك RadioService مستقل)، مع مؤقّت نوم 🌙
 const RadioPage = {
   tab: 'main',
-  tl: { folder: 'Alafasy_128kbps', reciterName: null, lang: 'es', search: '' },
+  tl: { folder: 'Dussary_128kbps', reciterName: null, lang: 'es', search: '' }, // v61: الدوسري بدل العفاسي
   _sleepModal: null,
 
   TABS: [
@@ -65,7 +65,9 @@ const RadioPage = {
         img: q.lang ? null : RadioData.IMG.quran,
         chip: q.sleep ? RadioData.L('tabSleep') : RadioData.L('tabTranslated'),
         title: RadioData.surahName(q.surah),
-        sub: `${q.reciterName} • ${RadioData.L('ayah')} ${q.ayah || 1} ${RadioData.L('of')} ${q.total}`,
+        sub: q.whole
+          ? `${q.reciterName} • ${q.surahTotal || q.total} ${RadioData.L('ayah')}`
+          : `${q.reciterName} • ${RadioData.L('ayah')} ${q.ayah || 1} ${RadioData.L('of')} ${q.total}`,
         liveTL: !!q.lang,
       };
     }
@@ -136,7 +138,7 @@ const RadioPage = {
             <button class="radio-ctl side" onclick="RadioService.share()" title="${RadioData.L('share')}" aria-label="${RadioData.L('share')}">
               <i class="fas fa-share-nodes"></i>
             </button>
-            ${isQuran ? `
+            ${isQuran && !S.quran.whole ? `
               <button class="radio-ctl side" onclick="RadioService.prevAyah()" title="${RadioData.L('prevAyah')}" aria-label="${RadioData.L('prevAyah')}">
                 <i class="fas fa-backward-step"></i>
               </button>` : ''}
@@ -146,6 +148,11 @@ const RadioPage = {
             ${isQuran ? `
               <button class="radio-ctl side" onclick="RadioService.replayAyah()" title="${RadioData.L('replayAyah')}" aria-label="${RadioData.L('replayAyah')}">
                 <i class="fas fa-rotate-right"></i>
+              </button>` : ''}
+            ${isQuran ? `
+              <button class="radio-ctl side rep-${S.repeatMode}" onclick="RadioService.cycleRepeat()" title="${RadioData.L('repeatMode')}: ${RadioData.L('rep_' + S.repeatMode)}" aria-label="${RadioData.L('repeatMode')}">
+                <i class="fas ${S.repeatMode === 'random' ? 'fa-shuffle' : 'fa-repeat'}"></i>
+                ${S.repeatMode === 'one' ? '<span class="rep-badge">1</span>' : ''}
               </button>` : ''}
             <button class="radio-ctl side ${sleepLeft > 0 ? 'sleep-on' : ''}" onclick="RadioPage.openSleepModal()" title="${RadioData.L('sleepTimer')}" aria-label="${RadioData.L('sleepTimer')}">
               <i class="fas fa-moon"></i>
@@ -263,6 +270,9 @@ const RadioPage = {
 
   // ---------- تبويب القرآن المترجم ----------
   _renderTranslated(body) {
+    // v59: القارئ المختار حالياً — عدد السور المتوفرة لديه + قائمة السور الخاصة إن وُجدت
+    const tlR = RadioData.AV_RECITERS.concat(RadioData.EXTRA_RECITERS || []).find(x => x.folder === this.tl.folder);
+    const tlTotal = (tlR && tlR.surahTotal) || null;
     const q = RadioData.SURAHS.filter(s => {
       if (!this.tl.search) return true;
       const qx = this.tl.search.toLowerCase();
@@ -279,6 +289,7 @@ const RadioPage = {
             <i class="fas fa-user"></i> ${escapeHtml(RadioData.name(r))}
           </button>`).join('')}
       </div>
+      ${(tlR && tlR.surahList) ? `<div class="tl-note" style="margin-top:6px;"><i class="fas fa-list-check"></i> ${RadioData.L('availableSurahs')}: ${tlR.surahList}</div>` : ''}
 
       <div class="tl-group-label">${RadioData.L('chooseLang')}</div>
       <div class="tl-chips">
@@ -301,7 +312,7 @@ const RadioPage = {
               <span class="surah-num">${s[0]}</span>
               <div class="surah-names">
                 <div class="surah-name">${escapeHtml(nm)}</div>
-                <div class="surah-meta">${s[1]} • ${s[4]} ${RadioData.L('ayah')}</div>
+                <div class="surah-meta">${s[1]} • ${tlTotal || s[4]} ${RadioData.L('ayah')}</div>
               </div>
               <i class="fas ${cur ? 'fa-volume-high' : 'fa-play'} surah-play-ic"></i>
             </div>
@@ -338,11 +349,14 @@ const RadioPage = {
       RadioService.toggle();
       return;
     }
+    // v59: قرّاء MP3Quran لهم خادم مباشر (سورة كاملة) — نمرّره بدل اسم المجلد
+    const r = RadioData.AV_RECITERS.concat(RadioData.EXTRA_RECITERS || []).find(x => x.folder === this.tl.folder);
     RadioService.playQuran({
-      folder: this.tl.folder,
+      folder: (r && r.server) || this.tl.folder,
       reciterName: this.tl.reciterName,
       lang: this.tl.lang,
       surah,
+      surahTotal: (r && r.surahTotal) || null,
     });
   },
 

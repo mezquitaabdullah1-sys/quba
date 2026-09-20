@@ -303,11 +303,13 @@ const ProfilePage = {
         volume: 0.8,
         muted: false,
         mode: 'full',
-        takbeerDuration: 12,
+        takbeerDuration: 16, // v59: antes 12 — se cortaba antes de terminar la 2ª takbeer en varias voces
       };
     } else {
       if (!AppState.settings.adhan.mode) AppState.settings.adhan.mode = 'full';
-      if (!AppState.settings.adhan.takbeerDuration) AppState.settings.adhan.takbeerDuration = 12;
+      // v59: 12s cortaba la 2ª takbeer a mitad en varias voces; ya no se
+      // fuerza el valor antiguo, solo se rellena si no existe ninguno.
+      if (!AppState.settings.adhan.takbeerDuration) AppState.settings.adhan.takbeerDuration = 16;
       if (!AppState.settings.adhan.fajrVoice) AppState.settings.adhan.fajrVoice = 'fajr_makkah'; // v57
     }
     const adhanVoice1 = AdhanService.VOICES.find(v => v.id === AppState.settings.adhan.voice1) || AdhanService.VOICES[0];
@@ -344,6 +346,26 @@ const ProfilePage = {
             </button>
             <i class="fas fa-chevron-${chevron} list-row-chevron"></i>
           </div>
+          ${AppState.settings.adhan.mode === 'takbeer' ? `
+          <!-- v59: duración del corte ajustable — 12s fijos cortaban la 2ª
+               takbeer a mitad en varias voces; cada reciter tarda distinto. -->
+          <div class="list-row" style="flex-direction:column;align-items:stretch;">
+            <div style="display:flex;align-items:center;gap:14px;">
+              <div class="list-row-icon"><i class="fas fa-stopwatch"></i></div>
+              <div class="list-row-info">
+                <div class="list-row-label">${t('adhanTakbeerDuration') || 'Duración del corte'}</div>
+                <div class="list-row-value" id="takbeer-duration-value">${AppState.settings.adhan.takbeerDuration}${t('secondsShort') || 's'}</div>
+              </div>
+            </div>
+            <input type="range" min="8" max="25" value="${AppState.settings.adhan.takbeerDuration}"
+              class="volume-slider"
+              oninput="ProfilePage.setTakbeerDuration(this.value)"
+              onchange="ProfilePage.setTakbeerDuration(this.value)"
+              style="width:100%;margin-top:12px;">
+            <div style="padding-top:8px;font-size:12px;color:var(--text-secondary);line-height:1.5;">
+              <i class="fas fa-circle-info"></i> ${t('adhanTakbeerDurationDesc') || 'Si la 2ª takbeer se corta antes de terminar, sube este valor. Pulsa ▶ arriba para probarlo.'}
+            </div>
+          </div>` : ''}
           <div class="list-row" onclick="ProfilePage.pickAdhanVoice(1)">
             <div class="list-row-icon">1️⃣</div>
             <div class="list-row-info">
@@ -442,7 +464,8 @@ const ProfilePage = {
         <!-- v55: إعدادات مركز الإشعارات — كل ميزة بمفتاح مستقل -->
         <div class="section-label"><i class="fas fa-bell"></i> ${t('ncSection') || 'المزيد من الإشعارات'}</div>
         <div class="card" style="padding:0;overflow:hidden;">
-          ${this._ncRow('adhanAlert', 'mosque', t('ncAdhanAlert') || 'بطاقة تنبيه الأذان', t('ncAdhanAlertDesc') || 'حديث مناسب للصلاة + زر إيقاف الأذان + تذكير بعد ١٥ دقيقة')}
+          <!-- v59: «بطاقة تنبيه الأذان» (حديث + زر إيقاف) دُمجت في مفتاح
+               «تنبيه الأذان» الرئيسي أعلاه — لم تعد تفعَّل/تُطفأ بشكل مستقل. -->
           ${this._ncRow('snooze', 'hourglass-half', t('ncSnooze') || 'زر «تذكير بعد ١٥ دقيقة» (هل صليت؟)', '')}
           ${this._ncRow('salawat', 'heart', t('ncSalawat') || 'الصلاة على النبي ﷺ', t('ncSalawatDesc') || 'كل ٣ ساعات من ٩ صباحاً إلى ٩ مساءً، مع صوت')}
           ${this._ncRow('salawatVoice', 'microphone', t('ncSalawatVoice') || 'نطق الصلاة على النبي صوتياً', '')}
@@ -896,7 +919,7 @@ const ProfilePage = {
     AdhanService.stopPreview();
     const wasMuted = s.muted;
     s.muted = false;
-    AdhanService._playVoice(voice, s.volume, null, (s.takbeerDuration || 12) * 1000)
+    AdhanService._playVoice(voice, s.volume, null, (s.takbeerDuration || 16) * 1000)
       .finally(() => { s.muted = wasMuted; });
     showToast('🔊 ' + (t('adhanModeTakbeer') || 'Solo las dos primeras Takbeer'), 2000);
   },
@@ -907,9 +930,12 @@ const ProfilePage = {
     if (checked && typeof AdhanService !== 'undefined') AdhanService.stop();
     Storage.saveSettings();
     this.renderGroup('adhan');
+    // v59 FIX: showToast() escribe el mensaje con textContent (no innerHTML),
+    // así que un <i class="..."></i> aparecía como texto literal en el toast
+    // en vez de un icono. Se usan emojis, que sí se muestran correctamente.
     showToast(checked
-      ? '<i class="fas fa-volume-xmark"></i> ' + (t('adhanMuted') || 'Adhan silenciado')
-      : '<i class="fas fa-volume-high"></i> ' + (t('adhanUnmuted') || 'Adhan activo'), 1500);
+      ? '🔇 ' + (t('adhanMuted') || 'Adhan silenciado')
+      : '🔊 ' + (t('adhanUnmuted') || 'Adhan activo'), 1500);
   },
 
   setAdhanVolume(val) {
@@ -919,6 +945,15 @@ const ProfilePage = {
     const el = document.getElementById('volume-value');
     if (el) el.textContent = Math.round(v * 100) + '%';
     AdhanService.setVolume(v);
+  },
+
+  // v59: duración (segundos) del corte en modo "solo las dos primeras takbeer"
+  setTakbeerDuration(val) {
+    const s = Math.max(8, Math.min(25, parseInt(val, 10) || 16));
+    AppState.settings.adhan.takbeerDuration = s;
+    Storage.saveSettings();
+    const el = document.getElementById('takbeer-duration-value');
+    if (el) el.textContent = s + (t('secondsShort') || 's');
   },
 
   exportData() {

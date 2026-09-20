@@ -227,6 +227,22 @@ const QuranOfflineService = {
 
   cancelDownload() { this._cancelRequested = true; },
 
+  // v60: pausa reanudable — detiene el bucle y conserva el punto de progreso
+  pauseDownload() {
+    if (!this._audioDownloading) return;
+    this._cancelRequested = true;
+  },
+
+  // v60: reanuda la descarga pausada (las aleyas ya cacheadas se saltan solas,
+  // así que continúa exactamente donde se quedó sin repetir trabajo)
+  resumeSurahAudio() {
+    const p = this._pausedAt;
+    if (!p || this._audioDownloading) return false;
+    this._pausedAt = null;
+    this.downloadSurahAudio(p.reciter, p.surah);
+    return true;
+  },
+
   async downloadAll(translation, reciter) {
     if (this._downloading) return; // ya en marcha
     if (typeof API === 'undefined' || typeof CacheDB === 'undefined') return;
@@ -295,6 +311,7 @@ const QuranOfflineService = {
   AUDIO_BITRATE: 128,                      // kbps del CDN → estimación de tamaño
   _audioDownloading: false,
   _audioDl: null,                          // progreso de la descarga en curso
+  _pausedAt: null,                         // v60: punto de pausa reanudable {reciter, surah, done, total}
   _surahAudioCache: null,                  // caché en memoria del registro
   _lastTotalBytes: null,                   // tamaño medido de la última descarga
 
@@ -443,9 +460,12 @@ const QuranOfflineService = {
         const bytes = measured && totalBytes > 0 ? totalBytes : this.estimateSurahBytes(meta.number);
         this._lastTotalBytes = bytes;
         this._setSurahAudioDone(reciter, meta.number, bytes);
+        this._pausedAt = null; // v60: ya no hay pausa pendiente de esta sura
         this._emit({ type: 'audio-complete', reciter, surah: meta.number, bytes });
         return true;
       }
+      // v60: guardar el punto de pausa para el botón «Reanudar»
+      if (done > 0 && done < total) this._pausedAt = { reciter, surah: meta.number, done, total };
       this._emit({ type: 'audio-paused', reciter, surah: meta.number, done, total });
       return false;
     } catch (e) {

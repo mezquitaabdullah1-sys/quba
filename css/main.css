@@ -521,3 +521,48 @@ textarea:focus-visible,
 .settings-toggle input:checked ~ .toggle-slider::before {
   background: #fff;
 }
+
+/* ============================================================
+   v60: Cuenta atrás de Ramadán (al final de la página de inicio)
+   ============================================================ */
+.ramadan-cd-card {
+  border: 1px solid rgba(212,175,55,.35);
+  border-radius: 18px;
+  padding: 16px 14px;
+  margin-bottom: var(--sp-md, 16px);
+  background: linear-gradient(160deg, rgba(15,76,58,.22), rgba(8,18,14,.35));
+}
+.ramadan-cd-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.ramadan-cd-cell {
+  border: 1px solid;
+  border-radius: 14px;
+  padding: 10px 4px;
+  text-align: center;
+  background: rgba(255,255,255,.03);
+}
+.ramadan-cd-num { font-size: clamp(18px, 6vw, 26px); font-weight: 800; font-variant-numeric: tabular-nums; }
+.ramadan-cd-lbl { font-size: 11px; opacity: .85; margin-top: 2px; color: inherit; }
+.ramadan-cd-cell:nth-child(1) { border-color: #22d3ee; color: #22d3ee; }
+.ramadan-cd-cell:nth-child(2) { border-color: #34d399; color: #34d399; }
+.ramadan-cd-cell:nth-child(3) { border-color: #60a5fa; color: #60a5fa; }
+.ramadan-cd-cell:nth-child(4) { border-color: #c084fc; color: #c084fc; }
+.ramadan-cd-dates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+.ramadan-cd-date {
+  border: 1px solid var(--border, rgba(255,255,255,.12));
+  border-radius: 14px;
+  padding: 10px 8px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 13px;
+  background: rgba(255,255,255,.02);
+}
+.ramadan-cd-date-lbl { font-size: 11px; opacity: .75; font-weight: 400; margin-bottom: 4px; }

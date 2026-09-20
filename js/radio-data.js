@@ -45,6 +45,13 @@ const RadioData = {
       hubTasbih: 'السبحة',
       wisdomRadioDesc: 'بث مباشر · تلاوة مترجمة · رقية وتكبيرات',
       stationCairoDesc: 'بث مباشر ٢٤/٧ — إذاعة القرآن الكريم المصرية',
+      stationJordanDesc: 'بث مباشر ٢٤/٧ — إذاعة القرآن الكريم الأردنية (عمّان)',
+      stationPalestineDesc: 'بث مباشر ٢٤/٧ — إذاعة القرآن الكريم من نابلس، فلسطين',
+      repeatMode: 'وضع الإعادة',
+      rep_one: 'إعادة السورة',
+      rep_all: 'إعادة الكل (تشغيل متواصل)',
+      rep_random: 'اختيار عشوائي',
+      availableSurahs: 'السور المتوفرة لهذا القارئ',
       sleepSetToast: 'سيتوقف التشغيل تلقائيًا',
       sleepCancelToast: 'تم إلغاء مؤقّت النوم',
       stopsAtEnd: 'سيتوقف الصوت عند انتهاء الوقت',
@@ -52,7 +59,6 @@ const RadioData = {
       homeQuranRadio: 'إذاعة القرآن الكريم',
       homeQuranTranslated: 'القرآن مترجم',
       homeAdhkarAudio: 'الأذكار صوتياً',
-      stationSaudiDesc: 'بث مباشر ٢٤/٧ — إذاعة القرآن الكريم السعودية',
       stationMixDesc: 'تلاوات متنوعة على مدار الساعة لعدد كبير من القرّاء',
       tabSleep: 'قرآن قبل النوم',
       sleepPlayAll: 'تشغيل قائمة النوم كاملة',
@@ -103,6 +109,13 @@ const RadioData = {
       hubTasbih: 'Tasbih',
       wisdomRadioDesc: 'Directo · Corán traducido · Ruqiah y Takbir',
       stationCairoDesc: 'Directo 24/7 — Radio del Corán de Egipto',
+      stationJordanDesc: 'Directo 24/7 — Radio del Corán de Jordania (Amán)',
+      stationPalestineDesc: 'Directo 24/7 — Radio del Corán de Nablus, Palestina',
+      repeatMode: 'Modo de repetición',
+      rep_one: 'Repetir la sura',
+      rep_all: 'Repetir todo (continuo)',
+      rep_random: 'Aleatorio',
+      availableSurahs: 'Suras disponibles de este recitador',
       sleepSetToast: 'La reproducción se detendrá sola',
       sleepCancelToast: 'Temporizador cancelado',
       stopsAtEnd: 'El audio se detendrá al acabar el tiempo',
@@ -110,7 +123,6 @@ const RadioData = {
       homeQuranRadio: 'Radio del Corán',
       homeQuranTranslated: 'Corán traducido',
       homeAdhkarAudio: 'Adhkar en audio',
-      stationSaudiDesc: 'Directo 24/7 — Radio del Corán de Arabia Saudí',
       stationMixDesc: 'Recitaciones variadas 24/7 de muchos recitadores',
       tabSleep: 'Corán antes de dormir',
       sleepPlayAll: 'Reproducir toda la lista para dormir',
@@ -161,6 +173,13 @@ const RadioData = {
       hubTasbih: 'Tasbih',
       wisdomRadioDesc: 'Live · Translated Quran · Ruqyah & Takbir',
       stationCairoDesc: 'Live 24/7 — Egypt Quran Radio',
+      stationJordanDesc: 'Live 24/7 — Jordan Quran Radio (Amman)',
+      stationPalestineDesc: 'Live 24/7 — Quran Radio Nablus, Palestine',
+      repeatMode: 'Repeat mode',
+      rep_one: 'Repeat surah',
+      rep_all: 'Repeat all (continuous)',
+      rep_random: 'Random shuffle',
+      availableSurahs: 'Available surahs for this reciter',
       sleepSetToast: 'Playback will stop automatically',
       sleepCancelToast: 'Sleep timer cancelled',
       stopsAtEnd: 'Audio will stop when time is up',
@@ -168,7 +187,6 @@ const RadioData = {
       homeQuranRadio: 'Quran Radio',
       homeQuranTranslated: 'Translated Quran',
       homeAdhkarAudio: 'Adhkar audio',
-      stationSaudiDesc: 'Live 24/7 — Saudi Quran Radio',
       stationMixDesc: 'Recitations 24/7 by many reciters',
       tabSleep: 'Quran before sleep',
       sleepPlayAll: 'Play full sleep playlist',
@@ -207,11 +225,18 @@ const RadioData = {
       img: 'kaaba',
     },
     {
-      id: 'saudi',
-      name: { ar: 'إذاعة القرآن الكريم — السعودية', es: 'Radio del Corán — Arabia Saudí', en: 'Quran Radio — Saudi Arabia' },
-      descKey: 'stationSaudiDesc',
-      url: 'https://stream.radiojar.com/0tpy1h0kxtzuv',
+      id: 'jordan',
+      name: { ar: 'إذاعة القرآن الكريم — الأردن', es: 'Radio del Corán — Jordania', en: 'Quran Radio — Jordan' },
+      descKey: 'stationJordanDesc',
+      url: 'https://jrtv-live.ercdn.net/jrradio/quranradio.m3u8',
       img: 'kaaba2',
+    },
+    {
+      id: 'palestine',
+      name: { ar: 'إذاعة القرآن الكريم — نابلس، فلسطين', es: 'Radio del Corán — Nablus, Palestina', en: 'Quran Radio — Nablus, Palestine' },
+      descKey: 'stationPalestineDesc',
+      url: 'https://streaming.zaytonatube.com:8081/holyquran/holyquran/index.m3u8',
+      img: 'quran2',
     },
     {
       id: 'mix',
@@ -225,7 +250,7 @@ const RadioData = {
   // ============ القرّاء (بث متواصل ٢٤/٧ — MP3Quran / qurango) ============
   RECITERS: [
     { id: 'maher',    name: { ar: 'ماهر المعيقلي', es: 'Maher Al-Muaiqly', en: 'Maher Al-Muaiqly' },      url: 'https://backup.qurango.net/radio/maher', img: 'kaaba2' },
-    { id: 'afasy',    name: { ar: 'مشاري راشد العفاسي', es: 'Mishary Alafasy', en: 'Mishary Alafasy' },   url: 'https://backup.qurango.net/radio/mishary_alafasi', img: 'quran' },
+    { id: 'balushi',  name: { ar: 'هزاع البلوشي', es: 'Hazza Al-Balushi', en: 'Hazza Al-Balushi' },       url: 'https://backup.qurango.net/radio/hazza_albalushi', img: 'quran' },
     { id: 'minshawi', name: { ar: 'محمد صديق المنشاوي', es: 'M. Siddiq Al-Minshawi', en: 'M. Siddiq Al-Minshawi' }, url: 'https://backup.qurango.net/radio/mohammed_siddiq_alminshawi', img: 'quran2' },
     { id: 'minshawi_mj', name: { ar: 'المنشاوي (مجوَّد)', es: 'Al-Minshawi (Muyawwad)', en: 'Al-Minshawi (Mujawwad)' }, url: 'https://backup.qurango.net/radio/mohammed_siddiq_alminshawi_mojawwad', img: 'quran' },
     { id: 'hussary',  name: { ar: 'محمود خليل الحصري', es: 'M. Khalil Al-Husary', en: 'M. Khalil Al-Husary' }, url: 'https://backup.qurango.net/radio/mahmoud_khalil_alhussary', img: 'kaaba' },
@@ -249,10 +274,18 @@ const RadioData = {
   // ============ v57: قرّاء إضافيون للتلاوة المترجمة (آية/آية — everyayah) ============
   // (أُزيل قسم «القراءات العشر» بناءً على طلب المستخدم)
   EXTRA_RECITERS: [
+    // v59: قرّاء بتلاوة سورة كاملة (ملف واحد لكل سورة من خوادم MP3Quran)
+    // server: رابط الخادم الجاهز — تُبنى الأغنية كـ server + SSSAAA.mp3
+    { id: 'luhaidan_tl', folder: 'luhaidan_mp3quran', server: 'https://server8.mp3quran.net/lhdan/', surahTotal: 114, name: { ar: 'محمد اللحيدان', es: 'Muhammad Al-Luhaidan', en: 'Muhammad Al-Luhaidan' } },
+    { id: 'nuaina_tl', folder: 'nuaina_mp3quran', server: 'https://server11.mp3quran.net/ahmad_nu/', surahTotal: 114, name: { ar: 'أحمد نعينع', es: 'Ahmad Nuaina', en: 'Ahmad Nuaina' } },
+    { id: 'islam_tl', folder: 'islam_mp3quran', server: 'https://server14.mp3quran.net/islam/Rewayat-Hafs-A-n-Assem/', surahTotal: 109, surahList: '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,38,41,42,43,44,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114', name: { ar: 'إسلام صبحي', es: 'Islam Sobhi', en: 'Islam Sobhi' } },
     { id: 'husary_tl',  folder: 'Husary_128kbps', name: { ar: 'محمود خليل الحصري', es: 'M. Khalil Al-Husary', en: 'M. Khalil Al-Husary' } },
     { id: 'minshawi_tl', folder: 'Minshawy_Murattal_128kbps', name: { ar: 'محمد صديق المنشاوي', es: 'M. Siddiq Al-Minshawi', en: 'M. Siddiq Al-Minshawi' } },
     { id: 'basit_tl',   folder: 'Abdul_Basit_Murattal_192kbps', name: { ar: 'عبد الباسط عبد الصمد (مرتّل)', es: 'Abdul Basit (Murattal)', en: 'Abdul Basit (Murattal)' } },
     { id: 'ajmy_tl',    folder: 'Ahmed_ibn_Ali_al-Ajamy_128kbps_ketaballah.net', name: { ar: 'أحمد بن علي العجمي', es: 'Ahmed Al-Ajmi', en: 'Ahmed Al-Ajmi' } },
+    // v61: بديلا العفاسي — الشيخ ياسر الدوسري وهزاع البلوشي (سورة كاملة، خوادم MP3Quran، متحقق منها)
+    { id: 'dosari_tl',  folder: 'dosari_mp3quran',  server: 'https://server11.mp3quran.net/yasser/', surahTotal: 114, name: { ar: 'ياسر الدوسري', es: 'Yasser Al-Dosari', en: 'Yasser Al-Dosari' } },
+    { id: 'balushi_tl', folder: 'balushi_mp3quran', server: 'https://server11.mp3quran.net/hazza/',  surahTotal: 114, name: { ar: 'هزاع البلوشي', es: 'Hazza Al-Balushi', en: 'Hazza Al-Balushi' } },
   ],
 
   // ============ الأذكار والرقية الشرعية وتكبيرات العيد ============
@@ -269,13 +302,16 @@ const RadioData = {
   SLEEP_SURAHS: [67, 32, 55, 56, 112, 113, 114],
 
   // ============ التلاوة المترجمة (آية/آية عبر everyayah — متحقق منه) ============
+  // v61: أُزيل العفاسي نهائيًا من كل أقسام الراديو — الدوسري (آية/آية عبر everyayah) هو الافتراضي
   AV_RECITERS: [
-    { id: 'alafasy', folder: 'Alafasy_128kbps', name: { ar: 'مشاري راشد العفاسي', es: 'Mishary Alafasy', en: 'Mishary Alafasy' } },
+    { id: 'dosari', folder: 'Dussary_128kbps', name: { ar: 'ياسر الدوسري', es: 'Yasser Al-Dosari', en: 'Yasser Al-Dosari' } },
     { id: 'abdulsamad', folder: 'AbdulSamad_64kbps_QuranExplorer.Com', name: { ar: 'عبد الباسط عبد الصمد', es: 'Abdul Basit Abdul Samad', en: 'Abdul Basit Abdul Samad' } },
   ],
 
   ayahUrl(folder, surah, ayah) {
     const p = (n) => String(n).padStart(3, '0');
+    // v59: خادم MP3Quran يُمرَّر كاملاً (http…) — الملف SSSAAA.mp3 مباشرة عليه
+    if (/^https?:\/\//.test(folder)) return folder + p(surah) + p(ayah) + '.mp3';
     return `https://everyayah.com/data/${folder}/${p(surah)}${p(ayah)}.mp3`;
   },
 

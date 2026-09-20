@@ -12,7 +12,8 @@
     "audit:deps": "npm audit --audit-level=moderate",
     "serve": "python3 -m http.server 8080",
     "test": "playwright test",
-    "test:headed": "playwright test --headed"
+    "test:headed": "playwright test --headed",
+    "verify:hijri": "node scripts/verify-hijri.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",

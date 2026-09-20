@@ -172,6 +172,16 @@
   font-size: 16px;
 }
 .radio-ctl.side.sleep-on { background: rgba(245,192,78,0.25); border-color: #F5C04E; color: #F5C04E; }
+
+/* v59: زر الإعادة الفعّال — أوضاعه الثلاثة (السورة / الكل / عشوائي) */
+.radio-ctl.side.rep-one .rep-badge {
+  position: absolute; top: -3px; inset-inline-end: -3px;
+  width: 15px; height: 15px; border-radius: 50%;
+  background: #F5C04E; color: #4a3000;
+  font-size: 9.5px; font-weight: 800; line-height: 15px; text-align: center;
+}
+.radio-ctl.side.rep-all { border-color: #F5C04E; color: #F5C04E; }
+.radio-ctl.side.rep-random { background: rgba(245,192,78,0.25); border-color: #F5C04E; color: #F5C04E; }
 .radio-ctl.main {
   width: 74px; height: 74px; border-radius: 50%;
   background: linear-gradient(145deg, #F5C04E, #d99a1f);

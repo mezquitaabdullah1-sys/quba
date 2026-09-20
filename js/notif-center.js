@@ -7,14 +7,16 @@
 //   2) الصلاة على النبي ﷺ كل 3 ساعات من 9 صباحاً إلى 9 مساءً مع صوت
 //   3) دعاء الصباح ودعاء المساء مع صوت
 //   4) «اقتربت الصلاة» (قبل 15 دقيقة) الآن مع صوت تنبيه — انظر notifications.js
-//   5) إشعار ثابت بالصلاة القادمة والوقت المتبقي (يُحدَّث كل دقيقة)
+//   5) إشعار ثابت بالصلاة القادمة والوقت المتبقي (يُحدَّث كل ثانية — v59)
 //   كل عنصر له مفتاح تفعيل/إيقاف مستقل في إعدادات «الأذان والإشعارات».
 const NotifCenter = {
   storageKey: 'notif_center',
 
   // الإعدادات الافتراضية — كلها مفعّلة ما عدا ما يعطّله المستخدم
+  // v59: أُزيل مفتاح adhanAlert المستقل — بطاقة تنبيه الأذان اندمجت في
+  // مفتاح «تنبيه الأذان» الرئيسي (PrayerNotifications)، فلم تعد بحاجة
+  // لمفتاح تفعيل خاص بها هنا.
   defaults: {
-    adhanAlert: true,    // بطاقة الأذان مع حديث + أزرار
     snooze: true,        // تذكير «هل صليت؟» بعد 15 دقيقة
     salawat: true,       // الصلاة على النبي كل 3 ساعات (9ص–9م)
     salawatVoice: true,  // نطق الصلاة على النبي صوتياً (TTS عربي) + نغمة
@@ -176,23 +178,22 @@ const NotifCenter = {
   // تُستدعى من PrayerNotifications.notify عند دخول وقت الصلاة
   // v58: تنبيه الأذان يظهر في خانة إشعارات النظام (لا داخل التطبيق) مع
   // زرّي «إيقاف الأذان» و«تذكير بعد ١٥ دقيقة» أسفل الإشعار مباشرة.
+  // v59: «بطاقة تنبيه الأذان» لم تعد ميزة قابلة للتفعيل/الإطفاء بشكل مستقل —
+  // اندمجت في مفتاح «تنبيه الأذان» الرئيسي (PrayerNotifications.isEnabled).
+  // هذه الدالة أصلاً لا تُستدعى إلا من PrayerNotifications.notify() الذي
+  // يتحقق من ذلك المفتاح أولاً، فلا حاجة لشرط إضافي هنا.
   async showAdhanAlert(prayerKey, fallbackName) {
     const name = this._loc() === 'ar' ? this.prayerNameAr(prayerKey) : (fallbackName || prayerKey);
     const title = this._t('adhanTitle', name);
     const hadithRow = this.PRAYER_HADITHS[prayerKey] || this.PRAYER_HADITHS.Dhuhr;
     const hadith = hadithRow[this._loc()] || hadithRow.ar;
 
-    if (this.isOn('adhanAlert')) {
-      const actions = [{ action: 'stop', title: '🔇 ' + this._t('stopAdhan') }];
-      if (this.isOn('snooze')) actions.push({ action: 'snooze', title: this._t('snooze15') });
-      const shown = await this._notifyActions('🕌 ' + title, hadith, 'quba-adhan-' + prayerKey, actions);
-      // البطاقة داخل التطبيق تظهر فقط إن رفض المستخدم إذن الإشعارات كلياً
-      if (!shown && (typeof Notification === 'undefined' || Notification.permission !== 'granted')) {
-        this._renderOverlay(prayerKey, title, hadith);
-      }
-    } else {
-      // التنبيه مقفل من الإعدادات — إشعار بسيط فقط (سلوك ما قبل v55)
-      this._notify('🕌 ' + title, hadith, 'quba-adhan-' + prayerKey);
+    const actions = [{ action: 'stop', title: '🔇 ' + this._t('stopAdhan') }];
+    if (this.isOn('snooze')) actions.push({ action: 'snooze', title: this._t('snooze15') });
+    const shown = await this._notifyActions('🕌 ' + title, hadith, 'quba-adhan-' + prayerKey, actions);
+    // البطاقة داخل التطبيق تظهر فقط إن رفض المستخدم إذن الإشعارات كلياً
+    if (!shown && (typeof Notification === 'undefined' || Notification.permission !== 'granted')) {
+      this._renderOverlay(prayerKey, title, hadith);
     }
   },
 
@@ -340,11 +341,16 @@ const NotifCenter = {
   },
 
   // ============ 5) الإشعار الثابت بالصلاة القادمة ============
+  // v59: كان يتحدّث كل دقيقة فقط، فتبدو الثواني ثابتة/متجمدة بين التحديثات.
+  // الآن يتحدّث كل ثانية ليعرض العد التنازلي بشكل حي.
+  // ملاحظة: هذا يعمل فقط أثناء تشغيل الصفحة (أو عند نشاطها الأخير) — لا توجد
+  // طريقة عبر الويب لإبقاء عدّاد نظام حي التحديث والتطبيق مغلق تماماً، لأن
+  // المتصفح يُبطئ مؤقتات الخلفية في تلك الحالة (قيد في تقنية الويب نفسها).
   startPersistent() {
     if (this._persistTimer) { clearInterval(this._persistTimer); this._persistTimer = null; }
     if (!this.isOn('persistent')) return;
     this._updatePersistent(); // فوراً
-    this._persistTimer = setInterval(() => this._updatePersistent(), 60 * 1000);
+    this._persistTimer = setInterval(() => this._updatePersistent(), 1000);
   },
 
   async _updatePersistent() {

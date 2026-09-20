@@ -406,17 +406,36 @@ const Onboarding = {
     setTimeout(() => inp.focus(), 120);
   },
 
-  /** Guardar fin de la jaula y refrescar la página actual */
+  /** Guardar fin de la jaula y refrescar la página actual SOLO si hace falta */
   finish() {
+    // v61: antes esto repintaba Inicio SIEMPRE al cerrar la jaula — pero
+    // Inicio ya se había cargado en paralelo por debajo (app.js llama a
+    // Router.go('home') justo después de mostrar la jaula, sin esperarla),
+    // así que para cuando el usuario terminaba la introducción, Inicio
+    // solía estar YA lista — y este repintado forzado la volvía a poner en
+    // skeleton y a repetir la petición de ubicación/horarios desde cero,
+    // haciendo esperar al usuario justo después de la introducción (y dando
+    // la sensación de «recarga cada vez»). Ahora solo se repinta si la
+    // ubicación cambió de verdad durante la jaula (GPS/búsqueda manual
+    // confirmados, o se acaba de fijar la ubicación por defecto porque no
+    // había ninguna) — si Inicio ya está pintada con esa misma ubicación,
+    // se deja tal cual: instantánea.
+    let locationChanged = false;
     try {
+      const prevLoc = (typeof AppState !== 'undefined') ? AppState.location : null;
       Storage.set('onboardingDone', true, 3650 * 24 * 60 * 60 * 1000);
       // Si el usuario se saltó la ubicación, fijar la ciudad por defecto para
       // que la home no vuelva a pedir GPS por su cuenta.
       if (!Storage.get('last_location') && typeof LocationService !== 'undefined') {
         LocationService.useDefault();
       }
+      const newLoc = Storage.get('last_location');
+      if (newLoc && (!prevLoc || prevLoc.latitude !== newLoc.latitude || prevLoc.longitude !== newLoc.longitude)) {
+        locationChanged = true;
+      }
     } catch (e) {}
     this._close(() => {
+      if (!locationChanged) return;
       try {
         if (typeof Router !== 'undefined' && Router.current) {
           const r = Router.current.route;

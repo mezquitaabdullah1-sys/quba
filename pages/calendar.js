@@ -36,9 +36,11 @@ const CalendarPage = {
   },
 
   formatMonth() {
-    const d = new Date();
-    d.setMonth(d.getMonth() + this.monthOffset);
-    return d;
+    // v1.0.58: se fija el día 1 ANTES de sumar meses. Con new Date().setMonth()
+    // el día 29-31 desbordaba (p. ej. 31 ago + 1 mes → 1 oct) y el botón «›»
+    // se saltaba un mes entero del calendario.
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() + this.monthOffset, 1);
   },
 
   changeMonth(delta) {
@@ -403,12 +405,16 @@ const CalendarPage = {
           </div>
         `).join('')}
       </div>
+      <div class="countdowns-note">${{
+        es: 'Fechas según el calendario Umm al-Qura; pueden variar ±1 día según la visión local de la luna.',
+        ar: 'المواعيد وفق تقويم أم القرى، وقد تختلف بيوم واحد تبعًا لرؤية الهلال في بلدك.',
+        en: 'Dates follow the Umm al-Qura calendar and may differ by ±1 day depending on local moon sighting.',
+      }[langKey]}</div>
     `;
   },
 
   _computeUpcomingEvents() {
-    // Use known Hijri calendar dates for 1447-1449 AH
-    // Format: { hMonth, hDay, name:{es,ar,en}, color, icon, gregEstimate }
+    // Occasions by Hijri month/day; Gregorian date is resolved exactly per year.
     const defs = [
       { h: 1,  d: 1,  key: 'hijri_new_year',   color: '#8E6E1E', icon: '<i class="fas fa-star"></i>', name: { es:'Año Nuevo Islámico', ar:'رأس السنة الهجرية', en:'Islamic New Year' } },
       { h: 1,  d: 10, key: 'ashura',            color: '#7E57C2', icon: '<i class="fas fa-mosque"></i>', name: { es:'Ashura', ar:'عاشوراء', en:'Ashura' } },
@@ -424,40 +430,26 @@ const CalendarPage = {
       { h: 12, d: 10, key: 'eid_adha',          color: '#D4AF37', icon: '<i class="fas fa-paw"></i>', name: { es:'Eid al-Adha', ar:'عيد الأضحى', en:'Eid al-Adha' } },
     ];
 
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const todayMs = today.getTime();
-
-    // v19: fixed countdown math. Old code mixed months+days
-    // (`(h-1)+(d-1)` × 29.5) and anchored ONLY to Hijri year 1447, so dates
-    // were off by weeks and events never rolled into the current Hijri year.
-    // Now: compute the event's next occurrence in the CURRENT or NEXT Hijri
-    // year, using 1 Muharram 1447 ≈ 2025-06-25 as epoch anchor.
-    const currentHijriYear = (typeof API !== 'undefined' && typeof API._gregorianToHijri === 'function')
-      ? API._gregorianToHijri(new Date()).year
-      : 1447;
-    const anchor1447 = new Date('2025-06-25T00:00:00'); // 1 Muharram 1447
-    const AVG_HIJRI_YEAR = 354.367;   // days per Hijri year (30-year cycle average)
-    const AVG_HIJRI_MONTH = 29.5306;  // days per lunar month
-
+    // v1.0.58: fechas EXACTAS (Umm al-Qura) vía HijriCalc. Antes se estimaba
+    // con meses lunares promedio y un ancla desfasada (1 Muharram 1447 =
+    // 2025-06-25, real 2025-06-26) → todas las ocasiones salían 1-2 días
+    // ANTES de lo real (p. ej. Ramadán 1448: mostraba 6 feb 2027, real 8 feb).
     const out = [];
+    if (typeof HijriCalc === 'undefined') return out;
+    const now = new Date();
+    const loc = currentLocale === 'ar' ? 'ar-EG' : currentLocale;
     for (const def of defs) {
-      for (const hYear of [currentHijriYear, currentHijriYear + 1]) {
-        const approxDays = Math.round(
-          (hYear - 1447) * AVG_HIJRI_YEAR + (def.h - 1) * AVG_HIJRI_MONTH + (def.d - 1)
-        );
-        const targetGreg = new Date(anchor1447.getTime() + approxDays * 86400000);
-        const diffDays = Math.round((targetGreg.getTime() - todayMs) / 86400000);
-        if (diffDays >= 0) { // next occurrence found
-          out.push({
-            ...def,
-            daysLeft: diffDays,
-            gregDate: targetGreg.toLocaleDateString(currentLocale === 'ar' ? 'ar-EG' : currentLocale, { month:'short', day:'numeric' }),
-            hijriDate: `${def.d}/${def.h}/${hYear}`,
-          });
-          break;
-        }
-      }
+      const occ = HijriCalc.nextOccurrence(def.h, def.d, now);
+      if (!occ) continue;
+      const sameYear = occ.date.getFullYear() === now.getFullYear();
+      out.push({
+        ...def,
+        daysLeft: occ.daysLeft,
+        gregDate: occ.date.toLocaleDateString(loc, sameYear
+          ? { month: 'short', day: 'numeric' }
+          : { month: 'short', day: 'numeric', year: 'numeric' }),
+        hijriDate: `${def.d}/${def.h}/${occ.hijriYear}`,
+      });
     }
     // Sort by days left
     out.sort((a, b) => a.daysLeft - b.daysLeft);

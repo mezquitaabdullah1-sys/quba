@@ -1615,6 +1615,8 @@ const QuranPage = {
     const sizeLabel = svc.formatBytes(rec?.bytes || svc.estimateSurahBytes(surahNum));
     const dl = svc._audioDl;
     const isThis = dl && dl.reciter === reciter && dl.surah === surahNum;
+    // v60: estado de pausa reanudable para esta sura/recitador
+    const paused = !isThis && !svc._audioDownloading && svc._pausedAt && svc._pausedAt.reciter === reciter && svc._pausedAt.surah === surahNum;
     const all = svc.getAudioDownloads();
     const totalBytes = all.reduce((s, d) => s + (d.bytes || 0), 0);
 
@@ -1642,6 +1644,12 @@ const QuranPage = {
           ${this._dlAllActive ? `<button class="btn-ghost am-danger" onclick="QuranPage.cancelDownloadAll()"><i class="fas fa-stop"></i> ${t('audioCancel')}</button>` : ''}
         </div>
 
+        ${this._dlAllActive ? `
+          <div class="am-overall" id="am-overall">
+            <div class="am-overall-text" id="am-overall-text">${t('audioOverall')}: ${this._dlAllDone || 0}/${this._dlAllTotal || 114}</div>
+            <div class="am-progress-track"><div class="am-progress-fill" id="am-overall-fill" style="width:${Math.round(((this._dlAllDone || 0) / (this._dlAllTotal || 114)) * 100)}%"></div></div>
+          </div>` : ''}
+
         <div class="am-target-card">
           <div class="am-target-info">
             <div class="am-target-name">${surahNum}. ${Validate.escapeHTML(surahName)}</div>
@@ -1655,7 +1663,19 @@ const QuranPage = {
             <div class="am-progress">
               <div class="am-progress-track"><div class="am-progress-fill" id="am-progress-fill" style="width:${Math.round((dl.done / dl.total) * 100)}%"></div></div>
               <div class="am-progress-text" id="am-progress-text">${dl.done}/${dl.total} · ${svc.formatBytes(dl.bytes)}</div>
-              <button class="btn-ghost btn-small" onclick="QuranOfflineService.cancelDownload(); QuranPage._renderAudioManagerBody();"><i class="fas fa-stop"></i> ${t('audioCancel')}</button>
+              <div class="am-progress-btns">
+                <button class="btn-ghost btn-small" onclick="QuranPage.pauseAudioDownload()"><i class="fas fa-pause"></i> ${t('audioPause')}</button>
+                <button class="btn-ghost btn-small" onclick="QuranOfflineService.cancelDownload(); QuranPage._renderAudioManagerBody();"><i class="fas fa-stop"></i> ${t('audioCancel')}</button>
+              </div>
+            </div>
+          ` : paused ? `
+            <div class="am-progress">
+              <div class="am-status warn"><i class="fas fa-pause-circle"></i> ${t('audioPaused')} · ${svc._pausedAt.done}/${svc._pausedAt.total}</div>
+              <div class="am-progress-track"><div class="am-progress-fill" style="width:${Math.round((svc._pausedAt.done / svc._pausedAt.total) * 100)}%"></div></div>
+              <div class="am-actions">
+                <button class="btn-primary" onclick="QuranPage.resumeAudioDownload()"><i class="fas fa-play"></i> ${t('audioResume')}</button>
+                <button class="btn-ghost am-danger" onclick="QuranPage.discardPausedDownload()"><i class="fas fa-trash-alt"></i> ${t('audioDelete')}</button>
+              </div>
             </div>
           ` : downloaded ? `
             <div class="am-status ok"><i class="fas fa-circle-check"></i> ${t('audioSavedOffline')} · ${sizeLabel}</div>
@@ -1710,6 +1730,11 @@ const QuranPage = {
     const text = document.getElementById('am-progress-text');
     if (fill) fill.style.width = Math.round((dl.done / dl.total) * 100) + '%';
     if (text) text.textContent = `${dl.done}/${dl.total} · ${svc.formatBytes(dl.bytes)}`;
+    // v60: progreso global de «descargar todo» (sura X de 114 + aleyas)
+    const oTxt = document.getElementById('am-overall-text');
+    if (oTxt) oTxt.textContent = `${t('audioOverall')}: ${this._dlAllDone || 0}/${this._dlAllTotal || 114} · ${t('surah')} ${this._dlAllCurrent || dl.surah} — ${dl.done}/${dl.total}`;
+    const oFill = document.getElementById('am-overall-fill');
+    if (oFill) oFill.style.width = Math.round(((this._dlAllDone || 0) / (this._dlAllTotal || 114)) * 100) + '%';
   },
 
   openAudioReciterPicker() {
@@ -1804,14 +1829,19 @@ const QuranPage = {
     if (!list.length) return;
     this._dlAllActive = true;
     this._dlAllStop = false;
+    this._dlAllTotal = list.length;
+    this._dlAllDone = 0;
+    this._dlAllCurrent = '';
     this._renderAudioManagerBody();
     let doneCount = 0;
     for (const s of list) {
       if (this._dlAllStop || svc._cancelRequested) break;
-      if (svc.isSurahAudioDownloaded(reciter, s.number)) { doneCount++; continue; }
+      if (svc.isSurahAudioDownloaded(reciter, s.number)) { doneCount++; this._dlAllDone = doneCount; continue; }
       if (!navigator.onLine) { showToast('📴 ' + t('quranDownloadPaused')); break; }
+      this._dlAllCurrent = s.number;
       const ok = await svc.downloadSurahAudio(reciter, s.number);
       if (ok) doneCount++;
+      this._dlAllDone = doneCount;
       this.updateAudioDownloadBadge();
       if (svc._cancelRequested || this._dlAllStop) break;
     }
@@ -1823,6 +1853,25 @@ const QuranPage = {
   cancelDownloadAll() {
     this._dlAllStop = true;
     QuranOfflineService.cancelDownload();
+  },
+
+  // v60: pausar la descarga en curso (conserva el progreso para reanudar)
+  pauseAudioDownload() {
+    QuranOfflineService.pauseDownload();
+    // El evento 'audio-paused' redibuja el gestor con el botón «Reanudar»
+  },
+
+  // v60: reanudar desde el punto de pausa
+  resumeAudioDownload() {
+    if (!navigator.onLine) { showToast('📴 ' + t('quranDownloadPaused')); return; }
+    QuranOfflineService.resumeSurahAudio();
+    this._renderAudioManagerBody();
+  },
+
+  // v60: descartar la pausa (el usuario no quiere seguir con esa descarga)
+  discardPausedDownload() {
+    QuranOfflineService._pausedAt = null;
+    this._renderAudioManagerBody();
   },
 
   async deleteSurahAudio() {

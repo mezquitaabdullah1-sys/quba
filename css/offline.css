@@ -298,3 +298,21 @@
 .am-picker-head .am-label { margin-bottom: 0; flex: 1; }
 .audio-manager .picker-list { padding: 0 var(--sp-md); }
 .audio-manager .picker-search { margin: 0 var(--sp-md) var(--sp-sm); }
+
+/* ============================================================
+   v60: pausa / reanudación + progreso global del gestor de audio
+   ============================================================ */
+.am-progress-btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.am-status.warn { color: var(--warning, #f0b429); font-size: 13px; margin-bottom: 6px; text-align: center; }
+.am-overall {
+  margin: 2px 0 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border, rgba(255,255,255,.1));
+  border-radius: 12px;
+}
+.am-overall-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  text-align: center;
+}

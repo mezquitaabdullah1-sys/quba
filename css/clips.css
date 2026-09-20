@@ -3,10 +3,21 @@
 
 /* ---------- قسم الرئيسية (تحت الراديو) ---------- */
 .clips-home-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* v59: شريط أفقي قابل للتمرير — يعرض حتى ١٠ فيديوهات */
+  display: flex;
   gap: var(--sp-sm, 10px);
   margin-bottom: var(--sp-md, 16px);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+.clips-home-row::-webkit-scrollbar { display: none; }
+.clips-home-row .clip-home-card {
+  flex: 0 0 46%;
+  min-width: 160px;
+  scroll-snap-align: start;
 }
 
 .clip-home-card {
@@ -292,3 +303,42 @@
   gap: 5px;
   padding: 4px 2px;
 }
+
+/* ============ v61: شريط «أكمل القراءة» + بطاقات المناسبة/الصيام ============ */
+.resume-strip {
+  display: flex; align-items: center; gap: 10px;
+  width: calc(100% - 2 * var(--sp-md)); margin: 2px var(--sp-md) 6px;
+  padding: 7px 12px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--glass-border, rgba(255,255,255,.08));
+  background: linear-gradient(135deg, var(--color-primary, #0f4c5c) 0%, #0b3d49 100%);
+  color: #fff; text-align: start; font-family: inherit;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.resume-strip:active { transform: scale(.98); }
+.resume-strip-ic {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(216,178,106,.22); color: var(--color-accent, #d8b26a); font-size: 12px;
+}
+.resume-strip-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.resume-strip-label { font-size: 10px; opacity: .72; font-weight: 500; }
+.resume-strip-title { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.resume-strip-meta { font-size: 10.5px; opacity: .78; }
+.resume-strip-arrow { font-size: 12px; opacity: .6; flex-shrink: 0; }
+
+.home-mini-card {
+  display: flex; align-items: center; gap: 10px;
+  margin: 10px 0 0; padding: 9px 12px; border-radius: 12px;
+  background: var(--color-card, rgba(255,255,255,.04));
+  border: 1px solid var(--glass-border, rgba(255,255,255,.08));
+}
+.home-mini-ic {
+  flex-shrink: 0; width: 32px; height: 32px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.home-mini-ic.ev { background: rgba(216,178,106,.15); color: var(--color-accent, #d8b26a); }
+.home-mini-ic.fast { background: rgba(15,76,92,.18); color: var(--color-primary, #0f4c5c); }
+.home-mini-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.home-mini-title { font-size: 10.5px; opacity: .65; font-weight: 600; }
+.home-mini-main { font-size: 13.5px; font-weight: 700; }
+.home-mini-meta { font-size: 11px; opacity: .72; }

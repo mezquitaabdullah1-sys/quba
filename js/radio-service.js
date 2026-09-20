@@ -10,6 +10,7 @@ const RadioService = {
   quran: null,          // { folder, reciterName, lang, surah, ayah, total, tr } (وضع quran)
   sleep: { endAt: 0, minutes: 0, timeoutId: null, tickId: null },
   _vol: 1,
+  repeatMode: 'one',    // v59: زر الإعادة — 'one' إعادة السورة | 'all' تشغيل متواصل (الكل) | 'random' عشوائي
   amb: { ctx: null, gain: null, nodes: [], type: null, on: false, vol: 0.15 }, // v58: أصوات خلفية
   _bar: null,
   _barBuilt: false,
@@ -36,16 +37,58 @@ const RadioService = {
     });
     this.audio.addEventListener('ended', () => {
       if (this.mode === 'quran' && this.quran) {
-        if (this.quran.ayah < this.quran.total) { this._playAyah(this.quran.ayah + 1); return; }
+        const q = this.quran;
+        // v59: قرّاء الملف الكامل (MP3Quran) — ملف واحد لكل سورة
+        if (q.whole) {
+          if (this.repeatMode === 'one') { this.audio.currentTime = 0; this.audio.play().catch(() => {}); return; }
+          let ns = 0;
+          if (this.repeatMode === 'random') ns = 1 + Math.floor(Math.random() * 114);
+          else if (this.repeatMode === 'all') ns = (q.surah % 114) + 1;
+          if (ns && ns !== q.surah) {
+            q.surah = ns;
+            q.total = RadioData.surahInfo(ns).ayahs;
+            q.tr = null;
+            if (q.lang) {
+              const lg = q.lang;
+              RadioData.getTranslation(ns, lg).then(map => {
+                if (this.quran === q && !q.tr) { q.tr = map; this._emit(); }
+              }).catch(() => {});
+            }
+          }
+          q.ayah = 0;
+          this._playWhole();
+          return;
+        }
+        if (q.ayah < q.total) { this._playAyah(q.ayah + 1); return; }
         // v58: قائمة قرآن النوم — عند نهاية السورة تنتقل تلقائياً للسورة التالية
-        if (this.quran.playlist && this.quran.plIdx < this.quran.playlist.length - 1) {
-          this.quran.plIdx++;
-          const ns = this.quran.playlist[this.quran.plIdx];
-          this.quran.surah = ns;
-          this.quran.total = RadioData.surahInfo(ns).ayahs;
-          this.quran.ayah = 0;
+        if (q.playlist && q.plIdx < q.playlist.length - 1) {
+          q.plIdx++;
+          const ns = q.playlist[q.plIdx];
+          q.surah = ns;
+          q.total = RadioData.surahInfo(ns).ayahs;
+          q.ayah = 0;
           this._playAyah(1);
           return;
+        }
+        // v59: أوضاع الإعادة عند نهاية السورة (لا تنطبق على قائمة النوم)
+        if (!q.sleep) {
+          if (this.repeatMode === 'one') { this._playAyah(1); return; }
+          const pick = this.repeatMode === 'random' ? (1 + Math.floor(Math.random() * 114))
+                     : this.repeatMode === 'all' ? (q.surah % 114) + 1 : 0;
+          if (pick) {
+            q.surah = pick;
+            q.total = RadioData.surahInfo(pick).ayahs;
+            q.surahTotal = null;
+            q.tr = null;
+            if (q.lang) {
+              const lg = q.lang;
+              RadioData.getTranslation(pick, lg).then(map => {
+                if (this.quran === q && !q.tr) { q.tr = map; this._emit(); }
+              }).catch(() => {});
+            }
+            this._playAyah(1);
+            return;
+          }
         }
         this.stopAll(); // نهاية السورة / القائمة
       }
@@ -77,6 +120,9 @@ const RadioService = {
       folder: cfg.folder, reciterName: cfg.reciterName, lang: cfg.lang || null,
       surah: cfg.surah, ayah: 0, total: info.ayahs, tr: null,
       sleep: !!cfg.sleep, playlist: cfg.playlist || null, plIdx: 0,
+      // v59: folder يبدأ بـ http = خادم MP3Quran (سورة كاملة في ملف واحد)
+      whole: /^https?:\/\//.test(cfg.folder),
+      surahTotal: cfg.surahTotal || null,
     };
     this.state = 'loading';
     this._emit();
@@ -90,7 +136,30 @@ const RadioService = {
       } catch (e) { /* نكمل بلا ترجمة */ }
       if (!this.quran || this.quran.surah !== cfg.surah) return; // غيّر المستخدم السورة أثناء الجلب
     }
+    if (this.quran.whole) { this._playWhole(); return; }
     this._playAyah(1);
+  },
+
+  // v59: تشغيل سورة كاملة (ملف واحد SSS.mp3) من خوادم MP3Quran
+  _playWhole() {
+    const q = this.quran;
+    if (!q) return;
+    q.ayah = 1;
+    this.state = 'loading';
+    this.audio.src = q.folder + String(q.surah).padStart(3, '0') + '.mp3';
+    this.audio.volume = this._vol;
+    this.audio.play().catch(() => { this.state = 'error'; this._emit(); });
+    this._mediaSession(RadioData.surahName(q.surah), q.reciterName, RadioData.IMG.quran);
+    this._emit();
+  },
+
+  // v59: زر الإعادة الفعّال — يتنقل عند كل ضغطة:
+  // إعادة السورة ← إعادة الكل (تشغيل متواصل) ← اختيار عشوائي
+  cycleRepeat() {
+    const order = ['one', 'all', 'random'];
+    this.repeatMode = order[(order.indexOf(this.repeatMode) + 1) % order.length];
+    if (typeof showToast === 'function') showToast('🔁 ' + RadioData.L('rep_' + this.repeatMode), 1600);
+    this._emit();
   },
 
   _playAyah(i) {
@@ -113,8 +182,8 @@ const RadioService = {
     this._emit();
   },
 
-  nextAyah() { if (this.mode === 'quran' && this.quran) this._playAyah(this.quran.ayah + 1); },
-  prevAyah() { if (this.mode === 'quran' && this.quran) this._playAyah(Math.max(1, this.quran.ayah - 1)); },
+  nextAyah() { if (this.mode === 'quran' && this.quran && !this.quran.whole) this._playAyah(this.quran.ayah + 1); },
+  prevAyah() { if (this.mode === 'quran' && this.quran && !this.quran.whole) this._playAyah(Math.max(1, this.quran.ayah - 1)); },
   replayAyah() {
     if (this.mode === 'quran' && this.quran && this.quran.ayah > 0) {
       this.audio.currentTime = 0;

@@ -322,8 +322,15 @@ const QuizPage = {
 
   confirmExit() {
     if (confirm(t('confirmExitQuiz') || '¿Salir del quiz? Perderás tu progreso actual.')) {
+      // v60: salir SOLO del test en curso — vuelve a la selección de nivel
+      // de la MISMA categoría, no al listado general de categorías.
+      const category = this.state ? this.state.category : null;
       this.state = null;
-      Router.go('wisdom/quiz');
+      if (category && this.CATEGORIES.some(c => c.id === category)) {
+        this.renderLevelSelect(category);
+      } else {
+        Router.go('wisdom/quiz');
+      }
     }
   },
 

@@ -26,68 +26,104 @@ const API = {
 
     const cacheKey = `prayer_${lat.toFixed(2)}_${lng.toFixed(2)}_${dd}-${mm}-${yyyy}_${method}`;
     const cached = Storage.get(cacheKey);
-    // v36: la caché Muslim Pro es exacta → se sirve directo. La caché de
-    // Aladhan/cálculo local (±1-3 min de desfase en Shuruk/Maghrib/Isha) YA
-    // NO cortocircuita: se reintenta Muslim Pro en cada carga con red para
-    // autocurar datos antiguos, y solo se usa como último respaldo.
-    if (cached && cached._source === 'muslimpro') return _withDelta(this._applyTimeShift(cached));
 
-    // v21: sin red → respaldo: caché local (aunque no sea Muslim Pro) y,
-    // en su defecto, el cálculo astronómico local.
+    // v61: CUALQUIER caché de HOY (Muslim Pro o no) se sirve YA — instantáneo.
+    // Antes solo la caché de Muslim Pro cortocircuitaba aquí (v36); si no
+    // había proxy backend desplegado (CONFIG.API.PROXY vacío — requiere el
+    // Cloudflare Worker de backend/, un paso aparte del despliegue estático),
+    // el acceso directo a Muslim Pro fallaba SIEMPRE por CORS, así que CADA
+    // carga de Inicio repetía la cadena completa de red (Muslim Pro directo
+    // + Aladhan) antes de poder pintar — causa real de «recarga cada vez que
+    // se vuelve a Inicio». El auto-curado de v36 se conserva intacto, solo
+    // que ahora corre en segundo plano sin bloquear esta llamada: si la
+    // caché no es de Muslim Pro, se dispara un refresco que actualiza la
+    // caché para la PRÓXIMA carga — mismo patrón stale-while-revalidate
+    // que usa sw.js para el app shell.
+    if (cached) {
+      if (cached._source !== 'muslimpro' && navigator.onLine) {
+        this._refreshTimingsInBackground(lat, lng, date, method, cacheKey);
+      }
+      return _withDelta(this._applyTimeShift(cached));
+    }
+
+    // v21: sin red ni caché → cálculo astronómico local.
     if (!navigator.onLine) {
-      if (cached) return _withDelta(this._applyTimeShift(cached));
       return _withDelta(this._offlinePrayerTimes(lat, lng, date, method));
     }
 
     try {
-      // v27: fuente PRIMARIA = Muslim Pro (espejo exacto, minuto a minuto).
-      // MuslimProSync extrae los propios datos pre-calculados de Muslim Pro;
-      // si no está disponible (sin proxy/CORS), se continúa con Aladhan.
-      if (typeof MuslimProSync !== 'undefined') {
-        try {
-          const mp = await MuslimProSync.getTimings(lat, lng, date, method);
-          if (mp && mp.timings && mp.timings.Fajr) {
-            Storage.set(cacheKey, mp, CONFIG.CACHE_TTL * 14); // 14 days cache
-            return _withDelta(this._applyTimeShift(mp));
-          }
-        } catch (e) {
-          console.warn('MuslimPro sync no disponible, usando Aladhan:', e.message);
-        }
-      }
-
-      // v36: Muslim Pro inalcanzable pero ya hay un dato Muslim Pro cacheado
-      // de este día (p. ej. la página semanal se cargó antes): úsalo aunque
-      // sea viejo antes de degradar a Aladhan — sigue siendo EXACTO.
-      if (cached && cached._source === 'muslimpro') return _withDelta(this._applyTimeShift(cached));
-
-      // v18: If online, fetch + also prefetch next 14 days in background
-      // v44: en Aladhan el ID interno 19 de esta app es ARGELIA (Isha 17°
-      // angular), NO Jordania — pedir 19 directamente daría el método
-      // equivocado. Aladhan añadió después un método NATIVO para Jordania,
-      // id 23 ("Ministry of Awqaf, Islamic Affairs and Holy Places,
-      // Jordan"), verificado 2026-09-13 equivalente a Fajr 18°/Isha 18°
-      // (ver METHOD_PARAMS[19] en prayer-calc.js) — se pide ese id
-      // directamente en vez del remapeo a MWL(3) + parche manual de antes.
-      const apiMethod = (method === 19) ? 23 : method;
-      const url = `${CONFIG.API.ALADHAN}/timings/${dd}-${mm}-${yyyy}?latitude=${lat}&longitude=${lng}&method=${apiMethod}`;
-      const res = await this._fetchWithTimeout(url, 8000);
-      if (!res.ok) throw new Error('Prayer API error');
-      const json = await res.json();
-      if (json.code !== 200) throw new Error('Prayer API error');
-
-      // v28: corrección regional (Jordania) + ajuste manual por oración
-      json.data = this._postProcessPrayerData(json.data, lat, lng, method, date);
-      Storage.set(cacheKey, json.data, CONFIG.CACHE_TTL * 14); // 14 days cache
-
-      // Background prefetch: next 14 days so app works offline for 2 weeks
-      this._prefetchNext14Days(lat, lng, method).catch(() => {});
-
-      return _withDelta(this._applyTimeShift(json.data));
+      const fresh = await this._fetchFreshTimings(lat, lng, date, method, cacheKey);
+      return _withDelta(this._applyTimeShift(fresh));
     } catch (e) {
       // Red inestable/caída a mitad: nunca dejar al usuario sin nada
       console.warn('Prayer API offline, calculando localmente:', e.message);
       return _withDelta(this._offlinePrayerTimes(lat, lng, date, method));
     }
+  },
+
+  // v61: cadena de obtención en red — Muslim Pro primero (espejo exacto),
+  // Aladhan como respaldo — factorizada para poder llamarse tanto en la
+  // carga en frío (sin caché, bloqueante) como en el refresco en segundo
+  // plano (con caché, no bloqueante). Cachea el resultado y lo devuelve SIN
+  // aplicar _applyTimeShift (lo aplica quien la llame). Lanza si ambas
+  // fuentes fallan.
+  async _fetchFreshTimings(lat, lng, date, method, cacheKey) {
+    // v27: fuente PRIMARIA = Muslim Pro (espejo exacto, minuto a minuto).
+    // MuslimProSync extrae los propios datos pre-calculados de Muslim Pro;
+    // si no está disponible (sin proxy/CORS), se continúa con Aladhan.
+    if (typeof MuslimProSync !== 'undefined') {
+      try {
+        const mp = await MuslimProSync.getTimings(lat, lng, date, method);
+        if (mp && mp.timings && mp.timings.Fajr) {
+          Storage.set(cacheKey, mp, CONFIG.CACHE_TTL * 14); // 14 days cache
+          return mp;
+        }
+      } catch (e) {
+        console.warn('MuslimPro sync no disponible, usando Aladhan:', e.message);
+      }
+    }
+
+    // v18: If online, fetch + also prefetch next 14 days in background
+    // v44: en Aladhan el ID interno 19 de esta app es ARGELIA (Isha 17°
+    // angular), NO Jordania — pedir 19 directamente daría el método
+    // equivocado. Aladhan añadió después un método NATIVO para Jordania,
+    // id 23 ("Ministry of Awqaf, Islamic Affairs and Holy Places,
+    // Jordan"), verificado 2026-09-13 equivalente a Fajr 18°/Isha 18°
+    // (ver METHOD_PARAMS[19] en prayer-calc.js) — se pide ese id
+    // directamente en vez del remapeo a MWL(3) + parche manual de antes.
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    const apiMethod = (method === 19) ? 23 : method;
+    const url = `${CONFIG.API.ALADHAN}/timings/${dd}-${mm}-${yyyy}?latitude=${lat}&longitude=${lng}&method=${apiMethod}`;
+    const res = await this._fetchWithTimeout(url, 8000);
+    if (!res.ok) throw new Error('Prayer API error');
+    const json = await res.json();
+    if (json.code !== 200) throw new Error('Prayer API error');
+
+    // v28: corrección regional (Jordania) + ajuste manual por oración
+    json.data = this._postProcessPrayerData(json.data, lat, lng, method, date);
+    Storage.set(cacheKey, json.data, CONFIG.CACHE_TTL * 14); // 14 days cache
+
+    // Background prefetch: next 14 days so app works offline for 2 weeks
+    this._prefetchNext14Days(lat, lng, method).catch(() => {});
+
+    return json.data;
+  },
+
+  // v61: refresco de fondo no bloqueante — misma cadena que la carga en
+  // frío, pero el llamador (getPrayerTimes) ya respondió con la caché
+  // existente antes de que esto termine. Guard para no lanzar dos
+  // refrescos a la vez para la misma clave (p. ej. Inicio y Oración piden
+  // el mismo día casi al mismo tiempo).
+  _refreshingKeys: null,
+  _refreshTimingsInBackground(lat, lng, date, method, cacheKey) {
+    if (!this._refreshingKeys) this._refreshingKeys = new Set();
+    if (this._refreshingKeys.has(cacheKey)) return;
+    this._refreshingKeys.add(cacheKey);
+    this._fetchFreshTimings(lat, lng, date, method, cacheKey)
+      .catch(() => { /* silencioso: es un refresco de fondo, no debe molestar */ })
+      .finally(() => this._refreshingKeys.delete(cacheKey));
   },
 
   // v26: aplica el ajuste manual verano/invierno (±1h) sobre los horarios
@@ -238,6 +274,14 @@ const API = {
 
   // ============ HIJRI CALENDAR ============
   async gregorianToHijri(date = new Date()) {
+    // v1.0.58: fuente ÚNICA = motor local Umm al-Qura (HijriCalc). Es exacto,
+    // instantáneo, funciona sin red y coincide con el calendario oficial de la
+    // mezquita y con el contador de «Próximas ocasiones». Aladhan queda solo
+    // como respaldo si el motor no pudo resolver una fecha exacta.
+    if (typeof HijriCalc !== 'undefined' && HijriCalc.fromDate(date).exact) {
+      return this._gregorianToHijriRich(date);
+    }
+
     const dd = String(date.getDate()).padStart(2, '0');
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     const yyyy = date.getFullYear();
@@ -277,7 +321,7 @@ const API = {
       month: { number: h.month, en: monthName.en, ar: monthName.ar },
       year: String(h.year),
       weekday: { en: weekdayName.en, ar: weekdayName.ar },
-      _estimated: true,
+      _estimated: h.exact !== true,
     };
   },
 
@@ -303,6 +347,12 @@ const API = {
   },
 
   async getHijriCalendarMonth(month, year) {
+    // v1.0.58: el mes se calcula localmente con Umm al-Qura exacto (no depende
+    // de red ni de cachés antiguas de Aladhan de hasta 14 días).
+    if (typeof HijriCalc !== 'undefined' && HijriCalc.fromGregorian(year, month, 1).exact) {
+      return this._computeHijriCalendarOffline(month, year);
+    }
+
     const cacheKey = `hijri_cal_${month}_${year}`;
     const cached = Storage.get(cacheKey);
     if (cached) return cached;
@@ -372,8 +422,18 @@ const API = {
     return result;
   },
 
-  // Convert Gregorian Date → Hijri using arithmetic approximation (Umm al-Qura)
+  // Gregoriano → Hijri. v1.0.58: delega en HijriCalc (Umm al-Qura exacto).
   _gregorianToHijri(gregDate) {
+    if (typeof HijriCalc !== 'undefined') {
+      const h = HijriCalc.fromDate(gregDate);
+      return { day: h.day, month: h.month, year: h.year, exact: h.exact };
+    }
+    return this._gregorianToHijriTabular(gregDate);
+  },
+
+  // Último recurso: calendario islámico aritmético (civil). NO es Umm al-Qura:
+  // difiere ±1-2 días en ~53 % de los días — por eso ya no es la vía principal.
+  _gregorianToHijriTabular(gregDate) {
     // Tabular Islamic calendar (civil, Friday epoch: 1948440 Julian day)
     // JD = Julian Day Number at noon
     const y = gregDate.getFullYear();
@@ -554,8 +614,30 @@ const API = {
     return method;
   },
 
+  // v1.0.58: la tabla mensual de Aladhan trae su propia fecha hijri, que puede
+  // diferir 1 día de Umm al-Qura. Se sobrescribe con el motor local (también
+  // en filas ya cacheadas) para que tabla, calendario e inicio coincidan.
+  _alignHijriMonth(data) {
+    try {
+      if (!Array.isArray(data) || typeof HijriCalc === 'undefined') return data;
+      return data.map(d => {
+        const gd = d && d.date && d.date.gregorian && d.date.gregorian.date; // DD-MM-YYYY
+        const m = gd && String(gd).match(/^(\d{2})-(\d{2})-(\d{4})$/);
+        if (!m) return d;
+        const h = HijriCalc.fromGregorian(+m[3], +m[2], +m[1]);
+        if (!h.exact) return d;
+        const nm = this._hijriMonthName(h.month);
+        const hijri = Object.assign({}, d.date.hijri, {
+          day: String(h.day), month: { number: h.month, en: nm.en, ar: nm.ar }, year: String(h.year),
+        });
+        return Object.assign({}, d, { date: Object.assign({}, d.date, { hijri }) });
+      });
+    } catch (e) { return data; }
+  },
+
   // v26: aplica ±1h verano/invierno a la tabla mensual (API o caché)
   _applyTimeShiftMonth(data) {
+    data = this._alignHijriMonth(data); // v1.0.58: misma fecha hijri en toda la app
     try {
       if (typeof PrayerCalc === 'undefined' || !Array.isArray(data)) return data;
       // v38: ajuste manual por oración SIEMPRE (incluye días Muslim Pro de
