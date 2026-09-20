@@ -677,6 +677,18 @@
 .bookmarks-entry-card:disabled{opacity:.55;cursor:default;}
 .last-read-card .bookmarks-entry-icon{color:#8B5CF6;}
 
+/* ===== v62: «المحفوظات» و«تاريخ القراءة» — أفقية أكثر وأقل ارتفاعًا بما يناسب الشاشة ===== */
+.quran-quick-entries{margin:0 var(--sp-md) var(--sp-md);}
+.quran-quick-entries .bookmarks-entry-card{
+  margin:0;padding:7px 10px;gap:8px;border-radius:14px;box-shadow:none;
+}
+.quran-quick-entries .bookmarks-entry-icon{width:28px;height:28px;font-size:12px;}
+.quran-quick-entries .bookmarks-entry-title{font-size:12.5px;}
+.quran-quick-entries .bookmarks-entry-sub{
+  font-size:10px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.quran-quick-entries .bookmarks-entry-dots{display:none;}
+
 /* ===== v51: ألوان التجويد (تُفعَّل من إعدادات القرآن) ===== */
 .tjw-ghunnah  { color: #1B8A4B; font-weight: 600; }
 .tjw-ikhfa    { color: #7C3AED; }

@@ -214,9 +214,7 @@ const TasbihPage = {
           <button class="btn-ghost tasbih-btn-secondary" onclick="TasbihPage.reset()">
             <i class="fas fa-redo"></i> ${t('resetCounter') || 'Reiniciar'}
           </button>
-          <button class="btn-ghost tasbih-btn-secondary" onclick="TasbihPage.resetAll()">
-            <i class="fas fa-trash"></i> ${t('clearAll') || 'Limpiar todo'}
-          </button>
+          <!-- v62: زر «مسح الكل» أُزيل من هنا — موجود أصلًا في لوحة الإعدادات -->
         </div>
 
         <!-- Mini tarjeta de estadísticas hoy / semana -->
@@ -305,20 +303,28 @@ const TasbihPage = {
     if (!W) { requestAnimationFrame(() => this._layoutBeads()); return; }
     const H = stage.clientHeight || 110;
     const n = Math.min(this.targetCount, 33);
-    const spacing = (W - 10) / n;
+    // v62: فراغ ثابت في منتصف السبحة — الكرات المعدودة تتراكم في الطرف
+    // الأيسر والمتبقية في الطرف الأيمن، والعدّ بسحب كرة من اليمين إلى اليسار.
+    const gapMin = 26;
+    const spacing = (W - gapMin) / n;
     const size = Math.max(14, Math.min(38, spacing - 3));
-    const startX = (W - spacing * n) / 2;
-    const rtl = document.documentElement.dir === 'rtl' || currentLocale === 'ar';
-    const pullDir = rtl ? 1 : -1; // lado de arrastre: derecha en RTL, izquierda en LTR
+    const gapW = Math.max(gapMin, spacing * 1.6);
+    const beadSpan = (W - gapW) / n; // عرض خانة الكرة الواحدة على الطرفين
+    const pullDir = -1; // v62: السحب دائمًا من الطرف الأيمن إلى الطرف الأيسر
     let c = this.count % n;
     if (this.count > 0 && c === 0 && this.count >= this.targetCount) c = n; // ciclo justo completado
-    this._beadGeom = { size, spacing, startX, pullDir, n, c };
+    this._beadGeom = { size, spacing: beadSpan, startX: 0, pullDir, n, c };
     stage.querySelectorAll('.misbaha-bead').forEach(b => {
       const i = +b.dataset.bead;
-      let slot;
-      if (pullDir > 0) slot = i < c ? (n - c + i) : (i - c);
-      else slot = i < c ? (c - 1 - i) : i;
-      const x = startX + slot * spacing + spacing / 2;
+      let x;
+      if (i < c) {
+        // كرات معدودة — تتراكم من الطرف الأيسر
+        x = i * beadSpan + beadSpan / 2;
+      } else {
+        // كرات متبقية — الطرف الأيمن، والكرة التالية (i === c) هي الأقرب للفراغ
+        const j = i - c; // 0-based بين الكرات غير المعدودة
+        x = W - ((n - c - j) * beadSpan) + beadSpan / 2;
+      }
       b.style.width = b.style.height = size + 'px';
       b.style.left = (x - size / 2) + 'px';
       b.style.top = ((H - size) / 2) + 'px';
@@ -333,13 +339,12 @@ const TasbihPage = {
     stage.style.touchAction = 'none';
 
     stage.addEventListener('pointerdown', (e) => {
-      this._tapCandidate = { x: e.clientX, y: e.clientY };
       const bead = e.target.closest('.misbaha-bead');
       if (!bead || !this._beadGeom) return;
       const i = +bead.dataset.bead;
       const c = this._beadGeom.c;
-      // Solo la cuenta «delantera» se puede arrastrar para contar, y la
-      // última contada se puede devolver para restar.
+      // v62: العدّ بالسحب فقط — الكرة الأمامية (الأقرب للفراغ من جهة اليمين)
+      // تُسحب يسارًا لتحسب تسبيحة، وآخر كرة محسوبة تُسحب يمينًا لإنقاص العدد.
       if (i !== c && i !== c - 1) return;
       this._drag = { i, bead, x0: e.clientX, base: parseFloat(bead.style.left) || 0, pulled: i < c };
       bead.classList.add('dragging');
@@ -347,14 +352,10 @@ const TasbihPage = {
     });
 
     stage.addEventListener('pointermove', (e) => {
-      if (this._tapCandidate) {
-        const dx = e.clientX - this._tapCandidate.x, dy = e.clientY - this._tapCandidate.y;
-        if (Math.hypot(dx, dy) > 12) this._tapCandidate = null;
-      }
       const d = this._drag, g = this._beadGeom;
       if (!d || !g) return;
       const towardPull = (e.clientX - d.x0) * g.pullDir;
-      const max = g.spacing * 2.2;
+      const max = g.spacing * 2.4;
       const offset = d.pulled
         ? Math.max(-max, Math.min(0, towardPull))   // devolver: solo hacia atrás
         : Math.max(0, Math.min(max, towardPull));   // contar: solo hacia el borde
@@ -366,24 +367,16 @@ const TasbihPage = {
       if (d && g) {
         const towardPull = (e.clientX - d.x0) * g.pullDir;
         d.bead.classList.remove('dragging');
-        const th = g.spacing * 0.9;
-        const tapDist = Math.hypot(e.clientX - d.x0, e.clientY - (this._tapCandidate ? this._tapCandidate.y : e.clientY));
+        const th = g.spacing * 0.8;
         this._drag = null;
-        if (!d.pulled && towardPull > th) { this._tapCandidate = null; this.increment(); return; }
-        if (d.pulled && towardPull < -th) { this._tapCandidate = null; this.decrement(); return; }
-        if (!d.pulled && tapDist < 12) { this._tapCandidate = null; this.increment(); return; } // toque directo
+        if (!d.pulled && towardPull > th) { this.increment(); return; }  // سحب يسارًا = تسبيحة
+        if (d.pulled && towardPull < -th) { this.decrement(); return; }  // إرجاع يمينًا = إنقاص
         this._layoutBeads(); // volver a su sitio
-      } else if (this._tapCandidate) {
-        const dx = e.clientX - this._tapCandidate.x, dy = e.clientY - this._tapCandidate.y;
-        this._tapCandidate = null;
-        if (Math.hypot(dx, dy) < 12) this.increment(); // tocar cualquier punto también cuenta
       }
-      this._tapCandidate = null;
     };
     stage.addEventListener('pointerup', finish);
     stage.addEventListener('pointercancel', () => {
       if (this._drag) { this._drag.bead.classList.remove('dragging'); this._drag = null; this._layoutBeads(); }
-      this._tapCandidate = null;
     });
   },
 

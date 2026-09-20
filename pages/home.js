@@ -194,8 +194,8 @@ const HomePage = {
         </button>
       </div>
 
-      <!-- v61: شريط «أكمل القراءة» الرفيع — أسفل زرّي التقويم الهجري والجدول الشهري مباشرة -->
-      ${this._resumeStripHtml()}
+      <!-- v63: أعلى الصفحة — شريط «أكمل القراءة» فقط (يظهر إن وُجدت آخر قراءة) -->
+      ${(() => { const rs = this._resumeStripHtml(); return rs ? `<div class="home-info-cards">${rs}</div>` : ''; })()}
 
       <div style="padding: var(--sp-md);">
         <!-- Oraciones del día + ubicación y fechas (hijri / gregoriana) -->
@@ -315,19 +315,8 @@ const HomePage = {
           `).join('')}
         </div>
 
-        <!-- v61: حديث اليوم — أسفل «مقتطفات دينية» مباشرة، على نمط آية اليوم ودعاء اليوم -->
-        ${hadith ? (() => {
-          const hloc = ['es','ar','en'].includes(AppState.settings.locale) ? AppState.settings.locale : 'es';
-          const htr = hadith['translation_' + hloc];
-          const hsrc = hadith['source_' + hloc] || hadith.source_es || '';
-          return `
-          <h2 class="section-title"><i class="fas fa-scroll"></i> ${t('hadithOfDay')}</h2>
-          <div class="card dua-day-card hadith-day-card">
-            <div class="dua-arabic">${escapeHtml(hadith.arabic)}</div>
-            ${htr ? `<div class="dua-translation">"${escapeHtml(htr)}"</div>` : ''}
-            <div class="dua-source">— ${escapeHtml(hsrc)}</div>
-          </div>`;
-        })() : ''}
+        <!-- v63: حديث اليوم — أسفل مقتطفات دينية، ببطاقة على نمط دعاء اليوم -->
+        ${this._hadithCardHtml(hadith)}
 
         <!-- Virtud del día -->
         ${virtue ? `
@@ -338,12 +327,12 @@ const HomePage = {
           </div>
         ` : ''}
 
-        <!-- v60: العد التنازلي لرمضان — آخر الصفحة الرئيسية -->
-        ${this._ramadanCountdownHtml()}
-
-        <!-- v61: المناسبة القادمة ويوم الصيام القادم — بطاقتان رفيعتان آخر الصفحة -->
-        ${this._nextEventHtml()}
-        ${this._nextFastHtml()}
+        <!-- v63: أسفل الصفحة — العد التنازلي لرمضان فوق يوم الصيام القادم، ثم المناسبة القادمة -->
+        <div class="home-bottom-cards">
+          ${this._ramadanCountdownHtml()}
+          ${this._nextFastHtml()}
+          ${this._nextEventHtml()}
+        </div>
 
       </div>
     `;
@@ -443,6 +432,23 @@ const HomePage = {
         </span>
         <i class="fas fa-chevron-${document.documentElement.dir === 'rtl' ? 'left' : 'right'} resume-strip-arrow"></i>
       </button>`;
+    } catch (e) { return ''; }
+  },
+
+  // ============ v63: بطاقة «حديث اليوم» — نفس نمط بطاقة «دعاء اليوم» ============
+  _hadithCardHtml(hadith) {
+    try {
+      if (!hadith) return '';
+      const hloc = ['es','ar','en'].includes(AppState.settings.locale) ? AppState.settings.locale : 'es';
+      const htr = hadith['translation_' + hloc];
+      const hsrc = hadith['source_' + hloc] || hadith.source_es || '';
+      return `
+        <h2 class="section-title"><i class="fas fa-scroll"></i> ${t('hadithOfDay')}</h2>
+        <div class="card dua-day-card hadith-day-card">
+          <div class="dua-arabic">${escapeHtml(hadith.arabic)}</div>
+          ${htr ? `<div class="dua-translation">"${escapeHtml(htr)}"</div>` : ''}
+          <div class="dua-source">— ${escapeHtml(hsrc)}</div>
+        </div>`;
     } catch (e) { return ''; }
   },
 

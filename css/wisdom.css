@@ -1446,7 +1446,8 @@
   height: 2px;
   transform: translateY(-50%);
   border-radius: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55) 12%, rgba(255,255,255,.55) 88%, transparent);
+  /* v62: خيط السبحة بفراغ واضح في المنتصف */
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55) 10%, rgba(255,255,255,.55) 42%, transparent 50%, rgba(255,255,255,.55) 58%, rgba(255,255,255,.55) 90%, transparent);
   pointer-events: none;
 }
 .misbaha-bead {
