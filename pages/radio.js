@@ -154,6 +154,10 @@ const RadioPage = {
                 <i class="fas ${S.repeatMode === 'random' ? 'fa-shuffle' : 'fa-repeat'}"></i>
                 ${S.repeatMode === 'one' ? '<span class="rep-badge">1</span>' : ''}
               </button>` : ''}
+            ${isQuran && S.quran.lang ? `
+              <button class="radio-ctl side ${S._trVoiceEnabled() ? 'sleep-on' : ''}" onclick="RadioPage.toggleVoiceTr()" title="${RadioData.L('voiceTr')}" aria-label="${RadioData.L('voiceTr')}">
+                <i class="fas ${S._trVoiceEnabled() ? 'fa-volume-high' : 'fa-volume-xmark'}"></i>
+              </button>` : ''}
             <button class="radio-ctl side ${sleepLeft > 0 ? 'sleep-on' : ''}" onclick="RadioPage.openSleepModal()" title="${RadioData.L('sleepTimer')}" aria-label="${RadioData.L('sleepTimer')}">
               <i class="fas fa-moon"></i>
             </button>
@@ -475,6 +479,18 @@ const RadioPage = {
 
   closeSleepModal() {
     if (this._sleepModal) { this._sleepModal.remove(); this._sleepModal = null; }
+  },
+
+  // v64: زر الترجمة الصوتية في بطاقة «قرآن مترجم» — يبدّل الإعداد العام
+  toggleVoiceTr() {
+    try {
+      if (typeof AppState === 'undefined') return;
+      AppState.settings.quranVoiceTranslation = !AppState.settings.quranVoiceTranslation;
+      if (typeof Storage !== 'undefined' && Storage.saveSettings) Storage.saveSettings();
+      if (!AppState.settings.quranVoiceTranslation && RadioService._stopTrAudio) RadioService._stopTrAudio();
+      if (typeof showToast === 'function') showToast('🔊 ' + RadioData.L(AppState.settings.quranVoiceTranslation ? 'voiceTrOn' : 'voiceTrOff'), 2200);
+    } catch (e) {}
+    this._renderHero();
   },
 
   _fmtSec(s) {

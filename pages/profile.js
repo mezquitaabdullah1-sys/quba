@@ -546,10 +546,39 @@ const ProfilePage = {
             </div>
             <i class="fas fa-chevron-${chevron} list-row-chevron"></i>
           </div>
+
+          <!-- v64: قراءة القرآن مع الترجمة صوتيًا (القارئ + راديو القرآن المترجم) -->
+          <div class="list-row" onclick="ProfilePage.toggleVoiceTranslation()" style="cursor:pointer;">
+            <div class="list-row-icon"><i class="fas fa-volume-high"></i></div>
+            <div class="list-row-info">
+              <div class="list-row-label">${t('voiceTrSetting')}</div>
+              <div class="list-row-value">${t('voiceTrSettingDesc')}</div>
+            </div>
+            <label class="toggle-switch" onclick="event.stopPropagation();">
+              <input type="checkbox" ${AppState.settings.quranVoiceTranslation ? 'checked' : ''} onchange="ProfilePage.setVoiceTranslation(this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
         </div>
 
       </div>
     `;
+  },
+
+  // ================= v64: الترجمة الصوتية للقرآن (تفعيل/إلغاء) =================
+  setVoiceTranslation(on) {
+    AppState.settings.quranVoiceTranslation = !!on;
+    Storage.saveSettings();
+    if (!on) {
+      try { if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel(); } catch (e) {}
+      if (typeof RadioService !== 'undefined' && RadioService._stopTrAudio) RadioService._stopTrAudio();
+    }
+    showToast((on ? '🔊 ' : '🔇 ') + t(on ? 'voiceTrOn' : 'voiceTrOff'), 2000);
+  },
+
+  toggleVoiceTranslation() {
+    this.setVoiceTranslation(!AppState.settings.quranVoiceTranslation);
+    this.renderGeneralGroup(document.getElementById('main-content'));
   },
 
   // ================= GRUPO: DATOS Y PROGRESO =================

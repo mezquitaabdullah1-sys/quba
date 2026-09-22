@@ -301,15 +301,15 @@ const TasbihPage = {
     if (!stage) return;
     const W = stage.clientWidth;
     if (!W) { requestAnimationFrame(() => this._layoutBeads()); return; }
-    const H = stage.clientHeight || 110;
+    const H = stage.clientHeight || 132;
     const n = Math.min(this.targetCount, 33);
     // v62: فراغ ثابت في منتصف السبحة — الكرات المعدودة تتراكم في الطرف
     // الأيسر والمتبقية في الطرف الأيمن، والعدّ بسحب كرة من اليمين إلى اليسار.
-    const gapMin = 26;
-    const spacing = (W - gapMin) / n;
-    const size = Math.max(14, Math.min(38, spacing - 3));
-    const gapW = Math.max(gapMin, spacing * 1.6);
-    const beadSpan = (W - gapW) / n; // عرض خانة الكرة الواحدة على الطرفين
+    // v64: خرزات أكبر + فراغ ثابت تمامًا في منتصف السبحة (بعرض خرزة واحدة
+    // دائمًا) — الكرات المعدودة تتكدس بجوار الفراغ من يساره والمتبقية من يمينه.
+    const size = Math.max(24, Math.min(46, Math.floor(W / (n + 4))));
+    const gapW = size; // الفراغ ثابت في المنتصف: عرض خرزة واحدة بالضبط
+    const beadSpan = (W - gapW) / n; // عرض خانة الخرزة الواحدة على الطرفين
     const pullDir = -1; // v62: السحب دائمًا من الطرف الأيمن إلى الطرف الأيسر
     let c = this.count % n;
     if (this.count > 0 && c === 0 && this.count >= this.targetCount) c = n; // ciclo justo completado
@@ -317,13 +317,14 @@ const TasbihPage = {
     stage.querySelectorAll('.misbaha-bead').forEach(b => {
       const i = +b.dataset.bead;
       let x;
+      const gapL = (W - gapW) / 2, gapR = (W + gapW) / 2; // حافتا الفراغ الثابت في المنتصف
       if (i < c) {
-        // كرات معدودة — تتراكم من الطرف الأيسر
-        x = i * beadSpan + beadSpan / 2;
+        // كرات معدودة — تتكدس بجوار الفراغ من يساره (الأحدث أقرب للفراغ)
+        x = Math.max(beadSpan / 2, gapL - (c - 1 - i) * beadSpan - beadSpan / 2);
       } else {
-        // كرات متبقية — الطرف الأيمن، والكرة التالية (i === c) هي الأقرب للفراغ
-        const j = i - c; // 0-based بين الكرات غير المعدودة
-        x = W - ((n - c - j) * beadSpan) + beadSpan / 2;
+        // كرات متبقية — بجوار الفراغ من يمينه، والكرة التالية (i === c) الأقرب له
+        const j = i - c;
+        x = Math.min(W - beadSpan / 2, gapR + j * beadSpan + beadSpan / 2);
       }
       b.style.width = b.style.height = size + 'px';
       b.style.left = (x - size / 2) + 'px';

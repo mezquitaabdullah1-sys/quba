@@ -2034,6 +2034,7 @@ const QuranPage = {
     if (!player || !audioUrl || audioUrl === 'null' || audioUrl === '') return;
 
     if (this.playingAyah === num) {
+      this._stopAyahTr(); // v64: إسكات ترجمة قيد النطق عند الإيقاف المؤقت
       player.pause();
       this.playingAyah = null;
       document.getElementById(`ayah-${num}`)?.classList.remove('playing');
@@ -2063,6 +2064,7 @@ const QuranPage = {
     player.src = audioUrl;
     player.play().catch(e => console.warn('Audio:', e));
     this.playingAyah = num;
+    this._trSpokenFor = null; // v64: آية جديدة — يُسمح بقراءة ترجمتها صوتيًا
 
     // v28 FIX: si el CDN bloquea la URL directa (403 a 128 kbps para varios
     // recitadores: Sudais, Ghamdi, Abdul Basit), el audio fallaba en SILENCIO.
@@ -2107,6 +2109,9 @@ const QuranPage = {
     document.getElementById(`ayah-${num}`)?.classList.add('playing');
 
     player.onended = () => {
+      // v64: بعد انتهاء التلاوة العربية تُقرأ الترجمة صوتيًا (إن فُعّلت الخاصية
+      // من الإعدادات) — آية بالعربي ثم ترجمتها، مثل فيديوهات القرآن المترجم.
+      if (this._speakTranslationAfter(num)) return;
       const b = document.getElementById('play-btn-' + num);
       if (b) b.innerHTML = '<i class="fas fa-play"></i>';
       document.getElementById(`ayah-${num}`)?.classList.remove('playing');
@@ -2169,6 +2174,59 @@ const QuranPage = {
         if (typeof WakeLockService !== 'undefined') WakeLockService.release();
       }
     };
+  },
+
+  // ============ v64: قراءة الترجمة صوتيًا (تُفعَّل/تُلغى من الإعدادات) ============
+  // تعتمد على speechSynthesis المدمج في الجهاز — تعمل أوفلاين وبلا خوادم،
+  // ولغة النطق تتبع الترجمة المعروضة في القارئ (García/أخرى).
+  _ayahTrEnabled() {
+    try { return !!(typeof AppState !== 'undefined' && AppState.settings && AppState.settings.quranVoiceTranslation); }
+    catch (e) { return false; }
+  },
+
+  _ayahTrLang() {
+    const tr = (typeof AppState !== 'undefined' && AppState.settings && AppState.settings.translation) || '';
+    if (/^en[.\-_]/i.test(tr)) return 'en-US';
+    if (/^es[.\-_]/i.test(tr)) return 'es-ES';
+    const l = (typeof currentLocale !== 'undefined' && currentLocale) || 'es';
+    return l === 'en' ? 'en-US' : 'es-ES';
+  },
+
+  _stopAyahTr() {
+    try { if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel(); } catch (e) {}
+    const p = this._ayahTrPending;
+    if (p && p._to) { try { clearTimeout(p._to); } catch (e) {} }
+    this._ayahTrPending = null;
+  },
+
+  // يقرأ ترجمة الآية num صوتيًا بعد تلاوتها، ثم يستأنف التدفق الطبيعي
+  // (الآية التالية / التكرار) بإعادة استدعاء onended. يرجع true إن بدأ النطق.
+  _speakTranslationAfter(num) {
+    if (!this._ayahTrEnabled()) return false;
+    if (this._trSpokenFor === num) return false; // نطقناها للتو — لا حلقة لا نهائية
+    if (typeof speechSynthesis === 'undefined' || !window.SpeechSynthesisUtterance) return false;
+    const a = this.currentSurah && this.currentSurah.ayahs ? this.currentSurah.ayahs.find(x => x.number === num) : null;
+    const text = a && a.translation ? String(a.translation).trim() : '';
+    if (!text) return false;
+    const player = document.getElementById('audio-player');
+    if (!player) return false;
+    this._trSpokenFor = num;
+    const u = new SpeechSynthesisUtterance(text.slice(0, 600));
+    u.lang = this._ayahTrLang();
+    u.rate = 1;
+    const token = { _to: null };
+    this._ayahTrPending = token;
+    const done = () => {
+      if (this._ayahTrPending !== token) return; // أُلغي بالإيقاف أو الانتقال
+      this._ayahTrPending = null;
+      try { if (player.onended) player.onended(); } catch (e) {}
+    };
+    u.onend = done;
+    u.onerror = done;
+    token._to = setTimeout(done, 40000); // مهلة أمان: بعض المتصفحات لا تُطلق onend
+    try { speechSynthesis.cancel(); speechSynthesis.speak(u); }
+    catch (e) { this._ayahTrPending = null; return false; }
+    return true;
   },
 
   // ============ AYAH BOOKMARKS (max 5, cada una con su color) ============
@@ -2429,6 +2487,7 @@ const QuranPage = {
   },
 
   cleanup() {
+    this._stopAyahTr(); // v64: إسكات الترجمة الصوتية عند مغادرة القارئ
     const player = document.getElementById('audio-player');
     if (player) { player.pause(); player.src = ''; }
     this.playingAyah = null;

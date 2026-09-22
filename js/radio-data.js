@@ -69,6 +69,9 @@ const RadioData = {
       amb_waves: 'صوت الأمواج',
       amb_wind: 'صوت الرياح',
       amb_white: 'ضوضاء بيضاء',
+      voiceTr: 'قراءة الترجمة صوتيًا',
+      voiceTrOn: 'الترجمة الصوتية مفعّلة — تُقرأ الترجمة بعد كل آية',
+      voiceTrOff: 'الترجمة الصوتية متوقفة',
     },
     es: {
       radioTitle: 'Radio Islámica',
@@ -133,6 +136,9 @@ const RadioData = {
       amb_waves: 'Olas del mar',
       amb_wind: 'Viento',
       amb_white: 'Ruido blanco',
+      voiceTr: 'Leer la traducción en voz alta',
+      voiceTrOn: 'Traducción hablada activada — se lee tras cada aleya',
+      voiceTrOff: 'Traducción hablada desactivada',
     },
     en: {
       radioTitle: 'Islamic Radio',
@@ -197,6 +203,9 @@ const RadioData = {
       amb_waves: 'Ocean waves',
       amb_wind: 'Wind',
       amb_white: 'White noise',
+      voiceTr: 'Read the translation aloud',
+      voiceTrOn: 'Spoken translation on — read after each ayah',
+      voiceTrOff: 'Spoken translation off',
     },
   },
 

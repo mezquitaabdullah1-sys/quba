@@ -14,6 +14,7 @@ const RadioService = {
   amb: { ctx: null, gain: null, nodes: [], type: null, on: false, vol: 0.15 }, // v58: أصوات خلفية
   _bar: null,
   _barBuilt: false,
+  _trAudio: null,       // v64: مقطع الترجمة الصوتية الجاري (speechSynthesis)
 
   // ---------- تهيئة ----------
   ensureAudio() {
@@ -37,6 +38,10 @@ const RadioService = {
     });
     this.audio.addEventListener('ended', () => {
       if (this.mode === 'quran' && this.quran) {
+        // v64: الترجمة الصوتية — تُقرأ ترجمة الآية فور انتهاء تلاوتها العربية
+        // (مثل فيديوهات القرآن المترجم: آية بالعربي ثم ترجمتها صوتيًا)، ثم
+        // يتابع التشغيل تلقائيًا. تُفعَّل/تُلغى من الإعدادات أو زر 🔊 بالبطاقة.
+        if (this._speakCurrentTranslation()) return;
         const q = this.quran;
         // v59: قرّاء الملف الكامل (MP3Quran) — ملف واحد لكل سورة
         if (q.whole) {
@@ -165,6 +170,7 @@ const RadioService = {
   _playAyah(i) {
     const q = this.quran;
     if (!q) return;
+    this._stopTrAudio(); // v64: أي انتقال يدوي يُسكت ترجمة قيد النطق
     i = Math.max(1, Math.min(i, q.total));
     q.ayah = i;
     this.state = 'loading';
@@ -194,7 +200,7 @@ const RadioService = {
   // ---------- تشغيل / إيقاف مؤقت / إيقاف كامل ----------
   toggle() {
     this.ensureAudio();
-    if (this.state === 'playing') { this.audio.pause(); }
+    if (this.state === 'playing') { this._stopTrAudio(); this.audio.pause(); }
     else if (this.audio.src) { this.audio.play().catch(() => {}); }
   },
 
@@ -204,6 +210,7 @@ const RadioService = {
     this.mode = null;
     this.station = null;
     this.quran = null;
+    this._stopTrAudio(); // v64
     this.clearSleep();
     this.stopAmbience(false);
     if ('mediaSession' in navigator) { try { navigator.mediaSession.metadata = null; } catch (e) {} }
@@ -334,6 +341,48 @@ const RadioService = {
   setAmbienceVolume(v) {
     this.amb.vol = Math.max(0, Math.min(1, Number(v) || 0));
     if (this.amb.gain) { try { this.amb.gain.gain.value = this.amb.vol; } catch (e) {} }
+  },
+
+  // ---------- v64: الترجمة الصوتية (آية بالعربي ثم قراءة الترجمة صوتيًا) ----------
+  // المصدر: speechSynthesis المدمج في الجهاز (يعمل أوفلاين وبلا خوادم).
+  // عند انتهاء قراءة الترجمة نعيد إطلاق حدث ended ليتابع التدفق الطبيعي
+  // (الآية التالية / الإعادة / التوقف) كأن التلاوة انتهت للتو.
+  _trVoiceEnabled() {
+    try { return !!(typeof AppState !== 'undefined' && AppState.settings && AppState.settings.quranVoiceTranslation); }
+    catch (e) { return false; }
+  },
+
+  _stopTrAudio() {
+    try { if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel(); } catch (e) {}
+    const a = this._trAudio;
+    if (a && a._to) { try { clearTimeout(a._to); } catch (e) {} }
+    this._trAudio = null;
+  },
+
+  _speakCurrentTranslation() {
+    const q = this.quran;
+    if (!q || !q.lang || q.whole || !this._trVoiceEnabled()) return false;
+    if (typeof speechSynthesis === 'undefined' || !window.SpeechSynthesisUtterance) return false;
+    if (q._trSpoken === q.ayah) return false; // نطقناها للتو — لا حلقة لا نهائية
+    const text = (q.tr && q.tr[q.ayah]) || '';
+    if (!text) return false;
+    q._trSpoken = q.ayah;
+    const u = new SpeechSynthesisUtterance(String(text).slice(0, 600));
+    u.lang = q.lang === 'en' ? 'en-US' : 'es-ES';
+    u.rate = 1;
+    const a = { utt: u, _to: null };
+    this._trAudio = a;
+    const done = () => {
+      if (this._trAudio !== a) return; // أُلغيت (إيقاف/انتقال يدوي)
+      this._trAudio = null;
+      try { if (this.audio) this.audio.dispatchEvent(new Event('ended')); } catch (e) {}
+    };
+    u.onend = done;
+    u.onerror = done;
+    a._to = setTimeout(done, 40000); // مهلة أمان: بعض المتصفحات لا تُطلق onend
+    try { speechSynthesis.cancel(); speechSynthesis.speak(u); }
+    catch (e) { this._trAudio = null; return false; }
+    return true;
   },
 
   // ---------- مشاركة ----------

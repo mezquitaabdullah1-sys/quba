@@ -351,18 +351,23 @@ const HomePage = {
 
   // Busca el próximo 1 de Ramadán día a día con HijriCalc (local, sin red).
   _findRamadanTarget() {
-    if (typeof HijriCalc === 'undefined' || !HijriCalc.fromDate) return null;
+    if (typeof HijriCalc === 'undefined' || !HijriCalc.toGregorian) return null;
     try {
-      const d = new Date();
-      d.setHours(0, 0, 0, 0);
-      const h0 = HijriCalc.fromDate(d);
-      // Si ya estamos DENTRO de Ramadán, cuenta atrás hacia el siguiente año
-      if (h0 && h0.month === 9) d.setDate(d.getDate() + Math.max(1, 30 - (h0.day || 1) + 1));
-      for (let guard = 0; guard < 420; guard++) {
-        const h = HijriCalc.fromDate(d);
-        if (h && h.month === 9 && h.day === 1) return new Date(d);
-        d.setDate(d.getDate() + 1);
+      const now = new Date();
+      const h0 = HijriCalc.fromDate(now);
+      if (!h0) return null;
+      // v64 FIX (فرق الساعات): نحسب تاريخ 1 رمضان مباشرة عبر toGregorian ثم
+      // نجعل الهدف منتصف الليل المحلي 00:00 الذي يبدأ عنده اليوم فعلًا — قبل
+      // ذلك كان الهدف ظهر اليوم السابق (تقدير متوسط + بحث يومي)، فيظهر العد
+      // التنازلي متقدمًا عدّة ساعات عن بدء رمضان الحقيقي.
+      const hy = (h0.month >= 9) ? h0.year + 1 : h0.year; // داخل/بعد رمضان → رمضان القادم
+      let g = HijriCalc.toGregorian(hy, 9, 1); // Date محلية 12:00 ليوم 1 رمضان (أم القرى)
+      let target = g ? new Date(g.getFullYear(), g.getMonth(), g.getDate(), 0, 0, 0, 0) : null;
+      if (!target || target.getTime() <= now.getTime()) {
+        g = HijriCalc.toGregorian(hy + 1, 9, 1);
+        target = g ? new Date(g.getFullYear(), g.getMonth(), g.getDate(), 0, 0, 0, 0) : null;
       }
+      return target;
     } catch (e) {}
     return null;
   },
@@ -423,7 +428,7 @@ const HomePage = {
         rel = days <= 0 ? t('resumeToday') : (days === 1 ? t('resumeYesterday') : t('resumeDaysAgo').replace('{n}', days));
       }
       return `
-      <button class="resume-strip" onclick="Router.go('quran',{surahNumber:${lr.s},ayah:${lr.a}})" aria-label="${escapeAttr(t('resumeReading'))}">
+      <button class="resume-strip" onclick="Router.go('surah',{surahNumber:${lr.s},ayah:${lr.a}})" aria-label="${escapeAttr(t('resumeReading'))}">
         <span class="resume-strip-ic"><i class="fas fa-bookmark"></i></span>
         <span class="resume-strip-body">
           <span class="resume-strip-label">${t('resumeReading')} — ${t('resumeStoppedAt')}</span>

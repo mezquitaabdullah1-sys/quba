@@ -1430,7 +1430,7 @@
 }
 .misbaha-stage {
   position: relative;
-  height: 110px;
+  height: 132px;
   margin: 0 -8px;
   user-select: none;
   -webkit-user-select: none;
@@ -1469,12 +1469,13 @@
 .misbaha-bead.front {
   box-shadow: 0 0 10px 2px rgba(212,175,55,.55), inset -3px -4px 6px rgba(0,0,0,.35), inset 2px 3px 5px rgba(255,255,255,.28);
 }
-.misbaha-bead-0 { background: radial-gradient(circle at 32% 28%, #5c5c5c, #151515 72%); }            /* عقيق أسود */
-.misbaha-bead-1 { background: radial-gradient(circle at 32% 28%, #fff3c4, #d4af37 55%, #8a6d1f); } /* ذهبي */
-.misbaha-bead-2 { background: radial-gradient(circle at 32% 28%, #a06a35, #4a2c12 72%); }          /* خشب */
-.misbaha-bead-3 { background: radial-gradient(circle at 32% 28%, #ffffff, #c9c9c9 60%, #8a8a8a); } /* لؤلؤ */
-.misbaha-bead-4 { background: radial-gradient(circle at 32% 28%, #7fd0c9, #0F4C3A 68%); }          /* فيروزي */
-.misbaha-bead-5 { background: radial-gradient(circle at 32% 28%, #f1948a, #8e2323 72%); }          /* عقيق أحمر */
+/* v64: كل الخرز باللون الأسود (عقيق أسود) بلمعة خفيفة تُظهر الشكل الكروي */
+.misbaha-bead-0,
+.misbaha-bead-1,
+.misbaha-bead-2,
+.misbaha-bead-3,
+.misbaha-bead-4,
+.misbaha-bead-5 { background: radial-gradient(circle at 32% 28%, #6a6a6a, #101010 72%); }
 
 /* --- Hoja de ajustes del tasbih --- */
 .tasbih-sheet-overlay {
