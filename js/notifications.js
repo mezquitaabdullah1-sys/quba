@@ -113,7 +113,9 @@ const PrayerNotifications = {
 
     const wantAdhan = this.isEnabled();
     const wantReminder = this.isReminderEnabled();
-    if (!wantAdhan && !wantReminder) return;
+    // v64: تذكير مراجعة كورس اللغة العربية (مستقلّ عن إعدادات الأذان)
+    const srsCfg = (typeof CoursesSRS !== 'undefined') ? CoursesSRS.reminderConfig() : { on: false };
+    if (!wantAdhan && !wantReminder && !srsCfg.on) return;
 
     const prayerNames = {
       es: { Fajr: 'Fajr', Dhuhr: 'Duhr', Asr: 'Asr', Maghrib: 'Maghrib', Isha: 'Isha' },
@@ -177,6 +179,18 @@ const PrayerNotifications = {
           this.notifyReminder(prayerName, `${reminderBody} ${prayerName}`, prayer + '-reminder');
         }, reminderDelay);
         this.timers.push(reminderId);
+      }
+
+      // 3) v64: recordatorio del repaso diario de árabe, N minutos después de
+      // la oración que el usuario eligió en Ajustes del curso (CoursesSRS).
+      if (srsCfg.on && srsCfg.prayer === prayer) {
+        const srsTarget = new Date(target.getTime() + (srsCfg.offsetMin || 20) * 60 * 1000);
+        const srsDelay = srsTarget.getTime() - Date.now();
+        if (srsDelay >= 0 && srsDelay <= DAY_MS) {
+          this.timers.push(setTimeout(() => {
+            if (typeof CoursesSRS !== 'undefined') CoursesSRS.fireReminder();
+          }, srsDelay));
+        }
       }
     });
 

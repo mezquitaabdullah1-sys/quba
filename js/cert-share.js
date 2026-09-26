@@ -129,6 +129,14 @@ const CertShare = {
     ctx.fillText('بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ', cx, y);
     y += this.H * 0.052;
 
+    // Nivel del certificado (bronce/plata/oro), si el curso lo tiene
+    if (data.tierLine) {
+      ctx.fillStyle = data.tierColor || GOLD;
+      ctx.font = `700 ${Math.round(this.W * 0.032)}px ${main}`;
+      ctx.fillText(data.tierLine, cx, y);
+      y += this.H * 0.044;
+    }
+
     // Título del certificado
     ctx.fillStyle = GOLD;
     const titleSize = this._fitLine(ctx, data.title, innerW, Math.round(this.W * 0.058), 30, s => `700 ${s}px ${main}`);
@@ -196,8 +204,13 @@ const CertShare = {
     return canvas;
   },
 
-  async open(course, userName, locale) {
+  async open(course, userName, locale, tier) {
     const { greg, hijri } = this._dateLines(locale);
+    const tierMeta = tier ? {
+      bronze: { icon: '🥉', es: 'Nivel Bronce', ar: 'المستوى البرونزي', en: 'Bronze Level', color: '#c98a4b' },
+      silver: { icon: '🥈', es: 'Nivel Plata', ar: 'المستوى الفضّي', en: 'Silver Level', color: '#c9c9d4' },
+      gold: { icon: '🥇', es: 'Nivel Oro', ar: 'المستوى الذهبي', en: 'Gold Level', color: '#ffd76a' },
+    }[tier] : null;
     const data = {
       locale,
       title: t('certificateOfCompletion'),
@@ -207,12 +220,14 @@ const CertShare = {
       // course.icon puede ser HTML (<i class="fas fa-…"></i>) — canvas no
       // pinta HTML, así que usamos solo emoji/txt plano; si no hay, ⭐.
       courseIcon: /<[^>]+>/.test(course.icon || '')
-        ? '⭐'
+        ? (course.certIcon || '⭐')
         : (String(course.icon || '').trim() || '⭐'),
       courseTitle: course.title[locale] || course.title.es,
       signature: t('islamicLearning'),
       greg,
       hijri,
+      tierLine: tierMeta ? `${tierMeta.icon} ${tierMeta[locale] || tierMeta.es}` : '',
+      tierColor: tierMeta ? tierMeta.color : null,
     };
 
     this._renderModal(course);

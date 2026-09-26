@@ -1,1207 +1,601 @@
 /**
- * 📖 Curso completo de Lengua Árabe — Quba v20
+ * 🔑 اللغة العربية: مفتاحك لفهم القرآن — Quba v65 (إعادة هيكلة كاملة)
  * ══════════════════════════════════════════════════════════════════
- * Un curso INTERACTIVO diseñado para no-hispanohablantes/no-arabófonos
- * que quieren aprender árabe desde CERO — con enfoque en:
+ * من 8 محطات متسلسلة (65 درساً) إلى 4 وحدات و13 محطة (~140 درساً):
  *
- *  1) Pronunciación (Web Speech API + transliteración precisa)
- *  2) Reconocimiento visual de letras (aisladas y en palabras)
- *  3) Vocabulario esencial con imágenes/emojis contextuales
- *  4) Formas de las letras (inicial · medial · final · aislada)
- *  5) Diacríticos (fatha, damma, kasra, sukun, shadda)
- *  6) Lectura de palabras y frases simples
+ *   الوحدة 1 · الأساسيات        S1  مرحباً بالعربية
+ *   الوحدة 2 · الحروف           S2–S6  خمس مجموعات (الشكل ← الصوت ← الكتابة)
+ *   الوحدة 3 · آلية القراءة      S7  الحركات والسكون · S8  التنوين والشدّة
+ *   الوحدة 4 · كلمات وقراءة      S9  وصل الحروف · S10 مفردات إسلامية · S11 مفردات الحياة
+ *                                S12 قراءة عبارات قرآنية · S13 الامتحان النهائي
  *
- * Fuentes académicas:
- * ─────────────────────
- *  • «Al-Kitāb al-Asāsī fī Ta'līm al-Lugha al-'Arabiyya» (ALECSO)
- *  • «Alif Baa: Introduction to Arabic Letters and Sounds» (Kristen Brustad, Al-Batal, Al-Tonsi, Georgetown Univ. Press)
- *  • «Ta'līm al-'Arabiyya li-Ghayr al-Nāṭiqīn Bihā» — Madīnah Book Series (Dr. V. Abdur Rahim, Islamic University of Madinah)
- *  • «Mabādi' al-'Arabiyya» (Rashid al-Shartouni)
- *  • Al-Jazariyyah (para tajwid & articulación de letras)
+ * نمط محطة الحروف: غلاف ← عائلات الشكل (مع صورة) ← فيديو المجموعة (قابل للتخطي)
+ * ← دروس الحروف (شكل/صوت/كتابة) ← استمع واختر ← طابق الشكل بموضعه ← اختبار
+ * ← بطاقات مراجعة ← نقطة تحقق (5 أسئلة، 80%).
  *
- * Compatibilidad:
- * ─────────────────
- *  Nueva estructura de lección: 'arabic_letter' — renderizada por CoursesPage.
- *  Los quizzes usan el formato estándar { question, options, correct, feedback }.
+ * أنواع الدروس: انظر docs/ARABIC_COURSE_V2.md
+ * البيانات الخام: arabic_data.js (الحروف/الفيديو) و arabic_vocab.js (المفردات/العبارات).
+ * الامتحان النهائي: 20 سؤالاً متنوّعاً، نجاح 70%، شهادة برونزية/فضّية/ذهبية.
  *
- * @audience No-arabic speakers (starting from zero)
- * @level Beginner → A1 CEFR equivalent
- * @duration ~90 min (dividido en 8 estaciones)
- * @theological_review N/A — contenido lingüístico, no doctrinal.
+ * @audience ناطقون بغير العربية (الإسبانية أولاً، ثم الإنجليزية والعربية)
+ * @duration ~180 دقيقة (هدف يومي 10 دقائق ≈ 18 يوماً)
  */
+const COURSE_ARABIC_LANGUAGE = (() => {
+  const D = ARABIC_DATA;
+  const V = ARABIC_VOCAB;
+  const T = D.T;
+  const VID = D.VIDEO;
 
-const COURSE_ARABIC_LANGUAGE = {
-  id: 'arabic_language',
-  slug: 'arabic-language',
-  icon: '<i class="fas fa-language"></i>',
-  mascotPose: 'welcome',
-  color: '#8B5A2B', // sepia/manuscript color — evoca los antiguos manuscritos árabes
-  ageGroup: 'all',
-  durationMin: 90,
-  difficulty: 'beginner',
+  // ── مساعدات ──────────────────────────────────────────────────
+  const letterIds = (g) => D.GROUPS[g];
+  const lid = (ids) => ids.map(i => 'letter:' + i);
+  const wid = (slugs) => slugs.map(s => 'word:' + s);
+  const words = (topic) => V.byTopic(topic).map(w => w.s);
+  const syl = (letterId, markId) => {
+    const l = D.byId[letterId], m = D.MARKS.find(x => x.id === markId);
+    const v = { fatha: 'a', kasra: 'i', damma: 'u', tan_fath: 'an', tan_kasr: 'in', tan_damm: 'un' }[markId] || '';
+    return { text: l.ch + m.mark, label: l.c + v, key: ['fatha', 'kasra', 'damma'].indexOf(markId) >= 0 ? `syl_${letterId}_${markId}` : null };
+  };
 
-  title: {
-    es: 'Aprende Árabe desde Cero',
-    ar: 'تعلّم العربية من الصفر',
-    en: 'Learn Arabic from Zero',
-  },
-  description: {
-    es: 'Un viaje interactivo por el alfabeto, sonidos, vocabulario y lectura del árabe — con audio y ejemplos visuales.',
-    ar: 'رحلة تفاعلية عبر الأبجدية والأصوات والمفردات وقراءة العربية — مع الصوت وأمثلة بصرية.',
-    en: 'An interactive journey through the alphabet, sounds, vocabulary and reading of Arabic — with audio and visual examples.',
-  },
+  const letterLesson = (id) => ({ type: 'arabic_letter', letterId: id });
 
-  stations: [
-    // ═════════════════════════════════════════════════════════════════
-    // 🏛️ ESTACIÓN 1 — Introducción al idioma árabe
-    // ═════════════════════════════════════════════════════════════════
-    {
-      id: 'intro',
-      icon: '<i class="fas fa-scroll"></i>',
-      title: { es: 'Bienvenida al Árabe', ar: 'أهلاً بالعربية', en: 'Welcome to Arabic' },
-      mascotIntro: {
-        es: '¡As-salamu alaykum! El árabe es la lengua del Corán, hablada por más de 400 millones de personas. Comenzaremos por lo esencial.',
-        ar: 'السلام عليكم! العربية لغة القرآن، يتكلم بها أكثر من 400 مليون شخص. سنبدأ بالأساسيات.',
-        en: 'As-salamu alaykum! Arabic is the language of the Quran, spoken by over 400 million people. We\'ll start with the essentials.',
-      },
-      lessons: [
-        {
-          type: 'card',
-          title: { es: '¿Por qué aprender árabe?', ar: 'لماذا نتعلّم العربية؟', en: 'Why learn Arabic?' },
-          content: {
-            es: '📖 Es la lengua del Corán — leer el Libro Sagrado en su idioma original.\n\n🌍 6ª lengua más hablada del mundo (~420 millones de nativos).\n\n🕌 Lengua litúrgica del Islam: la Salah, adhan y du\'a son en árabe.\n\n🏛️ Puerta a 1400 años de literatura, ciencia, filosofía y poesía.\n\n🔤 Alfabeto de 28 letras — más simple de lo que parece.',
-            ar: '📖 لغة القرآن الكريم — قراءة كتاب الله بلغته الأصلية.\n\n🌍 سادس أكثر اللغات تحدّثاً في العالم (~420 مليون ناطق).\n\n🕌 لغة الإسلام الطقسية: الصلاة والأذان والدعاء بالعربية.\n\n🏛️ باب إلى 1400 عام من الأدب والعلم والفلسفة والشعر.\n\n🔤 أبجدية من 28 حرفاً — أبسط ممّا تظنّ.',
-            en: '📖 It is the language of the Quran — read the Holy Book in its original tongue.\n\n🌍 6th most spoken language in the world (~420 million native speakers).\n\n🕌 The liturgical language of Islam: Salah, adhan, and du\'a are in Arabic.\n\n🏛️ A gateway to 1400 years of literature, science, philosophy, and poetry.\n\n🔤 An alphabet of 28 letters — simpler than it looks.',
-          },
-          source: 'Ethnologue 2024 · UNESCO Arabic Language Day',
-        },
-        {
-          type: 'card',
-          title: { es: '3 características únicas del árabe', ar: '3 خصائص فريدة للعربية', en: '3 unique features of Arabic' },
-          content: {
-            es: '➡️ Se escribe de DERECHA a IZQUIERDA (← así).\n\n🔗 Las letras se CONECTAN entre sí, formando palabras cursivas.\n\n🔄 Cada letra tiene hasta 4 FORMAS: aislada · inicial · medial · final.\n\n🎵 Los sonidos (harakat) se marcan con símbolos ARRIBA o ABAJO de las letras.\n\n🌳 Las palabras se derivan de RAÍCES de 3 letras (ej: k-t-b → escribir, libro, escritor, biblioteca).',
-            ar: '➡️ تُكتب من اليمين إلى اليسار.\n\n🔗 الحروف تتّصل ببعضها لتُكوّن كلمات متّصلة.\n\n🔄 لكل حرف حتى 4 أشكال: منفصل · في البداية · في الوسط · في النهاية.\n\n🎵 الحركات تُوضع فوق الحرف أو تحته.\n\n🌳 الكلمات تُشتقّ من جذور ثلاثية (مثال: ك-ت-ب → كتب، كتاب، كاتب، مكتبة).',
-            en: '➡️ Written from RIGHT to LEFT (← like this).\n\n🔗 Letters CONNECT to each other, forming cursive words.\n\n🔄 Each letter has up to 4 SHAPES: isolated · initial · medial · final.\n\n🎵 Vowels (harakat) are marked with symbols ABOVE or BELOW letters.\n\n🌳 Words derive from 3-letter ROOTS (e.g. k-t-b → wrote, book, writer, library).',
-          },
-          source: 'Alif Baa (Georgetown Univ. Press) — Ch. Introduction',
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: '¿Cuántas letras tiene el alfabeto árabe?',
-            ar: 'كم عدد حروف الأبجدية العربية؟',
-            en: 'How many letters are in the Arabic alphabet?',
-          },
-          options: ['24', '26', '28', '30'],
-          correct: 2,
-          feedback: {
-            es: '¡Correcto! 28 letras. Todas son consonantes; las vocales cortas se marcan con signos (harakat).',
-            ar: 'صحيح! 28 حرفاً. جميعها صوامت، وتُضاف الحركات القصيرة بعلامات.',
-            en: 'Correct! 28 letters. All are consonants; short vowels are marked with signs (harakat).',
-          },
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: '¿En qué dirección se escribe el árabe?',
-            ar: 'في أيّ اتّجاه تُكتب العربية؟',
-            en: 'In which direction is Arabic written?',
-          },
-          options: [
-            { es: 'Izquierda a derecha', ar: 'من اليسار إلى اليمين', en: 'Left to right' },
-            { es: 'Derecha a izquierda', ar: 'من اليمين إلى اليسار', en: 'Right to left' },
-            { es: 'De arriba a abajo', ar: 'من الأعلى إلى الأسفل', en: 'Top to bottom' },
-            { es: 'Depende del texto', ar: 'حسب النصّ', en: 'It depends on the text' },
-          ],
-          correct: 1,
-          feedback: {
-            es: 'Sí — el árabe se escribe de derecha a izquierda, como el hebreo y el persa.',
-            ar: 'نعم — العربية تُكتب من اليمين إلى اليسار.',
-            en: 'Yes — Arabic is written right to left, like Hebrew and Persian.',
-          },
-        },
+  // مقطع فيديو (start/end بالثواني) + عنوان وملخّص نصي يعمل بلا إنترنت
+  const clip = (v, title, summary, listen, extra) => Object.assign({ provider: v.provider, id: v.id, start: v.start, end: v.end, title, summary, listen: listen || [] }, extra || {});
+  const videoLesson = (v, title, summary, listen, extra) => Object.assign({ type: 'video', skippable: true }, clip(v, title, summary, listen, extra));
+  const videoSeries = (title, segments) => ({ type: 'video', skippable: true, title, segments });
+
+  // سلسلة فيديو كتابة الحروف: مقطع لكل حرف مع إمكانية التكرار
+  const writingSeries = (ids, extras) => {
+    const segs = ids.map(id => {
+      const l = D.byId[id];
+      const c = D.writingClip(l);
+      return Object.assign({}, c, {
+        label: l.ch,
+        title: T([`Cómo se escribe ${l.ch}`, `كتابة الحرف ${l.ch}`, `How to write ${l.ch}`]),
+        summary: T([
+          `${l.tr} (${l.nm}). Formas: ${l.forms.iso} · ${l.forms.ini} · ${l.forms.med} · ${l.forms.fin}. ${l.write.es}`,
+          `${l.nm}. الأشكال: ${l.forms.iso} · ${l.forms.ini} · ${l.forms.med} · ${l.forms.fin}. ${l.write.ar}`,
+          `${l.tr} (${l.nm}). Forms: ${l.forms.iso} · ${l.forms.ini} · ${l.forms.med} · ${l.forms.fin}. ${l.write.en}`]),
+        listen: ['letter:' + id],
+      });
+    });
+    (extras || []).forEach(id => {
+      const x = D.EXTRAS.find(e => e.id === id);
+      segs.push({
+        provider: 'youtube', id: VID.writingId, start: D.ts(x.clip.start), end: D.ts(x.clip.end),
+        label: x.ch, title: T([`Cómo se escribe ${x.ch}`, `كتابة ${x.ch}`, `How to write ${x.ch}`]),
+        summary: T([`${x.tr} (${x.nm}). ${x.note.es}`, `${x.nm}. ${x.note.ar}`, `${x.tr} (${x.nm}). ${x.note.en}`]),
+        listen: [{ text: x.ex.w, label: x.ex.tr }],
+      });
+    });
+    return segs;
+  };
+
+  const quiz = (q, options, correct, feedback, learns) => Object.assign({ type: 'quiz', question: T(q), options, correct, feedback: T(feedback) }, learns ? { learns } : {});
+  const opt = (es, ar, en) => ({ es, ar, en });
+
+  // ── محطة مجموعة حروف (القالب المتكرّر 2–6) ─────────────────────
+  const groupStation = (g, cfg) => {
+    const ids = letterIds(g);
+    const items = lid(ids);
+    const connectors = ids.filter(i => D.byId[i].conn);
+    const sound = VID.sounds[g];
+    const soundVideo = videoLesson(sound,
+      T([`Sonidos del grupo ${g}`, `أصوات المجموعة ${g}`, `Sounds of group ${g}`]),
+      T([`Escucha con atención el sonido de cada letra (${ids.map(i => D.byId[i].ch).join(' ')}). Pausa, repite en voz alta y compara con lo que oyes.`,
+         `أنصت جيداً لصوت كل حرف (${ids.map(i => D.byId[i].ch).join(' ')}). أوقف الفيديو وكرّر بصوت مسموع وقارن بما تسمع.`,
+         `Listen closely to each letter's sound (${ids.map(i => D.byId[i].ch).join(' ')}). Pause, repeat aloud and compare with what you hear.`]),
+      items);
+    const videoStep = g === 1
+      ? videoSeries(T([`Vídeo: las letras y sus sonidos`, `فيديو: الحروف وأصواتها`, `Video: the letters and their sounds`]), [
+          Object.assign({ label: T(['Vista general', 'نظرة عامة', 'Overview']) }, clip(VID.lettersIntro,
+            T([`El alfabeto árabe: vista general`, `الأبجدية العربية: نظرة عامة`, `The Arabic alphabet: overview`]),
+            T([`Un mapa del alfabeto antes de entrar en detalle. El árabe tiene 28 letras y cada una se aprende con tres cosas: su forma, su sonido y su escritura. No intentes memorizarlo todo ahora: lo repasaremos letra por letra.`,
+               `خريطة للأبجدية قبل التفصيل. للعربية 28 حرفاً، ونتعلّم كل حرف بثلاثة أشياء: شكله وصوته وكتابته. لا تحاول حفظ كل شيء الآن: سنراجعها حرفاً حرفاً.`,
+               `A map of the alphabet before the details. Arabic has 28 letters and each is learned through three things: shape, sound and writing. Don't try to memorise it all now: we'll go letter by letter.`]), [])),
+          Object.assign({ label: T([`Sonidos del grupo 1`, `أصوات المجموعة 1`, `Sounds of group 1`]) }, clip(sound,
+            T([`Sonidos del grupo 1`, `أصوات المجموعة 1`, `Sounds of group 1`]), soundVideo.summary, items)),
+        ])
+      : soundVideo;
+
+    return {
+      id: 'letters_' + g,
+      kind: 'letters',
+      icon: `<span class="cx-glyph-icon" aria-hidden="true">${D.byId[ids[0]].ch}</span>`,
+      cover: { glyphs: ids.map(i => D.byId[i].ch), tone: g },
+      title: cfg.title,
+      mascotIntro: cfg.intro,
+      items,
+      lessons: [].concat(
+        [{ type: 'shape_families', letters: ids, group: g }],
+        [videoStep],
+        ids.map(letterLesson),
+        cfg.extra || [],
+        [
+          { type: 'listen_choose', items },
+          { type: 'match_pairs', gen: 'forms', letters: connectors, title: T([`Une cada forma con su posición`, `طابق كلّ شكل بموضعه`, `Match each shape with its position`]) },
+        ],
+        cfg.quizzes,
+        [
+          { type: 'flashcards', title: T([`Repaso del grupo ${g}`, `مراجعة المجموعة ${g}`, `Group ${g} review`]), items },
+          { type: 'checkpoint', items, n: 5, pass: 0.8 },
+        ]
+      ),
+    };
+  };
+
+  // ═══════════════ الوحدة 1 ═══════════════
+  const S1 = {
+    id: 'welcome', kind: 'intro',
+    icon: '<i class="fas fa-door-open"></i>',
+    cover: { icon: 'fa-door-open', tone: 0 },
+    title: T([`Bienvenida al árabe`, `مرحباً بالعربية`, `Welcome to Arabic`]),
+    mascotIntro: T([
+      `¡As-salamu alaykum! Esta es tu llave para entender el Corán: aprenderás a leer árabe paso a paso, con sonido, vídeo y práctica.`,
+      `السلام عليكم! هذا مفتاحك لفهم القرآن: ستتعلّم قراءة العربية خطوة بخطوة بالصوت والفيديو والتدريب.`,
+      `As-salamu alaykum! This is your key to understanding the Quran: you'll learn to read Arabic step by step, with sound, video and practice.`]),
+    lessons: [
+      { type: 'video', skippable: true, provider: 'local', src: VID.intro.src, poster: VID.intro.poster, start: 0, end: 90,
+        title: T([`Bienvenida al curso (90 s)`, `مرحباً بك في الدورة (90 ثانية)`, `Welcome to the course (90 s)`]),
+        summary: T([
+          `Un vistazo rápido a lo que vas a lograr: leer las letras, oír sus sonidos y descubrir tus primeras palabras del Corán. Empezarás sin saber nada y terminarás leyendo frases reales.`,
+          `نظرة سريعة على ما ستحقّقه: قراءة الحروف وسماع أصواتها واكتشاف أولى كلمات القرآن. تبدأ من الصفر وتنتهي بقراءة عبارات حقيقية.`,
+          `A quick look at what you'll achieve: reading the letters, hearing their sounds and discovering your first Quranic words. You start from zero and end up reading real phrases.`]) },
+      { type: 'infographic', layout: 'list',
+        title: T([`¿Por qué aprender árabe?`, `لماذا نتعلّم العربية؟`, `Why learn Arabic?`]),
+        items: [
+          { icon: 'fa-book-quran', title: T([`La lengua del Corán`, `لغة القرآن`, `The language of the Quran`]), text: T([`Lee el Libro en su idioma original y entiende lo que recitas.`, `اقرأ الكتاب بلغته الأصلية وافهم ما تتلو.`, `Read the Book in its original language and understand what you recite.`]) },
+          { icon: 'fa-mosque', title: T([`La lengua de la oración`, `لغة الصلاة`, `The language of prayer`]), text: T([`El adhan, la salah y el du'a se dicen en árabe.`, `الأذان والصلاة والدعاء بالعربية.`, `The adhan, salah and du'a are said in Arabic.`]) },
+          { icon: 'fa-earth-africa', title: T([`Cientos de millones de hablantes`, `مئات الملايين من الناطقين`, `Hundreds of millions of speakers`]), text: T([`Una de las lenguas más habladas del mundo.`, `من أكثر لغات العالم انتشاراً.`, `One of the most widely spoken languages in the world.`]) },
+          { icon: 'fa-landmark', title: T([`1400 años de saber`, `١٤٠٠ عام من العلم`, `1400 years of knowledge`]), text: T([`Literatura, ciencia, filosofía y poesía a tu alcance.`, `أدب وعلم وفلسفة وشعر في متناولك.`, `Literature, science, philosophy and poetry within reach.`]) },
+          { icon: 'fa-font', title: T([`Solo 28 letras`, `٢٨ حرفاً فقط`, `Just 28 letters`]), text: T([`Más simple de lo que parece. ¡Lo verás!`, `أبسط مما تظن. سترى!`, `Simpler than it looks. You'll see!`]) },
+        ],
+        source: 'Ethnologue · UNESCO Arabic Language Day' },
+      { type: 'infographic', layout: 'grid',
+        title: T([`5 claves del árabe`, `٥ مفاتيح للعربية`, `5 keys to Arabic`]),
+        items: [
+          { icon: 'fa-arrow-left-long', title: T([`De derecha a izquierda`, `من اليمين إلى اليسار`, `Right to left`]), text: T([`Se escribe y se lee así: ←`, `تُكتب وتُقرأ هكذا: ←`, `Written and read this way: ←`]) },
+          { icon: 'fa-link', title: T([`Letras unidas`, `حروف متّصلة`, `Joined letters`]), text: T([`Casi todas se unen y forman palabras cursivas.`, `أغلبها يتّصل فتتكوّن كلمات متصلة.`, `Most of them join into flowing words.`]) },
+          { icon: 'fa-shapes', title: T([`Hasta 4 formas`, `حتى ٤ أشكال`, `Up to 4 shapes`]), text: T([`Aislada · inicial · medial · final.`, `منفصلة · أوّل · وسط · آخر.`, `Isolated · initial · medial · final.`]) },
+          { icon: 'fa-music', title: T([`Vocales como signos`, `حركات فوق الحرف وتحته`, `Vowels as marks`]), text: T([`Las vocales cortas van arriba o abajo de la letra.`, `الحركات القصيرة فوق الحرف أو تحته.`, `Short vowels sit above or below the letter.`]) },
+          { icon: 'fa-seedling', title: T([`Raíces de 3 letras`, `جذور من ثلاثة حروف`, `3-letter roots`]), text: T([`ك-ت-ب → escribir, libro, escritor, biblioteca.`, `ك-ت-ب ← كتب، كتاب، كاتب، مكتبة.`, `k-t-b → write, book, writer, library.`]) },
+        ],
+        source: 'Alif Baa (Georgetown University Press)' },
+      quiz([`¿Cuántas letras tiene el alfabeto árabe?`, `كم عدد حروف الأبجدية العربية؟`, `How many letters are in the Arabic alphabet?`],
+        ['24', '26', '28', '30'], 2,
+        [`¡Correcto! 28 letras. Todas son consonantes; las vocales cortas se marcan con signos (harakat).`, `صحيح! 28 حرفاً. جميعها صوامت، وتُضاف الحركات القصيرة بعلامات.`, `Correct! 28 letters. All are consonants; short vowels are marked with signs (harakat).`]),
+      quiz([`¿En qué dirección se escribe el árabe?`, `في أيّ اتّجاه تُكتب العربية؟`, `In which direction is Arabic written?`],
+        [opt(`Izquierda a derecha`, `من اليسار إلى اليمين`, `Left to right`), opt(`Derecha a izquierda`, `من اليمين إلى اليسار`, `Right to left`), opt(`De arriba a abajo`, `من الأعلى إلى الأسفل`, `Top to bottom`), opt(`Depende del texto`, `حسب النصّ`, `It depends on the text`)], 1,
+        [`Derecha a izquierda. Por eso los libros árabes se abren «al revés».`, `من اليمين إلى اليسار، ولذلك تُفتح الكتب العربية «من الخلف».`, `Right to left. That's why Arabic books open "backwards".`]),
+      { type: 'journey_map' },
+    ],
+  };
+
+  // ═══════════════ الوحدة 2: الحروف ═══════════════
+  const S2 = groupStation(1, {
+    title: T([`Grupo 1: ا ب ت ث ج ح خ`, `المجموعة 1: ا ب ت ث ج ح خ`, `Group 1: ا ب ت ث ج ح خ`]),
+    intro: T([
+      `¡Empecemos! Cada letra tiene 3 pasos: su forma, su sonido y cómo se escribe. Toca 🔊 para escucharla.`,
+      `لنبدأ! لكل حرف ثلاث خطوات: شكله ثم صوته ثم طريقة كتابته. اضغط 🔊 لتسمعه.`,
+      `Let's start! Every letter has 3 steps: its shape, its sound and how to write it. Tap 🔊 to hear it.`]),
+    quizzes: [
+      quiz([`¿Cuál de estas letras tiene UN punto DEBAJO?`, `أيّ من هذه الحروف له نقطة واحدة تحته؟`, `Which of these letters has ONE dot BELOW?`],
+        ['ت', 'ب', 'ث', 'خ'], 1,
+        [`ب (Baa) es la única con un punto DEBAJO. ت tiene 2 arriba, ث tiene 3 arriba y خ tiene 1 arriba.`, `الباء وحدها لها نقطة تحتها. التاء نقطتان فوق، والثاء ثلاث فوق، والخاء نقطة واحدة فوق.`, `ب (Baa) is the only one with a dot BELOW. ت has 2 above, ث has 3 above, خ has 1 above.`], ['letter:ba']),
+      quiz([`«جَمَلٌ» (jamal) significa:`, `«جَمَلٌ» تعني:`, `"jamal" (جَمَلٌ) means:`],
+        [opt(`Perro 🐕`, `كلب`, `Dog 🐕`), opt(`Caballo 🐎`, `حصان`, `Horse 🐎`), opt(`Camello 🐫`, `جمل`, `Camel 🐫`), opt(`León 🦁`, `أسد`, `Lion 🦁`)], 2,
+        [`¡Correcto! Jamal = camello, un animal muy importante en la cultura árabe.`, `صحيح! جمل: حيوان مهمّ في الثقافة العربية.`, `Correct! Jamal = camel, a very important animal in Arabic culture.`], ['letter:jim']),
+    ],
+  });
+
+  const S3 = groupStation(2, {
+    title: T([`Grupo 2: د ذ ر ز س ش`, `المجموعة 2: د ذ ر ز س ش`, `Group 2: د ذ ر ز س ش`]),
+    intro: T([
+      `¡Muy bien! Ahora 6 letras más. Ojo: د ذ ر ز NO se unen a la letra siguiente.`,
+      `أحسنت! لنكمل مع 6 حروف أخرى. لاحظ: د ذ ر ز لا تتّصل بما بعدها.`,
+      `Well done! Six more letters. Careful: د ذ ر ز do NOT join the next letter.`]),
+    quizzes: [
+      quiz([`¿Cuál letra NO se une a la letra siguiente?`, `أيّ حرف لا يتّصل بما بعده؟`, `Which letter does NOT join the one after it?`],
+        ['س', 'ب', 'ر', 'ت'], 2,
+        [`ر (Raa) es una de las 6 letras que no se unen hacia adelante: ا د ذ ر ز و.`, `الراء من الحروف الستّة التي لا تتّصل بما بعدها: ا د ذ ر ز و.`, `ر is one of the 6 letters that never join forward: ا د ذ ر ز و.`], ['letter:ra']),
+      quiz([`«شَمْسٌ» (shams) significa:`, `«شَمْسٌ» تعني:`, `"shams" (شَمْسٌ) means:`],
+        [opt(`Luna 🌙`, `قمر`, `Moon 🌙`), opt(`Sol ☀️`, `شمس`, `Sun ☀️`), opt(`Estrella ⭐`, `نجم`, `Star ⭐`), opt(`Nube ☁️`, `سحاب`, `Cloud ☁️`)], 1,
+        [`¡Sí! Shams = sol. Verás esta palabra muchas veces en el Corán.`, `نعم! الشمس: كلمة تتكرّر كثيراً في القرآن.`, `Yes! Shams = sun. You'll see this word often in the Quran.`], ['letter:shin']),
+    ],
+  });
+
+  const S4 = groupStation(3, {
+    title: T([`Grupo 3: ص ض ط ظ ع غ`, `المجموعة 3: ص ض ط ظ ع غ`, `Group 3: ص ض ط ظ ع غ`]),
+    intro: T([
+      `Estas son las letras «pesadas» y las de la garganta. Se dicen con la lengua atrás o con la garganta apretada. ¡Son únicas del árabe! Ve despacio y repite con el audio.`,
+      `هذه الحروف المفخّمة والحلقية. تُنطق برفع أقصى اللسان أو بانقباض الحلق. من خصائص العربية! تمهّل وكرّر مع الصوت.`,
+      `These are the "heavy" letters and the throat letters. They're said with the tongue pulled back or the throat squeezed. Unique to Arabic! Go slowly and repeat with the audio.`]),
+    // درس إضافي: موضع اللسان
+    extra: [
+      { type: 'infographic', layout: 'grid',
+        title: T([`¿Dónde va la lengua?`, `أين يكون اللسان؟`, `Where does the tongue go?`]),
+        intro: T([`Las «pesadas» se hacen con la lengua en forma de cuchara.`, `المفخّمة تُنطق بتقعير اللسان كالملعقة.`, `The "heavy" letters use a spoon-shaped tongue.`]),
+        items: [
+          { glyph: 'ص ض', title: T([`Lengua de cuchara`, `لسان كالملعقة`, `Spoon tongue`]), text: T([`Hunde el centro y eleva la parte de atrás hacia el paladar. La boca «se llena».`, `قعّر وسط اللسان وارفع أقصاه نحو الحنك. يمتلئ الفم بالصوت.`, `Hollow the middle and lift the back toward the palate. The mouth "fills".`]) },
+          { glyph: 'ط ظ', title: T([`Como ت y ذ, pero pesadas`, `كالتاء والذال لكن مفخّمة`, `Like ت and ذ, but heavy`]), text: T([`Misma posición delante, pero con la parte de atrás elevada.`, `الموضع الأمامي نفسه مع رفع أقصى اللسان.`, `Same front position, but with the back of the tongue raised.`]) },
+          { glyph: 'ع', title: T([`Garganta apretada`, `حلق منقبض`, `Squeezed throat`]), text: T([`Contrae el centro de la garganta y deja salir la voz.`, `اعصر وسط الحلق ودع الصوت يخرج.`, `Squeeze the middle of the throat and let voice out.`]) },
+          { glyph: 'غ', title: T([`Gárgara suave`, `غرغرة خفيفة`, `Soft gargle`]), text: T([`El fondo de la lengua roza el paladar blando, con voz.`, `أقصى اللسان يلامس الحنك اللين مع الصوت.`, `The back of the tongue brushes the soft palate, with voice.`]) },
+        ], listen: ['letter:sad', 'letter:dad', 'letter:tta', 'letter:zza', 'letter:ayn', 'letter:ghayn'] },
+    ],
+    quizzes: [
+      quiz([`¿Por qué se llama al árabe «lugat al-ḍād»?`, `لماذا تُسمّى العربية «لغة الضاد»؟`, `Why is Arabic called "the language of the Ḍād"?`],
+        [opt(`Porque ض es la letra más común`, `لأنّ الضاد الأكثر شيوعاً`, `Because ض is the most common letter`), opt(`Porque el sonido ض es propio del árabe`, `لأنّ صوت الضاد خاصّ بالعربية`, `Because the ض sound is special to Arabic`), opt(`Porque el árabe empieza con ض`, `لأنّ العربية تبدأ بالضاد`, `Because Arabic starts with ض`), opt(`Es un nombre poético sin significado`, `اسم شعريّ فقط`, `It's just a poetic name`)], 1,
+        [`Exacto. Ninguna otra lengua tiene el ض tal cual, por eso el árabe se identifica con él.`, `بالضبط. لا لغة أخرى فيها صوت الضاد الأصيل.`, `Exactly. No other language has the ض exactly as it is, so Arabic is identified with it.`], ['letter:dad']),
+      quiz([`¿Qué pareja es «normal» y «pesada»?`, `أيّ زوج هو «مرقّق» و«مفخّم»؟`, `Which pair is "normal" and "heavy"?`],
+        ['ب / ف', 'س / ص', 'م / ن', 'ك / ل'], 1,
+        [`س (s normal) ↔ ص (s pesada). Otras parejas: ت↔ط, د↔ض, ذ↔ظ.`, `س (مرقّقة) ↔ ص (مفخّمة). وأزواج أخرى: ت↔ط، د↔ض، ذ↔ظ.`, `س (plain s) ↔ ص (heavy s). Other pairs: ت↔ط, د↔ض, ذ↔ظ.`], ['letter:sad']),
+    ],
+  });
+
+  const S5 = groupStation(4, {
+    title: T([`Grupo 4: ف ق ك ل`, `المجموعة 4: ف ق ك ل`, `Group 4: ف ق ك ل`]),
+    intro: T([
+      `Cuatro letras clave. Ojo con ق y ك: parecen hermanas, pero ق nace mucho más atrás. Y fíjate en ف y ق: solo cambian los puntos.`,
+      `أربعة حروف مهمّة. انتبه للقاف والكاف: تبدوان أختين لكنّ القاف أعمق مخرجاً. ولاحظ الفاء والقاف: الفرق في النقاط.`,
+      `Four key letters. Watch ق and ك: they look like sisters, but ق is made much farther back. And ف and ق differ only in their dots.`]),
+    quizzes: [
+      quiz([`¿Cuál es la letra que suena como una «k» hecha muy atrás en la garganta?`, `أيّ حرف يُنطق كالكاف لكن من أقصى الحلق؟`, `Which letter sounds like a "k" made very far back in the throat?`],
+        ['ك', 'ق', 'ف', 'ل'], 1,
+        [`ق (Qaaf): dos puntos arriba y sonido profundo. ك (Kaaf) es la «k» normal.`, `القاف: نقطتان فوقها وصوتها عميق. أما الكاف فهي الكاف العادية.`, `ق (Qaaf): two dots above and a deep sound. ك (Kaaf) is the normal "k".`], ['letter:qaf', 'letter:kaf']),
+      quiz([`«لَيْلٌ» (layl) significa:`, `«لَيْلٌ» تعني:`, `"layl" (لَيْلٌ) means:`],
+        [opt(`Día ☀️`, `نهار`, `Day ☀️`), opt(`Noche 🌌`, `ليل`, `Night 🌌`), opt(`Luna 🌙`, `قمر`, `Moon 🌙`), opt(`Libro 📖`, `كتاب`, `Book 📖`)], 1,
+        [`Layl = noche. Empieza con ل (Laam).`, `ليل: تبدأ باللام.`, `Layl = night. It starts with ل (Laam).`], ['letter:lam']),
+    ],
+  });
+
+  const S6 = groupStation(5, {
+    title: T([`Grupo 5: م ن هـ و ي`, `المجموعة 5: م ن هـ و ي`, `Group 5: م ن هـ و ي`]),
+    intro: T([
+      `¡Última estación de letras! Con م ن ه و ي completas las 28. Ojo: و y ي pueden ser consonante o vocal larga.`,
+      `آخر محطة للحروف! بـ م ن ه و ي تكتمل الحروف الـ28. انتبه: الواو والياء قد تكونان صامتتين أو حرفَي مدّ.`,
+      `Last letter station! With م ن ه و ي you complete all 28. Note: و and ي can be a consonant or a long vowel.`]),
+    quizzes: [
+      quiz([`¿Qué letras pueden ser consonante o vocal larga?`, `أيّ حروف تأتي صامتة أو حرف مدّ؟`, `Which letters can be a consonant or a long vowel?`],
+        ['ب · ت', 'و · ي', 'م · ن', 'ه · ك'], 1,
+        [`و → «w» o «ū» · ي → «y» o «ī». (Y ا → «ā».) Alargan las vocales.`, `الواو (w / ū) والياء (y / ī)، وكذلك الألف (ā): تمدّ الحركات.`, `و → "w" or "ū" · ي → "y" or "ī". (And ا → "ā".) They lengthen vowels.`], ['letter:waw', 'letter:ya']),
+      quiz([`¿Cuál de estas letras tiene formas MUY distintas según su posición?`, `أيّ حرف تختلف أشكاله كثيراً بحسب موضعه؟`, `Which letter has VERY different shapes depending on position?`],
+        ['ب', 'ه', 'م', 'ن'], 1,
+        [`ه: ه · هـ · ـهـ · ـه. ¡Parecen cuatro letras distintas!`, `الهاء: ه · هـ · ـهـ · ـه. تبدو كأربعة حروف مختلفة!`, `ه: ه · هـ · ـهـ · ـه. They look like four different letters!`], ['letter:ha']),
+    ],
+  });
+
+  // ═══════════════ الوحدة 3: آلية القراءة ═══════════════
+  const rd = VID.reading;
+  const MK = (id) => D.MARKS.find(x => x.id === id);
+  const markInfo = (markId, letters, video) => {
+    const m = MK(markId);
+    return {
+      type: 'infographic', layout: 'grid', title: m.name,
+      intro: m.look,
+      items: [
+        { glyph: m.glyph, title: T([`Cómo suena`, `كيف تُنطق`, `How it sounds`]), text: m.sound },
       ],
-    },
+      examples: letters.map(l => syl(l, markId)),
+      video,
+      learns: ['mark:' + markId],
+    };
+  };
+  const vidMark = (v, m, listen) => clip(v,
+    T([`Vídeo: ${m.name.es}`, `فيديو: ${m.name.ar}`, `Video: ${m.name.en}`]),
+    T([`${m.look.es} ${m.sound.es}`, `${m.look.ar} ${m.sound.ar}`, `${m.look.en} ${m.sound.en}`]), listen);
+  const fatha = MK('fatha'), kasra = MK('kasra'), damma = MK('damma'), sukun = MK('sukun'), shadda = MK('shadda');
+  const sample = ['ba', 'ta', 'jim', 'dal', 'ra', 'sin', 'fa', 'mim', 'nun'];
 
-    // ═════════════════════════════════════════════════════════════════
-    // 🔤 ESTACIÓN 2 — Las primeras 7 letras + audio
-    // ═════════════════════════════════════════════════════════════════
-    {
-      id: 'letters_group_1',
-      icon: '<i class="fas fa-font"></i>',
-      title: { es: 'Grupo 1: ا ب ت ث ج ح خ', ar: 'المجموعة 1: ا ب ت ث ج ح خ', en: 'Group 1: ا ب ت ث ج ح خ' },
-      mascotIntro: {
-        es: '¡Empecemos! Toca el botón 🔊 para escuchar cada letra. Presta atención a las formas.',
-        ar: 'لنبدأ! اضغط الزرّ 🔊 لسماع كلّ حرف. انتبه إلى الأشكال.',
-        en: 'Let\'s start! Tap the 🔊 button to hear each letter. Pay attention to the shapes.',
-      },
-      lessons: [
-        {
-          type: 'arabic_letter',
-          letter: 'ا',
-          name: { ar: 'ألف', translit: 'Alif' },
-          sound: { es: 'como la "a" en "casa" (sonido largo /aː/)', ar: 'مثل الألف في «باب»', en: 'like "a" in "father" (long /aː/)' },
-          forms: { isolated: 'ا', initial: 'ا', medial: 'ـا', final: 'ـا' },
-          notConnects: true, // Alif no conecta después
-          example: {
-            word: 'أَبٌ',
-            translit: 'ab',
-            meaning: { es: 'padre', ar: 'أب', en: 'father' },
-            emoji: '👨',
-          },
-          note: {
-            es: 'La Alif es la primera letra. NO se conecta con la letra que le sigue.',
-            ar: 'الألف أوّل حرف. لا تتّصل بما بعدها.',
-            en: 'Alif is the 1st letter. It does NOT connect to the letter after it.',
-          },
-          source: 'Alif Baa · Unit 1',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'ب',
-          name: { ar: 'باء', translit: 'Baa' },
-          sound: { es: 'como la "b" en "barco"', ar: 'مثل الباء في «باب»', en: 'like "b" in "book"' },
-          forms: { isolated: 'ب', initial: 'بـ', medial: 'ـبـ', final: 'ـب' },
-          example: {
-            word: 'بَابٌ',
-            translit: 'bāb',
-            meaning: { es: 'puerta', ar: 'باب', en: 'door' },
-            emoji: '🚪',
-          },
-          note: {
-            es: 'El punto va DEBAJO. Cuidado: ت (2 puntos arriba) y ث (3 puntos arriba) tienen la misma forma.',
-            ar: 'النقطة تحت الحرف. انتبه: ت (نقطتان فوق) و ث (ثلاث نقاط فوق) لهما نفس الشكل.',
-            en: 'The dot goes BELOW. Beware: ت (2 dots above) and ث (3 dots above) share the same shape.',
-          },
-          source: 'Alif Baa · Unit 1',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'ت',
-          name: { ar: 'تاء', translit: 'Taa' },
-          sound: { es: 'como la "t" en "taza"', ar: 'مثل التاء في «تفّاح»', en: 'like "t" in "tea"' },
-          forms: { isolated: 'ت', initial: 'تـ', medial: 'ـتـ', final: 'ـت' },
-          example: {
-            word: 'تُفّاحٌ',
-            translit: 'tuffāḥ',
-            meaning: { es: 'manzana', ar: 'تفّاح', en: 'apple' },
-            emoji: '🍎',
-          },
-          note: {
-            es: 'Dos puntos ARRIBA. Misma silueta que ب y ث.',
-            ar: 'نقطتان فوق الحرف. نفس شكل ب و ث.',
-            en: 'Two dots ABOVE. Same shape as ب and ث.',
-          },
-          source: 'Alif Baa · Unit 1',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'ث',
-          name: { ar: 'ثاء', translit: 'Thaa' },
-          sound: { es: 'como "th" en inglés "think" (interdental sorda)', ar: 'مثل الثاء في «ثوب»', en: 'like "th" in "think"' },
-          forms: { isolated: 'ث', initial: 'ثـ', medial: 'ـثـ', final: 'ـث' },
-          example: {
-            word: 'ثَوْبٌ',
-            translit: 'thawb',
-            meaning: { es: 'vestimenta', ar: 'ثوب', en: 'garment' },
-            emoji: '👕',
-          },
-          note: {
-            es: 'Tres puntos ARRIBA. Este sonido no existe en español moderno (sí en el castellano de España como la "z" de "zapato").',
-            ar: 'ثلاث نقاط فوق الحرف. هذا الصوت غير موجود في الإسبانية اللاتينية.',
-            en: 'Three dots ABOVE. This sound doesn\'t exist in Spanish (Latin America) but is like Castilian "z".',
-          },
-          source: 'Alif Baa · Unit 1',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'ج',
-          name: { ar: 'جيم', translit: 'Jīm' },
-          sound: { es: 'como "y" en "yo" (Argentina) o "j" en inglés "job"', ar: 'مثل الجيم في «جمل»', en: 'like "j" in "job"' },
-          forms: { isolated: 'ج', initial: 'جـ', medial: 'ـجـ', final: 'ـج' },
-          example: {
-            word: 'جَمَلٌ',
-            translit: 'jamal',
-            meaning: { es: 'camello', ar: 'جمل', en: 'camel' },
-            emoji: '🐫',
-          },
-          note: {
-            es: 'Un punto DEBAJO. Comparte silueta con ح y خ.',
-            ar: 'نقطة تحت الحرف. نفس شكل ح و خ.',
-            en: 'One dot BELOW. Shares shape with ح and خ.',
-          },
-          source: 'Alif Baa · Unit 2',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'ح',
-          name: { ar: 'حاء', translit: 'Ḥaa' },
-          sound: { es: '"h" ASPIRADA muy fuerte, desde el fondo de la garganta (sin equivalente en español)', ar: 'حاء قويّة من عمق الحلق', en: 'strongly aspirated "h" from deep throat (no English equivalent)' },
-          forms: { isolated: 'ح', initial: 'حـ', medial: 'ـحـ', final: 'ـح' },
-          example: {
-            word: 'حُبٌّ',
-            translit: 'ḥubb',
-            meaning: { es: 'amor', ar: 'حبّ', en: 'love' },
-            emoji: '❤️',
-          },
-          note: {
-            es: '⚠️ Letra "gutural". Practica: imagina que empañas un cristal con vaho, pero con más fuerza.',
-            ar: '⚠️ حرف حلقيّ. تدرّب: كأنّك تُخرج نفَساً حارّاً بقوّة.',
-            en: '⚠️ "Guttural" letter. Practice: imagine fogging a mirror with your breath, but stronger.',
-          },
-          source: 'Al-Jazariyyah · Makhārij al-Ḥurūf (throat letters)',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'خ',
-          name: { ar: 'خاء', translit: 'Khaa' },
-          sound: { es: 'como la "j" española de "jota" o "ch" alemana de "Bach"', ar: 'مثل الخاء في «خبز»', en: 'like Scottish "ch" in "loch" or German "Bach"' },
-          forms: { isolated: 'خ', initial: 'خـ', medial: 'ـخـ', final: 'ـخ' },
-          example: {
-            word: 'خُبْزٌ',
-            translit: 'khubz',
-            meaning: { es: 'pan', ar: 'خبز', en: 'bread' },
-            emoji: '🍞',
-          },
-          note: {
-            es: 'Un punto ARRIBA. ¡Buena noticia para hispanohablantes: este sonido existe en tu idioma!',
-            ar: 'نقطة فوق الحرف. هذا الصوت موجود بالإسبانية (مثل «jota»).',
-            en: 'One dot ABOVE. Good news for Spanish speakers — this sound exists in their language!',
-          },
-          source: 'Alif Baa · Unit 2',
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: '¿Cuál de estas letras tiene UN punto DEBAJO?',
-            ar: 'أيّ من هذه الحروف له نقطة واحدة تحته؟',
-            en: 'Which of these letters has ONE dot BELOW?',
-          },
-          options: ['ت', 'ب', 'ث', 'خ'],
-          correct: 1,
-          feedback: {
-            es: 'ب (Baa) es la única con un punto DEBAJO. ت tiene 2 arriba, ث tiene 3 arriba, خ tiene 1 arriba.',
-            ar: 'الباء لها نقطة واحدة تحتها. التاء نقطتان فوق، الثاء ثلاث فوق، الخاء واحدة فوق.',
-            en: 'ب (Baa) is the only one with one dot BELOW.',
-          },
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: '"جَمَلٌ" significa:',
-            ar: '«جَمَلٌ» تعني:',
-            en: '"jamal" (جَمَلٌ) means:',
-          },
-          options: [
-            { es: 'Perro 🐕', ar: 'كلب', en: 'Dog 🐕' },
-            { es: 'Caballo 🐎', ar: 'حصان', en: 'Horse 🐎' },
-            { es: 'Camello 🐫', ar: 'جمل', en: 'Camel 🐫' },
-            { es: 'León 🦁', ar: 'أسد', en: 'Lion 🦁' },
-          ],
-          correct: 2,
-          feedback: {
-            es: '¡Correcto! Jamal = camello. Un animal muy importante en la cultura árabe.',
-            ar: 'صحيح! جمل — حيوان مهمّ في الثقافة العربية.',
-            en: 'Correct! Jamal = camel. A very important animal in Arabic culture.',
-          },
-        },
-        {
-          type: 'flashcards',
-          title: { es: 'Repaso Grupo 1', ar: 'مراجعة المجموعة 1', en: 'Group 1 review' },
-          cards: [
-            { front: 'ا', back: { es: 'Alif — "a"', ar: 'ألف', en: 'Alif — "a"' } },
-            { front: 'ب', back: { es: 'Baa — "b"', ar: 'باء', en: 'Baa — "b"' } },
-            { front: 'ت', back: { es: 'Taa — "t"', ar: 'تاء', en: 'Taa — "t"' } },
-            { front: 'ث', back: { es: 'Thaa — "th" (think)', ar: 'ثاء', en: 'Thaa — "th"' } },
-            { front: 'ج', back: { es: 'Jīm — "y" argentina', ar: 'جيم', en: 'Jīm — "j"' } },
-            { front: 'ح', back: { es: 'Ḥaa — "h" fuerte', ar: 'حاء', en: 'Ḥaa — strong h' } },
-            { front: 'خ', back: { es: 'Khaa — "j" española', ar: 'خاء', en: 'Khaa — Scottish "ch"' } },
-          ],
-        },
-      ],
-    },
+  const S7 = {
+    id: 'harakat', kind: 'marks',
+    icon: '<i class="fas fa-music"></i>',
+    cover: { glyphs: ['بَ', 'بِ', 'بُ', 'بْ'], tone: 7 },
+    title: T([`Las vocales y el sukun`, `الحركات والسكون`, `Vowels and the sukun`]),
+    mascotIntro: T([
+      `Las letras son consonantes. Las vocales cortas se escriben como signos pequeños arriba o abajo: fatḥa, kasra, ḍamma… y el sukun, que las quita.`,
+      `الحروف صوامت، والحركات القصيرة علامات صغيرة فوق الحرف أو تحته: الفتحة والكسرة والضمّة… والسكون الذي يُسقطها.`,
+      `Letters are consonants. Short vowels are small marks above or below: fatḥa, kasra, ḍamma… and the sukun, which removes them.`]),
+    items: ['mark:fatha', 'mark:kasra', 'mark:damma', 'mark:sukun'],
+    lessons: [
+      { type: 'infographic', layout: 'grid',
+        title: T([`Tres sonidos y un silencio`, `ثلاثة أصوات وسكون`, `Three sounds and a silence`]),
+        intro: T([`Sobre la letra ب veremos cómo cambia el sonido.`, `على الحرف ب سنرى كيف يتغيّر الصوت.`, `On the letter ب we'll see how the sound changes.`]),
+        items: [
+          { glyph: 'بَ', title: T([`Fatḥa · a`, `فتحة · a`, `Fatḥa · a`]), text: T([`Rayita ARRIBA`, `شرطة فوق الحرف`, `Dash ABOVE`]), say: syl('ba', 'fatha') },
+          { glyph: 'بِ', title: T([`Kasra · i`, `كسرة · i`, `Kasra · i`]), text: T([`Rayita DEBAJO`, `شرطة تحت الحرف`, `Dash BELOW`]), say: syl('ba', 'kasra') },
+          { glyph: 'بُ', title: T([`Ḍamma · u`, `ضمّة · u`, `Ḍamma · u`]), text: T([`«و» diminuta ARRIBA`, `واو صغيرة فوق الحرف`, `Tiny «و» ABOVE`]), say: syl('ba', 'damma') },
+          { glyph: 'بْ', title: T([`Sukun · —`, `سكون · —`, `Sukun · —`]), text: T([`Circulito: sin vocal`, `دائرة: بلا حركة`, `Small circle: no vowel`]), say: { text: 'بْ', label: 'b' } },
+        ] },
+      videoSeries(T([`Vídeo: cómo se lee el árabe`, `فيديو: كيف تُقرأ العربية`, `Video: how Arabic is read`]), [
+        Object.assign({ label: T(['Introducción', 'مقدّمة', 'Intro']) }, clip(rd.intro,
+          T([`Cómo se lee el árabe`, `كيف تُقرأ العربية`, `How Arabic is read`]),
+          T([`Visión general de la lectura: las letras dan las consonantes y unos signos pequeños añaden las vocales. Fíjate en qué cambia al mover el signo de arriba a abajo.`,
+             `نظرة عامة على القراءة: الحروف تعطي الصوامت وعلامات صغيرة تضيف الحركات. لاحظ ما يتغيّر عند نقل العلامة من فوق إلى تحت.`,
+             `An overview of reading: letters give consonants and small marks add the vowels. Notice what changes when the mark moves from above to below.`]), [])),
+        Object.assign({ label: T(['Las harakat', 'الحركات', 'Harakat']) }, clip(rd.general,
+          T([`Las harakat en general`, `الحركات عموماً`, `The harakat in general`]),
+          T([`Repaso de las tres vocales cortas y del sukun. Practica diciendo ba · bi · bu · b en voz alta.`, `مراجعة الحركات الثلاث والسكون. تدرّب على قول: بَ بِ بُ بْ بصوت مسموع.`, `A review of the three short vowels and the sukun. Practise saying ba · bi · bu · b aloud.`]),
+          [syl('ba', 'fatha'), syl('ba', 'kasra'), syl('ba', 'damma')])),
+      ]),
+      markInfo('fatha', sample.slice(0, 5), vidMark(rd.fatha, fatha, sample.slice(0, 5).map(l => syl(l, 'fatha')))),
+      markInfo('kasra', sample.slice(0, 5), vidMark(rd.kasra, kasra, sample.slice(0, 5).map(l => syl(l, 'kasra')))),
+      markInfo('damma', sample.slice(0, 5), vidMark(rd.damma, damma, sample.slice(0, 5).map(l => syl(l, 'damma')))),
+      { type: 'sound_grid', mode: 'marks', letters: sample, marks: ['fatha', 'kasra', 'damma'],
+        title: T([`Tabla de sonidos: a · i · u`, `جدول الأصوات: a · i · u`, `Sound table: a · i · u`]) },
+      { type: 'listen_choose', items: ['mark:fatha', 'mark:kasra', 'mark:damma'] },
+      quiz([`¿Cómo se pronuncia «بُ»?`, `كيف تُنطق «بُ»؟`, `How is "بُ" pronounced?`], ['ba', 'bi', 'bu', 'b'], 2,
+        [`Correcto: bu. La ḍamma (la «و» diminuta) da el sonido «u».`, `صحيح: بُ. الضمّة تعطي صوت الواو القصير.`, `Correct: bu. The ḍamma (the tiny «و») gives the "u" sound.`], ['mark:damma']),
+      markInfo('sukun', ['ba', 'ta', 'nun', 'mim', 'lam'], vidMark(rd.sukun, sukun, [])),
+      { type: 'match_pairs', title: T([`Une cada signo con su sonido`, `طابق كلّ علامة بصوتها`, `Match each mark with its sound`]),
+        pairs: [
+          { l: fatha.glyph, r: T(['a (corta)', 'a قصيرة', 'a (short)']), rtl: true },
+          { l: kasra.glyph, r: T(['i (corta)', 'i قصيرة', 'i (short)']), rtl: true },
+          { l: damma.glyph, r: T(['u (corta)', 'u قصيرة', 'u (short)']), rtl: true },
+          { l: sukun.glyph, r: T(['sin vocal', 'بلا حركة', 'no vowel']), rtl: true },
+        ] },
+      quiz([`«كِتَابٌ» (kitāb) lleva:`, `«كِتَابٌ» فيها:`, `"كِتَابٌ" (kitāb) contains:`],
+        [opt(`Fatha + Damma`, `فتحة + ضمّة`, `Fatha + Damma`), opt(`Kasra + Fatha + Damma`, `كسرة + فتحة + ضمّة`, `Kasra + Fatha + Damma`), opt(`Solo Fatha`, `فتحة فقط`, `Only Fatha`), opt(`Sukun + Kasra`, `سكون + كسرة`, `Sukun + Kasra`)], 1,
+        [`Kasra (ki) + fatḥa (ta) + alif larga (ā) + ḍamma con tanwīn (bun) = «kitābun».`, `كسرة (كِ) + فتحة (تَ) + ألف ممدودة + ضمّة مع تنوين (بٌ).`, `Kasra (ki) + fatḥa (ta) + long alif (ā) + ḍamma with tanween (bun) = "kitābun".`]),
+      { type: 'checkpoint', items: ['mark:fatha', 'mark:kasra', 'mark:damma', 'mark:sukun'], n: 5, pass: 0.8 },
+    ],
+  };
 
-    // ═════════════════════════════════════════════════════════════════
-    // 🔤 ESTACIÓN 3 — Grupo 2: د ذ ر ز س ش
-    // ═════════════════════════════════════════════════════════════════
-    {
-      id: 'letters_group_2',
-      icon: '<i class="fas fa-font"></i>',
-      title: { es: 'Grupo 2: د ذ ر ز س ش', ar: 'المجموعة 2: د ذ ر ز س ش', en: 'Group 2: د ذ ر ز س ش' },
-      mascotIntro: {
-        es: '¡Bien! Continuemos con 6 letras más. Nota: د ذ ر ز NO se conectan con la letra siguiente.',
-        ar: 'أحسنت! لنكمل مع 6 حروف أخرى. لاحظ: د ذ ر ز لا تتّصل بما بعدها.',
-        en: 'Great! Let\'s continue with 6 more letters. Note: د ذ ر ز do NOT connect to the next letter.',
-      },
-      lessons: [
-        {
-          type: 'arabic_letter',
-          letter: 'د',
-          name: { ar: 'دال', translit: 'Dāl' },
-          sound: { es: 'como la "d" en "dado"', ar: 'مثل الدال في «دار»', en: 'like "d" in "door"' },
-          forms: { isolated: 'د', initial: 'د', medial: 'ـد', final: 'ـد' },
-          notConnects: true,
-          example: {
-            word: 'دَارٌ',
-            translit: 'dār',
-            meaning: { es: 'casa/hogar', ar: 'دار', en: 'house/home' },
-            emoji: '🏠',
-          },
-          note: {
-            es: 'Sin puntos. NO se conecta con la letra siguiente.',
-            ar: 'بدون نقاط. لا تتّصل بما بعدها.',
-            en: 'No dots. Does NOT connect to the next letter.',
-          },
-          source: 'Alif Baa · Unit 3',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'ذ',
-          name: { ar: 'ذال', translit: 'Dhāl' },
-          sound: { es: 'como "th" en inglés "this" (interdental sonora)', ar: 'مثل الذال في «ذهب»', en: 'like "th" in "this"' },
-          forms: { isolated: 'ذ', initial: 'ذ', medial: 'ـذ', final: 'ـذ' },
-          notConnects: true,
-          example: {
-            word: 'ذَهَبٌ',
-            translit: 'dhahab',
-            meaning: { es: 'oro', ar: 'ذهب', en: 'gold' },
-            emoji: '🪙',
-          },
-          note: {
-            es: 'Un punto ARRIBA. Vibra la lengua entre los dientes, con voz.',
-            ar: 'نقطة فوق الحرف. تُنطق باللسان بين الأسنان مع الصوت.',
-            en: 'One dot ABOVE. Tongue vibrates between teeth, voiced.',
-          },
-          source: 'Alif Baa · Unit 3',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'ر',
-          name: { ar: 'راء', translit: 'Rāa' },
-          sound: { es: 'como la "r" en "pero" (una sola vibración, suave)', ar: 'مثل الراء في «رأس»', en: 'like Spanish soft "r" in "pero" (single tap)' },
-          forms: { isolated: 'ر', initial: 'ر', medial: 'ـر', final: 'ـر' },
-          notConnects: true,
-          example: {
-            word: 'رَأْسٌ',
-            translit: 'ra\'s',
-            meaning: { es: 'cabeza', ar: 'رأس', en: 'head' },
-            emoji: '👤',
-          },
-          note: {
-            es: 'Sin puntos. NO se conecta después. Es una vibración SIMPLE (no como la "rr" fuerte del español).',
-            ar: 'بدون نقاط. لا تتّصل بما بعدها. تكرار واحد فقط.',
-            en: 'No dots. Does NOT connect. A single tap, not a rolled "rr".',
-          },
-          source: 'Alif Baa · Unit 3',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'ز',
-          name: { ar: 'زاي', translit: 'Zāy' },
-          sound: { es: 'como la "z" del inglés "zebra" o la "s" sonora de "mismo"', ar: 'مثل الزاي في «زيت»', en: 'like "z" in "zebra"' },
-          forms: { isolated: 'ز', initial: 'ز', medial: 'ـز', final: 'ـز' },
-          notConnects: true,
-          example: {
-            word: 'زَيْتٌ',
-            translit: 'zayt',
-            meaning: { es: 'aceite', ar: 'زيت', en: 'oil' },
-            emoji: '🫒',
-          },
-          note: {
-            es: 'Un punto ARRIBA. Mismo dibujo que ر pero con punto.',
-            ar: 'نقطة فوق الحرف. نفس رسم الراء مع نقطة.',
-            en: 'One dot ABOVE. Same shape as ر but with a dot.',
-          },
-          source: 'Alif Baa · Unit 3',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'س',
-          name: { ar: 'سين', translit: 'Sīn' },
-          sound: { es: 'como la "s" en "sol"', ar: 'مثل السين في «سماء»', en: 'like "s" in "sun"' },
-          forms: { isolated: 'س', initial: 'سـ', medial: 'ـسـ', final: 'ـس' },
-          example: {
-            word: 'سَمَاءٌ',
-            translit: 'samā\'',
-            meaning: { es: 'cielo', ar: 'سماء', en: 'sky' },
-            emoji: '☁️',
-          },
-          note: {
-            es: 'Tres "dientecitos" sin puntos.',
-            ar: 'ثلاث أسنان بدون نقاط.',
-            en: 'Three "teeth" without dots.',
-          },
-          source: 'Alif Baa · Unit 4',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'ش',
-          name: { ar: 'شين', translit: 'Shīn' },
-          sound: { es: 'como "sh" en inglés "she" o "ch" francés de "chat"', ar: 'مثل الشين في «شمس»', en: 'like "sh" in "she"' },
-          forms: { isolated: 'ش', initial: 'شـ', medial: 'ـشـ', final: 'ـش' },
-          example: {
-            word: 'شَمْسٌ',
-            translit: 'shams',
-            meaning: { es: 'sol', ar: 'شمس', en: 'sun' },
-            emoji: '☀️',
-          },
-          note: {
-            es: 'Igual que س pero con TRES puntos arriba.',
-            ar: 'نفس السين مع ثلاث نقاط فوق.',
-            en: 'Like س but with THREE dots above.',
-          },
-          source: 'Alif Baa · Unit 4',
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: '¿Cuál letra NO se conecta con la letra siguiente?',
-            ar: 'أيّ حرف لا يتّصل بما بعده؟',
-            en: 'Which letter does NOT connect to the letter after it?',
-          },
-          options: ['س', 'ب', 'ر', 'ت'],
-          correct: 2,
-          feedback: {
-            es: 'ر (Rāa) es una de las 6 letras "aisladas": ا د ذ ر ز و — nunca se conectan hacia adelante.',
-            ar: 'الراء من الحروف الستّة التي لا تتّصل بما بعدها: ا د ذ ر ز و.',
-            en: 'ر is one of the 6 "non-connecting" letters: ا د ذ ر ز و.',
-          },
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: '"شَمْسٌ" (shams) significa:',
-            ar: '«شَمْسٌ» تعني:',
-            en: '"shams" (شَمْسٌ) means:',
-          },
-          options: [
-            { es: 'Luna 🌙', ar: 'قمر', en: 'Moon 🌙' },
-            { es: 'Sol ☀️', ar: 'شمس', en: 'Sun ☀️' },
-            { es: 'Estrella ⭐', ar: 'نجم', en: 'Star ⭐' },
-            { es: 'Nube ☁️', ar: 'سحاب', en: 'Cloud ☁️' },
-          ],
-          correct: 1,
-          feedback: {
-            es: '¡Sí! Shams = sol. Verás esta palabra en el Corán muchas veces.',
-            ar: 'نعم! الشمس — كلمة تتكرّر كثيراً في القرآن.',
-            en: 'Yes! Shams = sun. You\'ll see this word often in the Quran.',
-          },
-        },
-      ],
-    },
+  const tf = MK('tan_fath'), tk = MK('tan_kasr'), td = MK('tan_damm');
+  const S8 = {
+    id: 'tanween_shadda', kind: 'marks',
+    icon: '<i class="fas fa-layer-group"></i>',
+    cover: { glyphs: ['بّ', 'بً', 'بٍ', 'بٌ'], tone: 8 },
+    title: T([`Tanween y shadda`, `التنوين والشدّة`, `Tanween and shadda`]),
+    mascotIntro: T([
+      `Dos signos más y ya sabrás leer casi cualquier palabra vocalizada: la shadda dobla la letra y el tanween añade una «n» al final.`,
+      `علامتان فقط وتقرأ أيّ كلمة مُشكَّلة: الشدّة تضاعف الحرف، والتنوين يضيف نوناً في آخر الكلمة.`,
+      `Two more marks and you can read almost any vowelled word: the shadda doubles a letter and the tanween adds an "n" at the end.`]),
+    items: ['mark:shadda', 'mark:tan_fath', 'mark:tan_kasr', 'mark:tan_damm'],
+    lessons: [
+      { type: 'infographic', layout: 'grid', title: shadda.name, intro: shadda.look,
+        items: [{ glyph: shadda.glyph, title: T([`Cómo suena`, `كيف تُنطق`, `How it sounds`]), text: shadda.sound }],
+        examples: [
+          { text: 'رَبّ', label: 'rabb' }, { text: 'حَقّ', label: 'ḥaqq' }, { text: 'حُبّ', label: 'ḥubb' }, { text: 'أُمّ', label: 'umm' },
+        ],
+        video: vidMark(rd.shadda, shadda, []),
+        learns: ['mark:shadda'] },
+      quiz([`¿Qué signo significa «letra doblada»?`, `أيّ علامة تدلّ على تضعيف الحرف؟`, `Which mark means "doubled letter"?`],
+        [opt(`Fatha (ـَ)`, `فتحة`, `Fatha`), opt(`Sukūn (ـْ)`, `سكون`, `Sukūn`), opt(`Shadda (ـّ)`, `شدّة`, `Shadda`), opt(`Kasra (ـِ)`, `كسرة`, `Kasra`)], 2,
+        [`La shadda (ـّ): la letra se dice DOS veces, la primera sin vocal y la segunda con ella.`, `الشدّة (ـّ): يُنطق الحرف مرّتين، الأولى ساكنة والثانية متحرّكة.`, `The shadda (ـّ): the letter is said TWICE, first without a vowel and then with it.`], ['mark:shadda']),
+      { type: 'gen_quiz', items: ['mark:shadda'] },
+      { type: 'infographic', layout: 'grid', title: T([`Tanween: la «n» final`, `التنوين: نون في الآخر`, `Tanween: the final "n"`]),
+        intro: T([`Va solo al final de la palabra. Es como duplicar la vocal: an · in · un.`, `يأتي في آخر الكلمة فقط. هو حركة مضاعفة: an · in · un.`, `Only at the end of a word. It's a doubled vowel: an · in · un.`]),
+        items: [
+          { glyph: tf.glyph, title: T([`Tanween fatḥ · an`, `تنوين فتح · an`, `Tanween fatḥ · an`]), text: T([`كِتَابًا · kitāban`, `كِتَابًا`, `كِتَابًا · kitāban`]), say: { text: 'كِتَابًا', label: 'kitāban' } },
+          { glyph: tk.glyph, title: T([`Tanween kasr · in`, `تنوين كسر · in`, `Tanween kasr · in`]), text: T([`كِتَابٍ · kitābin`, `كِتَابٍ`, `كِتَابٍ · kitābin`]), say: { text: 'كِتَابٍ', label: 'kitābin' } },
+          { glyph: td.glyph, title: T([`Tanween ḍamm · un`, `تنوين ضمّ · un`, `Tanween ḍamm · un`]), text: T([`كِتَابٌ · kitābun`, `كِتَابٌ`, `كِتَابٌ · kitābun`]), say: { text: 'كِتَابٌ', label: 'kitābun' } },
+        ],
+        video: clip(rd.tanween,
+          T([`Vídeo: el tanween`, `فيديو: التنوين`, `Video: the tanween`]),
+          T([`El tanween se pronuncia como una «n» que NO se escribe como letra. Con fatḥ suele llevar una alif detrás (ـًا). Escucha las tres terminaciones y repítelas.`,
+             `التنوين نون ساكنة تُنطق ولا تُكتب حرفاً. مع الفتح يُكتب غالباً مع ألف (ـًا). استمع إلى النهايات الثلاث وكرّرها.`,
+             `The tanween is pronounced like an "n" that is NOT written as a letter. With fatḥ it usually takes an alif (ـًا). Listen to the three endings and repeat them.`]),
+          [{ text: 'كِتَابًا', label: 'kitāban' }, { text: 'كِتَابٍ', label: 'kitābin' }, { text: 'كِتَابٌ', label: 'kitābun' }]),
+        learns: ['mark:tan_fath', 'mark:tan_kasr', 'mark:tan_damm'] },
+      { type: 'sound_grid', mode: 'marks', letters: ['ba', 'ta', 'kaf', 'mim', 'nun'], marks: ['tan_fath', 'tan_kasr', 'tan_damm'],
+        title: T([`Tabla de sonidos: an · in · un`, `جدول الأصوات: an · in · un`, `Sound table: an · in · un`]) },
+      { type: 'match_pairs', title: T([`Une cada tanween con su sonido`, `طابق كلّ تنوين بصوته`, `Match each tanween with its sound`]),
+        pairs: [
+          { l: tf.glyph, r: 'an', rtl: true }, { l: tk.glyph, r: 'in', rtl: true }, { l: td.glyph, r: 'un', rtl: true },
+        ] },
+      { type: 'fill_blank', before: 'كِتَاب', after: '', options: ['ـٌ', 'ـٍ', 'ـً', 'ـْ'], correct: 0,
+        translation: T([`Completa para leer «kitābun».`, `أكمل لتقرأ «kitābun».`, `Complete it to read "kitābun".`]),
+        feedback: T([`ـٌ (tanween ḍamm) = «un»: kitābun.`, `ـٌ (تنوين ضمّ) = «un»: كِتَابٌ.`, `ـٌ (tanween ḍamm) = "un": kitābun.`]), learns: ['mark:tan_damm'] },
+      { type: 'checkpoint', items: ['mark:shadda', 'mark:tan_fath', 'mark:tan_kasr', 'mark:tan_damm'], n: 5, pass: 0.8 },
+      { type: 'flashcards', title: T([`Repaso de signos`, `مراجعة العلامات`, `Marks review`]), items: ['mark:fatha', 'mark:kasra', 'mark:damma', 'mark:sukun', 'mark:shadda', 'mark:tan_fath', 'mark:tan_kasr', 'mark:tan_damm'] },
+    ],
+  };
 
-    // ═════════════════════════════════════════════════════════════════
-    // 🔤 ESTACIÓN 4 — Grupo 3: ص ض ط ظ ع غ (letras "enfáticas")
-    // ═════════════════════════════════════════════════════════════════
-    {
-      id: 'letters_group_3',
-      icon: '<i class="fas fa-font"></i>',
-      title: { es: 'Grupo 3: ص ض ط ظ ع غ (enfáticas)', ar: 'المجموعة 3: ص ض ط ظ ع غ', en: 'Group 3: ص ض ط ظ ع غ (emphatic)' },
-      mascotIntro: {
-        es: 'Estas son las letras "enfáticas" o "pesadas". Se pronuncian con la lengua hacia atrás y el sonido más grave. ¡Son únicas del árabe!',
-        ar: 'هذه هي الحروف المُفَخَّمة. تُنطق باللسان مرفوعاً إلى أعلى الفم بصوت مُغلَّظ. فريدة في العربية!',
-        en: 'These are the "emphatic" or "heavy" letters. Pronounced with tongue back and a deep sound. Unique to Arabic!',
-      },
-      lessons: [
-        {
-          type: 'arabic_letter',
-          letter: 'ص',
-          name: { ar: 'صاد', translit: 'Ṣād' },
-          sound: { es: '"s" ENFÁTICA — lengua hacia atrás, sonido grave', ar: 'صاد مُفخَّمة', en: 'emphatic "s" — tongue back, deep' },
-          forms: { isolated: 'ص', initial: 'صـ', medial: 'ـصـ', final: 'ـص' },
-          example: {
-            word: 'صَدِيقٌ',
-            translit: 'ṣadīq',
-            meaning: { es: 'amigo', ar: 'صديق', en: 'friend' },
-            emoji: '🤝',
-          },
-          note: {
-            es: 'La versión "grave" de س. Compara: سَيْف (espada) vs صَيْف (verano).',
-            ar: 'النسخة المُفخَّمة من السين. قارن: سَيْف vs صَيْف.',
-            en: 'Emphatic version of س. Compare: سَيْف (sword) vs صَيْف (summer).',
-          },
-          source: 'Al-Jazariyyah · Ḥurūf al-Iṭbāq',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'ض',
-          name: { ar: 'ضاد', translit: 'Ḍād' },
-          sound: { es: '"d" ENFÁTICA — el sonido más único del árabe', ar: 'ضاد مُفخَّمة', en: 'emphatic "d" — the most unique Arabic sound' },
-          forms: { isolated: 'ض', initial: 'ضـ', medial: 'ـضـ', final: 'ـض' },
-          example: {
-            word: 'ضَوْءٌ',
-            translit: 'ḍaw\'',
-            meaning: { es: 'luz', ar: 'ضوء', en: 'light' },
-            emoji: '💡',
-          },
-          note: {
-            es: '💫 El árabe es llamado "Lughat al-Ḍād" (لغة الضاد, "la lengua del Ḍād") porque este sonido es EXCLUSIVO del árabe.',
-            ar: '💫 تُسمّى العربية «لغة الضاد» لأنّ هذا الصوت خاصّ بها.',
-            en: '💫 Arabic is called "Lughat al-Ḍād" (the language of the Ḍād) because this sound is EXCLUSIVE to Arabic.',
-          },
-          source: 'Al-Jazariyyah · Makhraj al-Ḍād',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'ط',
-          name: { ar: 'طاء', translit: 'Ṭāa' },
-          sound: { es: '"t" ENFÁTICA — sonido grave, lengua atrás', ar: 'طاء مُفخَّمة', en: 'emphatic "t" — deep sound' },
-          forms: { isolated: 'ط', initial: 'طـ', medial: 'ـطـ', final: 'ـط' },
-          example: {
-            word: 'طَعَامٌ',
-            translit: 'ṭa\'ām',
-            meaning: { es: 'comida', ar: 'طعام', en: 'food' },
-            emoji: '🍽️',
-          },
-          note: {
-            es: 'Versión enfática de ت. Su forma no cambia mucho entre las 4 posiciones.',
-            ar: 'النسخة المُفخَّمة من التاء.',
-            en: 'Emphatic version of ت. Its shape barely changes across positions.',
-          },
-          source: 'Alif Baa · Unit 5',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'ظ',
-          name: { ar: 'ظاء', translit: 'Ẓāa' },
-          sound: { es: '"th" enfática (como "this" pero más grave)', ar: 'ظاء مُفخَّمة', en: 'emphatic "th" as in "this" but deeper' },
-          forms: { isolated: 'ظ', initial: 'ظـ', medial: 'ـظـ', final: 'ـظ' },
-          example: {
-            word: 'ظِلٌّ',
-            translit: 'ẓill',
-            meaning: { es: 'sombra', ar: 'ظلّ', en: 'shade/shadow' },
-            emoji: '🌳',
-          },
-          note: {
-            es: 'Igual que ط pero con un punto arriba. Sonido enfático de ذ.',
-            ar: 'نفس الطاء مع نقطة فوق. النسخة المُفخَّمة من الذال.',
-            en: 'Like ط but with a dot above. Emphatic version of ذ.',
-          },
-          source: 'Alif Baa · Unit 5',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'ع',
-          name: { ar: 'عين', translit: '\'Ayn' },
-          sound: { es: 'Sonido GUTURAL profundo, sin equivalente. Se produce apretando la garganta.', ar: 'حرف حلقيّ عميق', en: 'Deep GUTTURAL sound, no equivalent. Produced by constricting the throat.' },
-          forms: { isolated: 'ع', initial: 'عـ', medial: 'ـعـ', final: 'ـع' },
-          example: {
-            word: 'عَيْنٌ',
-            translit: '\'ayn',
-            meaning: { es: 'ojo / fuente de agua', ar: 'عين', en: 'eye / spring of water' },
-            emoji: '👁️',
-          },
-          note: {
-            es: '⚠️ Uno de los sonidos más difíciles. Practica: haz "ah" mientras aprietas la parte de atrás de la garganta.',
-            ar: '⚠️ من أصعب الأصوات. تدرّب: قل «آه» مع ضغط أسفل الحلق.',
-            en: '⚠️ One of the hardest sounds. Practice: say "ah" while constricting the back of your throat.',
-          },
-          source: 'Al-Jazariyyah · Makhārij al-Ḥalq',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'غ',
-          name: { ar: 'غين', translit: 'Ghayn' },
-          sound: { es: 'como la "g" de "gato" pero más gutural, o la "r" francesa parisina', ar: 'غين — كأنّ الحلق يهتزّ', en: 'like French "r" in "Paris"' },
-          forms: { isolated: 'غ', initial: 'غـ', medial: 'ـغـ', final: 'ـغ' },
-          example: {
-            word: 'غُرَابٌ',
-            translit: 'ghurāb',
-            meaning: { es: 'cuervo', ar: 'غراب', en: 'crow' },
-            emoji: '🐦‍⬛',
-          },
-          note: {
-            es: 'Igual que ع pero con un punto arriba. Piensa en hacer gárgaras suaves.',
-            ar: 'نفس العين مع نقطة فوق. كأنّك تُغرغِر بلطف.',
-            en: 'Like ع but with a dot above. Think of a gentle gargle.',
-          },
-          source: 'Alif Baa · Unit 6',
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: '¿Por qué se llama al árabe "Lughat al-Ḍād"?',
-            ar: 'لماذا تُسمّى العربية «لغة الضاد»؟',
-            en: 'Why is Arabic called "Lughat al-Ḍād"?',
-          },
-          options: [
-            { es: 'Porque el ض es la letra más común', ar: 'لأنّ الضاد الأكثر شيوعاً', en: 'Because ض is the most common letter' },
-            { es: 'Porque el sonido ض es exclusivo del árabe', ar: 'لأنّ صوت الضاد خاصّ بالعربية', en: 'Because the ض sound is exclusive to Arabic' },
-            { es: 'Porque el árabe empieza con ض', ar: 'لأنّ العربية تبدأ بالضاد', en: 'Because Arabic starts with ض' },
-            { es: 'Es un nombre poético sin significado', ar: 'اسم شعريّ فقط', en: 'It\'s just a poetic name' },
-          ],
-          correct: 1,
-          feedback: {
-            es: 'Exacto. Ninguna otra lengua tiene el sonido puro del ض, por eso el árabe se identifica con él.',
-            ar: 'بالضبط. لا توجد لغة أخرى فيها صوت الضاد الأصيل.',
-            en: 'Exactly. No other language has the pure ض sound, so Arabic is identified with it.',
-          },
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: '¿Cuál de estas parejas es "letra normal" vs "letra enfática"?',
-            ar: 'أيّ زوج «مرقّق» مقابل «مفخّم»؟',
-            en: 'Which pair is "normal" vs "emphatic"?',
-          },
-          options: [
-            { es: 'ب / ف', ar: 'ب / ف', en: 'ب / ف' },
-            { es: 'س / ص', ar: 'س / ص', en: 'س / ص' },
-            { es: 'م / ن', ar: 'م / ن', en: 'م / ن' },
-            { es: 'ك / ل', ar: 'ك / ل', en: 'ك / ل' },
-          ],
-          correct: 1,
-          feedback: {
-            es: 'Correcto. س (s normal) ↔ ص (s enfática). Otros pares: ت↔ط, د↔ض, ذ↔ظ.',
-            ar: 'صحيح. الأزواج: س↔ص، ت↔ط، د↔ض، ذ↔ظ.',
-            en: 'Correct. Other pairs: ت↔ط, د↔ض, ذ↔ظ.',
-          },
-        },
-      ],
-    },
+  // ═══════════════ الوحدة 4: كلمات وقراءة ═══════════════
+  const S9 = {
+    id: 'joining', kind: 'writing',
+    icon: '<i class="fas fa-link"></i>',
+    cover: { glyphs: ['بـ', 'ـيـ', 'ـت'], tone: 9 },
+    title: T([`Unir las letras`, `وصل الحروف`, `Joining letters`]),
+    mascotIntro: T([
+      `Ahora unimos las letras para formar palabras. Verás cada letra cambiar según su posición y cómo se escribe, una por una.`,
+      `الآن نصل الحروف لنكوّن كلمات. سترى كل حرف يتغيّر بحسب موضعه وكيف يُكتب، حرفاً حرفاً.`,
+      `Now we join letters into words. You'll see each letter change with its position and how it is written, one by one.`]),
+    items: lid(['ba', 'jim', 'sin', 'ayn', 'fa', 'kaf', 'mim', 'ha', 'ya', 'dal', 'ra']),
+    lessons: [
+      { type: 'infographic', layout: 'steps', title: T([`Así se unen las letras`, `هكذا تتّصل الحروف`, `How letters join`]),
+        intro: T([`Se une por la derecha de cada letra, porque escribimos hacia la izquierda.`, `يتّصل الحرف بما قبله من جهة اليمين لأننا نكتب نحو اليسار.`, `Each letter joins on its right, because we write toward the left.`]),
+        items: [
+          { icon: 'fa-1', title: T([`Elige la forma según la posición`, `اختر الشكل بحسب الموضع`, `Pick the shape by position`]), text: T([`Inicial بـ · medial ـبـ · final ـب · aislada ب.`, `أول بـ · وسط ـبـ · آخر ـب · منفصل ب.`, `Initial بـ · medial ـبـ · final ـب · isolated ب.`]) },
+          { icon: 'fa-2', title: T([`Seis letras NO se unen a la siguiente`, `ستّة حروف لا تتّصل بما بعدها`, `Six letters do NOT join the next`]), text: T([`ا د ذ ر ز و: después de ellas, la palabra «se corta» y la siguiente letra empieza de nuevo.`, `ا د ذ ر ز و: بعدها تنقطع الكلمة ويبدأ الحرف التالي بشكله الأول.`, `ا د ذ ر ز و: after them the word "breaks" and the next letter starts fresh.`]) },
+          { icon: 'fa-3', title: T([`Ejemplo: بـ + ـيـ + ـت`, `مثال: بـ + ـيـ + ـت`, `Example: بـ + ـيـ + ـت`]), text: T([`= بَيْت (bayt, casa).`, `= بَيْت.`, `= بَيْت (bayt, house).`]), say: { text: 'بَيْتٌ', label: 'bayt' } },
+        ] },
+      videoSeries(T([`Vídeo: cómo se escriben ا ب ت ث ج ح خ`, `فيديو: كتابة ا ب ت ث ج ح خ`, `Video: how to write ا ب ت ث ج ح خ`]), writingSeries(letterIds(1))),
+      videoSeries(T([`Vídeo: cómo se escriben د ذ ر ز س ش ص ض`, `فيديو: كتابة د ذ ر ز س ش ص ض`, `Video: how to write د ذ ر ز س ش ص ض`]), writingSeries(['dal', 'dhal', 'ra', 'zay', 'sin', 'shin', 'sad', 'dad'])),
+      videoSeries(T([`Vídeo: cómo se escriben ط ظ ع غ ف ق ك ل`, `فيديو: كتابة ط ظ ع غ ف ق ك ل`, `Video: how to write ط ظ ع غ ف ق ك ل`]), writingSeries(['tta', 'zza', 'ayn', 'ghayn', 'fa', 'qaf', 'kaf', 'lam'])),
+      videoSeries(T([`Vídeo: cómo se escriben م ن ه و ي ة ى`, `فيديو: كتابة م ن ه و ي ة ى`, `Video: how to write م ن ه و ي ة ى`]), writingSeries(['mim', 'nun', 'ha', 'waw', 'ya'], ['taa_marbuta', 'alif_maqsura'])),
+      { type: 'word_builder', word: 'بيت', vocal: 'بَيْتٌ', tr: 'bayt', meaning: T([`casa`, `بيت`, `house`]), emoji: '🏠', slug: 'bayt',
+        parts: ['بـ', 'ـيـ', 'ـت'], extra: ['ـبـ', 'ت'], learns: ['word:bayt'] },
+      { type: 'word_builder', word: 'كتاب', vocal: 'كِتَابٌ', tr: 'ki-tāb', meaning: T([`libro`, `كتاب`, `book`]), emoji: '📖', slug: 'kitab',
+        parts: ['كـ', 'ـتـ', 'ـا', 'ب'], extra: ['ـكـ', 'ـب'], learns: ['word:kitab'] },
+      { type: 'word_builder', word: 'مسجد', vocal: 'مَسْجِدٌ', tr: 'mas-jid', meaning: T([`mezquita`, `مسجد`, `mosque`]), emoji: '🕌', slug: 'masjid',
+        parts: ['مـ', 'ـسـ', 'ـجـ', 'ـد'], extra: ['ـمـ', 'د'], learns: ['word:masjid'] },
+      { type: 'match_pairs', gen: 'forms', letters: ['ha', 'kaf', 'ayn', 'ya'], title: T([`Une cada forma con su posición`, `طابق كلّ شكل بموضعه`, `Match each shape with its position`]) },
+      { type: 'gen_quiz', special: 'nonconn' },
+      { type: 'checkpoint', items: lid(['ba', 'jim', 'sin', 'ayn', 'fa', 'kaf', 'mim', 'ha', 'ya', 'dal', 'ra']), n: 5, pass: 0.8, qtype: 'form' },
+    ],
+  };
 
-    // ═════════════════════════════════════════════════════════════════
-    // 🔤 ESTACIÓN 5 — Grupo 4: ف ق ك ل م ن هـ و ي
-    // ═════════════════════════════════════════════════════════════════
-    {
-      id: 'letters_group_4',
-      icon: '<i class="fas fa-font"></i>',
-      title: { es: 'Grupo 4: ف ق ك ل م ن هـ و ي', ar: 'المجموعة 4: ف ق ك ل م ن هـ و ي', en: 'Group 4: ف ق ك ل م ن هـ و ي' },
-      mascotIntro: {
-        es: '¡Últimas 9 letras! Después de esto sabrás las 28 completas.',
-        ar: 'آخر 9 حروف! بعدها ستعرف الـ28 كاملة.',
-        en: 'Final 9 letters! After this you\'ll know all 28.',
-      },
-      lessons: [
-        {
-          type: 'arabic_letter',
-          letter: 'ف',
-          name: { ar: 'فاء', translit: 'Fāa' },
-          sound: { es: 'como la "f" en "foto"', ar: 'مثل الفاء في «فم»', en: 'like "f" in "foot"' },
-          forms: { isolated: 'ف', initial: 'فـ', medial: 'ـفـ', final: 'ـف' },
-          example: { word: 'فَمٌ', translit: 'fam', meaning: { es: 'boca', ar: 'فم', en: 'mouth' }, emoji: '👄' },
-          note: { es: 'Un punto ARRIBA.', ar: 'نقطة فوق.', en: 'One dot ABOVE.' },
-          source: 'Alif Baa · Unit 6',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'ق',
-          name: { ar: 'قاف', translit: 'Qāf' },
-          sound: { es: '"k" pronunciada muy atrás en la garganta (uvular)', ar: 'قاف — من أقصى الحلق', en: '"k" pronounced far back in throat (uvular)' },
-          forms: { isolated: 'ق', initial: 'قـ', medial: 'ـقـ', final: 'ـق' },
-          example: { word: 'قَمَرٌ', translit: 'qamar', meaning: { es: 'luna', ar: 'قمر', en: 'moon' }, emoji: '🌙' },
-          note: {
-            es: 'Dos puntos ARRIBA. NO es como la "k" española. Piensa en tragar una "k".',
-            ar: 'نقطتان فوق. تُنطق من أقصى الحلق، ليست كالكاف.',
-            en: 'Two dots ABOVE. NOT like English "k". Think of swallowing a "k".',
-          },
-          source: 'Al-Jazariyyah · Aqṣā al-Lisān',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'ك',
-          name: { ar: 'كاف', translit: 'Kāf' },
-          sound: { es: 'como la "k" en "casa"', ar: 'مثل الكاف في «كتاب»', en: 'like "k" in "kite"' },
-          forms: { isolated: 'ك', initial: 'كـ', medial: 'ـكـ', final: 'ـك' },
-          example: { word: 'كِتَابٌ', translit: 'kitāb', meaning: { es: 'libro', ar: 'كتاب', en: 'book' }, emoji: '📖' },
-          note: {
-            es: 'La forma cambia bastante entre aislada (ك) e inicial/medial (كـ ـكـ).',
-            ar: 'الشكل يختلف كثيراً بين المنفصلة والمتّصلة.',
-            en: 'Shape changes a lot between isolated (ك) and connected forms (كـ ـكـ).',
-          },
-          source: 'Alif Baa · Unit 7',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'ل',
-          name: { ar: 'لام', translit: 'Lām' },
-          sound: { es: 'como la "l" en "luna"', ar: 'مثل اللام في «ليل»', en: 'like "l" in "light"' },
-          forms: { isolated: 'ل', initial: 'لـ', medial: 'ـلـ', final: 'ـل' },
-          example: { word: 'لَيْلٌ', translit: 'layl', meaning: { es: 'noche', ar: 'ليل', en: 'night' }, emoji: '🌌' },
-          note: {
-            es: 'Cuando se combina con ا da la ligadura especial لا (lā = "no").',
-            ar: 'مع الألف تُشكّل «لا».',
-            en: 'When combined with ا forms the special ligature لا (lā = "no").',
-          },
-          source: 'Alif Baa · Unit 7',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'م',
-          name: { ar: 'ميم', translit: 'Mīm' },
-          sound: { es: 'como la "m" en "mamá"', ar: 'مثل الميم في «ماء»', en: 'like "m" in "moon"' },
-          forms: { isolated: 'م', initial: 'مـ', medial: 'ـمـ', final: 'ـم' },
-          example: { word: 'مَاءٌ', translit: 'māa\'', meaning: { es: 'agua', ar: 'ماء', en: 'water' }, emoji: '💧' },
-          note: { es: 'Círculo con "cola" que baja.', ar: 'دائرة صغيرة مع ذيل ينزل.', en: 'A small circle with a tail going down.' },
-          source: 'Alif Baa · Unit 7',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'ن',
-          name: { ar: 'نون', translit: 'Nūn' },
-          sound: { es: 'como la "n" en "nube"', ar: 'مثل النون في «نار»', en: 'like "n" in "noon"' },
-          forms: { isolated: 'ن', initial: 'نـ', medial: 'ـنـ', final: 'ـن' },
-          example: { word: 'نَارٌ', translit: 'nār', meaning: { es: 'fuego', ar: 'نار', en: 'fire' }, emoji: '🔥' },
-          note: { es: 'Aislada: cuenco profundo con un punto. Inicial/medial: como ب pero con punto arriba.', ar: 'المنفصلة: قوس عميق. المتّصلة: كالباء بنقطة فوق.', en: 'Isolated: deep bowl. Connected: like ب but with dot ABOVE.' },
-          source: 'Alif Baa · Unit 7',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'هـ',
-          name: { ar: 'هاء', translit: 'Hāa' },
-          sound: { es: 'como la "h" en inglés "hello" (suave)', ar: 'مثل الهاء في «هواء»', en: 'like "h" in "hello" (soft)' },
-          forms: { isolated: 'ه', initial: 'هـ', medial: 'ـهـ', final: 'ـه' },
-          example: { word: 'هَوَاءٌ', translit: 'hawā\'', meaning: { es: 'aire/viento', ar: 'هواء', en: 'air/wind' }, emoji: '💨' },
-          note: {
-            es: 'Sus 4 formas se ven MUY diferentes. ¡Práctica visual!',
-            ar: 'أشكالها الأربعة مختلفة جدّاً. تدرّب على التمييز.',
-            en: 'Its 4 forms look VERY different. Visual practice needed!',
-          },
-          source: 'Alif Baa · Unit 8',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'و',
-          name: { ar: 'واو', translit: 'Wāw' },
-          sound: { es: 'consonante: "w" de "Washington". Vocal larga: "ū" de "luna"', ar: 'واو — إمّا صامتة أو حركة طويلة', en: 'consonant: "w" as in "wave". Long vowel: "ū" as in "moon"' },
-          forms: { isolated: 'و', initial: 'و', medial: 'ـو', final: 'ـو' },
-          notConnects: true,
-          example: { word: 'وَرْدَةٌ', translit: 'warda', meaning: { es: 'rosa (flor)', ar: 'وردة', en: 'rose (flower)' }, emoji: '🌹' },
-          note: {
-            es: 'Dos usos: consonante "w" o vocal larga "ū". NO se conecta con la letra siguiente.',
-            ar: 'استخدامان: صامتة (w) أو حركة طويلة (ū). لا تتّصل بما بعدها.',
-            en: 'Two uses: consonant "w" or long vowel "ū". Does NOT connect to next letter.',
-          },
-          source: 'Alif Baa · Unit 8',
-        },
-        {
-          type: 'arabic_letter',
-          letter: 'ي',
-          name: { ar: 'ياء', translit: 'Yāa' },
-          sound: { es: 'consonante: "y" de "yema". Vocal larga: "ī" de "mira"', ar: 'ياء — إمّا صامتة أو حركة طويلة', en: 'consonant: "y" as in "yes". Long vowel: "ī" as in "seen"' },
-          forms: { isolated: 'ي', initial: 'يـ', medial: 'ـيـ', final: 'ـي' },
-          example: { word: 'يَدٌ', translit: 'yad', meaning: { es: 'mano', ar: 'يد', en: 'hand' }, emoji: '✋' },
-          note: {
-            es: 'Dos puntos DEBAJO en aislada/final. Al conectarse pierde los puntos visuales (según fuente).',
-            ar: 'نقطتان تحت في المنفصلة والأخيرة.',
-            en: 'Two dots BELOW in isolated/final. Connected forms may hide the dots.',
-          },
-          source: 'Alif Baa · Unit 8',
-        },
-        {
-          type: 'flashcards',
-          title: { es: 'Repaso final — 28 letras', ar: 'المراجعة النهائية — 28 حرفاً', en: 'Final review — 28 letters' },
-          cards: [
-            { front: 'ف', back: { es: 'Fāa — f', ar: 'فاء', en: 'Fāa — f' } },
-            { front: 'ق', back: { es: 'Qāf — k gutural', ar: 'قاف', en: 'Qāf — deep k' } },
-            { front: 'ك', back: { es: 'Kāf — k', ar: 'كاف', en: 'Kāf — k' } },
-            { front: 'ل', back: { es: 'Lām — l', ar: 'لام', en: 'Lām — l' } },
-            { front: 'م', back: { es: 'Mīm — m', ar: 'ميم', en: 'Mīm — m' } },
-            { front: 'ن', back: { es: 'Nūn — n', ar: 'نون', en: 'Nūn — n' } },
-            { front: 'هـ', back: { es: 'Hāa — h suave', ar: 'هاء', en: 'Hāa — soft h' } },
-            { front: 'و', back: { es: 'Wāw — w / ū', ar: 'واو', en: 'Wāw — w / ū' } },
-            { front: 'ي', back: { es: 'Yāa — y / ī', ar: 'ياء', en: 'Yāa — y / ī' } },
-          ],
-        },
-      ],
-    },
+  const vocabLesson = (title, slugs, intro) => ({ type: 'vocab', title, words: slugs, intro, learns: wid(slugs) });
+  const tp = (id) => V.TOPICS.find(x => x.id === id).title;
+  const part = (topic, n) => T([`${tp(topic).es} (${n}/2)`, `${tp(topic).ar} (${n}/2)`, `${tp(topic).en} (${n}/2)`]);
+  const faith = words('faith'), worship = words('worship'), phrases = words('phrases');
+  const family = words('family'), numcol = words('numcol'), life = words('life');
+  const numbers = numcol.slice(0, 10), colors = numcol.slice(10);
+  const matchWords = (pool) => ({ type: 'match_pairs', gen: 'words', words: pool, n: 5, title: T([`Une cada palabra con su significado`, `طابق كلّ كلمة بمعناها`, `Match each word with its meaning`]) });
 
-    // ═════════════════════════════════════════════════════════════════
-    // 🎵 ESTACIÓN 6 — Las Harakat (vocales cortas)
-    // ═════════════════════════════════════════════════════════════════
-    {
-      id: 'harakat',
-      icon: '<i class="fas fa-music"></i>',
-      title: { es: 'Las Harakat (vocales)', ar: 'الحركات', en: 'The Harakat (vowels)' },
-      mascotIntro: {
-        es: 'Las vocales cortas se escriben con símbolos ARRIBA o ABAJO de la letra. Son 3 básicas + sukun + shadda.',
-        ar: 'الحركات القصيرة تُكتب فوق الحرف أو تحته. ثلاث أساسية + السكون + الشدّة.',
-        en: 'Short vowels are written with signs ABOVE or BELOW letters. 3 basic + sukun + shadda.',
-      },
-      lessons: [
-        {
-          type: 'card',
-          title: { es: 'Fatha (فَتْحَة) — sonido "a"', ar: 'الفَتْحَة', en: 'Fatha (فَتْحَة) — "a" sound' },
-          content: {
-            es: '➖ Se escribe como una PEQUEÑA LÍNEA DIAGONAL ARRIBA de la letra.\n\nEjemplo: بَ = "ba"\n\nبَ · تَ · جَ · دَ · رَ · سَ · فَ · مَ · نَ\n(ba · ta · ja · da · ra · sa · fa · ma · na)\n\nSe pronuncia CORTA, como la "a" de "casa".',
-            ar: 'الفتحة هي شَرْطة مائلة فوق الحرف.\n\nمثال: بَ = "ba"\n\nبَ · تَ · جَ · دَ · رَ · سَ · فَ · مَ · نَ\n\nصوت قصير كالألف في «باب».',
-            en: 'Fatha is a SMALL DIAGONAL LINE ABOVE the letter.\n\nExample: بَ = "ba"\n\nبَ · تَ · جَ · دَ · رَ · سَ · فَ · مَ · نَ\n\nPronounced SHORT, like "a" in "cat".',
-          },
-          source: 'Madīnah Book 1 · Lesson 1',
-        },
-        {
-          type: 'card',
-          title: { es: 'Damma (ضَمَّة) — sonido "u"', ar: 'الضَّمَّة', en: 'Damma (ضَمَّة) — "u" sound' },
-          content: {
-            es: '⭕ Se escribe como una PEQUEÑA "و" ARRIBA de la letra.\n\nEjemplo: بُ = "bu"\n\nبُ · تُ · جُ · دُ · رُ · سُ · فُ · مُ · نُ\n(bu · tu · ju · du · ru · su · fu · mu · nu)\n\nSe pronuncia CORTA, como la "u" de "luna".',
-            ar: 'الضمّة تُشبه واواً صغيرة فوق الحرف.\n\nمثال: بُ = "bu"\n\nبُ · تُ · جُ · دُ · رُ · سُ · فُ · مُ · نُ\n\nصوت قصير كالواو في «قُلْ».',
-            en: 'Damma looks like a SMALL "و" ABOVE the letter.\n\nExample: بُ = "bu"\n\nبُ · تُ · جُ · دُ · رُ · سُ · فُ · مُ · نُ\n\nPronounced SHORT, like "u" in "put".',
-          },
-          source: 'Madīnah Book 1 · Lesson 2',
-        },
-        {
-          type: 'card',
-          title: { es: 'Kasra (كَسْرَة) — sonido "i"', ar: 'الكَسْرَة', en: 'Kasra (كَسْرَة) — "i" sound' },
-          content: {
-            es: '➖ Se escribe como una PEQUEÑA LÍNEA DIAGONAL DEBAJO de la letra.\n\nEjemplo: بِ = "bi"\n\nبِ · تِ · جِ · دِ · رِ · سِ · فِ · مِ · نِ\n(bi · ti · ji · di · ri · si · fi · mi · ni)\n\nSe pronuncia CORTA, como la "i" de "mira".',
-            ar: 'الكسرة شَرْطة مائلة تحت الحرف.\n\nمثال: بِ = "bi"\n\nبِ · تِ · جِ · دِ · رِ · سِ · فِ · مِ · نِ\n\nصوت قصير كالياء في «بِنْت».',
-            en: 'Kasra is a SMALL DIAGONAL LINE BELOW the letter.\n\nExample: بِ = "bi"\n\nبِ · تِ · جِ · دِ · رِ · سِ · فِ · مِ · نِ\n\nPronounced SHORT, like "i" in "sit".',
-          },
-          source: 'Madīnah Book 1 · Lesson 3',
-        },
-        {
-          type: 'card',
-          title: { es: 'Sukūn (سُكُون) — sin vocal', ar: 'السُّكُون', en: 'Sukūn (سُكُون) — no vowel' },
-          content: {
-            es: '⭕ Se escribe como un CÍRCULO PEQUEÑO arriba de la letra.\n\nSignifica: "la letra se pronuncia sola, SIN vocal".\n\nEjemplo: مِنْ = "min" (la ن lleva sukun, se corta).\n\nبَلْ = "bal" (la ل lleva sukun).',
-            ar: 'السكون دائرة صغيرة فوق الحرف.\n\nمعناه: الحرف يُنطق بدون حركة.\n\nمثال: مِنْ = "min" — النون ساكنة.\n\nبَلْ = "bal" — اللام ساكنة.',
-            en: 'Sukūn is a SMALL CIRCLE above the letter.\n\nMeaning: "letter pronounced alone, WITHOUT a vowel".\n\nExample: مِنْ = "min" (ن has sukun, cuts short).\n\nبَلْ = "bal" (ل has sukun).',
-          },
-          source: 'Madīnah Book 1 · Lesson 4',
-        },
-        {
-          type: 'card',
-          title: { es: 'Shadda (شَدَّة) — letra doblada', ar: 'الشَّدَّة', en: 'Shadda (شَدَّة) — doubled letter' },
-          content: {
-            es: '𝑊 Se escribe como una "w" pequeña arriba de la letra.\n\nSignifica: "la letra se pronuncia DOBLE con énfasis".\n\nEjemplo: رَبٌّ = "rabb" (Señor) — la ب es doble.\n\nحَقٌّ = "ḥaqq" (verdad) — la ق es doble.\n\nحُبٌّ = "ḥubb" (amor) — la ب es doble.',
-            ar: 'الشدّة كأنّها «w» صغيرة فوق الحرف.\n\nمعناها: يُنطق الحرف مضاعفاً.\n\nمثال: رَبٌّ — الباء مشدّدة.\n\nحَقٌّ — القاف مشدّدة.',
-            en: 'Shadda looks like a small "w" above the letter.\n\nMeaning: "letter pronounced DOUBLE with emphasis".\n\nExample: رَبٌّ = "rabb" (Lord) — ب is doubled.\n\nحَقٌّ = "ḥaqq" (truth) — ق is doubled.',
-          },
-          source: 'Madīnah Book 1 · Lesson 5',
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: '¿Cómo se pronuncia "بُ"?',
-            ar: 'كيف تُنطق «بُ»؟',
-            en: 'How is "بُ" pronounced?',
-          },
-          options: ['ba', 'bi', 'bu', 'b (sin vocal)'],
-          correct: 2,
-          feedback: {
-            es: 'Correcto: bu. La damma (⭕) da el sonido "u".',
-            ar: 'صحيح: بُ. الضمّة تعطي صوت الواو.',
-            en: 'Correct: bu. Damma gives the "u" sound.',
-          },
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: '¿Qué diacrítico significa "letra doblada"?',
-            ar: 'أيّ علامة تدلّ على تضعيف الحرف؟',
-            en: 'Which mark means "doubled letter"?',
-          },
-          options: [
-            { es: 'Fatha (َ)', ar: 'فتحة', en: 'Fatha' },
-            { es: 'Sukūn (ْ)', ar: 'سكون', en: 'Sukūn' },
-            { es: 'Shadda (ّ)', ar: 'شدّة', en: 'Shadda' },
-            { es: 'Kasra (ِ)', ar: 'كسرة', en: 'Kasra' },
-          ],
-          correct: 2,
-          feedback: {
-            es: 'La Shadda (ّ) — obliga a pronunciar la letra DOS veces con énfasis.',
-            ar: 'الشدّة — الحرف يُنطق مرّتين.',
-            en: 'The Shadda (ّ) — forces the letter to be pronounced twice with emphasis.',
-          },
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: '"كِتَابٌ" (kitāb) contiene:',
-            ar: '«كِتَابٌ» فيها:',
-            en: '"kitāb" (كِتَابٌ) contains:',
-          },
-          options: [
-            { es: 'Fatha + Damma', ar: 'فتحة + ضمّة', en: 'Fatha + Damma' },
-            { es: 'Kasra + Fatha + Damma', ar: 'كسرة + فتحة + ضمّة', en: 'Kasra + Fatha + Damma' },
-            { es: 'Solo Fatha', ar: 'فتحة فقط', en: 'Only Fatha' },
-            { es: 'Sukūn + Kasra', ar: 'سكون + كسرة', en: 'Sukūn + Kasra' },
-          ],
-          correct: 1,
-          feedback: {
-            es: 'K(kasra=i) + T(fatha=a) + Ā(alif larga) + B(damma=u con tanwīn) = "kitābun".',
-            ar: 'ك(كسرة) + ت(فتحة) + ا(مدّ) + ب(ضمّة مع تنوين).',
-            en: 'K(kasra=i) + T(fatha=a) + Ā(long) + B(damma+tanwīn).',
-          },
-        },
-      ],
-    },
+  const S10 = {
+    id: 'vocab_islam', kind: 'vocab',
+    icon: '<i class="fas fa-mosque"></i>',
+    cover: { glyphs: ['الله', 'قرآن', 'مسجد'], tone: 10 },
+    title: T([`Palabras del Islam`, `كلمات إسلامية`, `Words of Islam`]),
+    mascotIntro: T([
+      `Aquí están las palabras que oirás cada día: Allah, Corán, mezquita, oración… Cada una con su audio y una pista para pronunciarla bien.`,
+      `هذه الكلمات التي ستسمعها كل يوم: الله، القرآن، المسجد، الصلاة… لكلّ منها صوت وتلميح لنطقها نطقاً سليماً.`,
+      `These are the words you'll hear every day: Allah, Quran, mosque, prayer… each with audio and a tip to pronounce it well.`]),
+    items: wid(faith.concat(worship, phrases)),
+    lessons: [
+      { type: 'roots' },
+      vocabLesson(part('faith', 1), faith.slice(0, 9)),
+      vocabLesson(part('faith', 2), faith.slice(9)),
+      matchWords(faith),
+      vocabLesson(part('worship', 1), worship.slice(0, 10)),
+      vocabLesson(part('worship', 2), worship.slice(10)),
+      { type: 'listen_choose', items: wid(worship) },
+      { type: 'gen_quiz', items: wid(worship), qtype: 'image' },
+      vocabLesson(part('phrases', 1), phrases.slice(0, 9)),
+      vocabLesson(part('phrases', 2), phrases.slice(9)),
+      { type: 'scenario', emoji: '👋',
+        situation: T([`Te cruzas con un vecino musulmán y quieres saludarlo. ¿Qué dices?`, `تلتقي جاراً مسلماً وتريد أن تسلّم عليه. ماذا تقول؟`, `You meet a Muslim neighbour and want to greet him. What do you say?`]),
+        options: ['السَّلَامُ عَلَيْكُمْ', 'شُكْرًا', 'بِسْمِ اللَّهِ', 'نَعَمْ'], correct: 0,
+        feedback: T([`«As-salāmu ʿalaykum»: la paz sea contigo. Se responde: «wa ʿalaykumu s-salām».`, `«السلام عليكم» تحيّة الإسلام، وجوابها «وعليكم السلام».`, `"As-salāmu ʿalaykum": peace be upon you. The reply is "wa ʿalaykumu s-salām".`]),
+        learns: ['word:salam_alaykum'] },
+      { type: 'scenario', emoji: '🍽️',
+        situation: T([`Vas a empezar a comer. ¿Qué dices antes del primer bocado?`, `ستبدأ بالأكل. ماذا تقول قبل أول لقمة؟`, `You're about to start eating. What do you say before the first bite?`]),
+        options: ['بِسْمِ اللَّهِ', 'أَسْتَغْفِرُ اللَّهَ', 'لَا', 'أَهْلًا وَسَهْلًا'], correct: 0,
+        feedback: T([`«Bismillāh»: en el nombre de Allah. Se dice al empezar cualquier cosa buena.`, `«بسم الله» تُقال عند بدء كل عمل صالح.`, `"Bismillāh": in the name of Allah. Said when starting anything good.`]),
+        learns: ['word:bismillah'] },
+      { type: 'scenario', emoji: '🕌',
+        situation: T([`Es la hora de Duhr y estás en el mercado. Buscas un lugar para rezar. ¿Qué palabra necesitas para preguntar dónde está?`, `حان وقت الظهر وأنت في السوق. تبحث عن مكان للصلاة. ما الكلمة التي تحتاجها لتسأل عنه؟`, `It's time for Dhuhr and you're at the market. You're looking for a place to pray. Which word do you need to ask where it is?`]),
+        options: ['مَسْجِد', 'بَيْت', 'مَاء', 'كِتَاب'], correct: 0,
+        feedback: T([`«Masjid» = mezquita, el lugar de la postración (sujūd).`, `«مسجد» من السجود: مكان السجود.`, `"Masjid" = mosque, the place of prostration (sujūd).`]),
+        learns: ['word:masjid'] },
+      { type: 'fill_blank', before: '', after: 'لِلَّهِ', options: ['الْحَمْدُ', 'الْكِتَابُ', 'الْقَمَرُ', 'الْبَيْتُ'], correct: 0,
+        translation: T([`Completa: «alabado sea Allah».`, `أكمل: «الثناء لله».`, `Complete: "praise be to Allah".`]),
+        feedback: T([`«Al-ḥamdu lillāh» = alabado sea Allah. Alḥamd = la alabanza.`, `«الحمد لله» = الثناء والشكر لله.`, `"Al-ḥamdu lillāh" = praise be to Allah. Ḥamd = praise.`]), learns: ['word:alhamdulillah'] },
+      { type: 'checkpoint', items: wid(['allah', 'quran', 'masjid', 'salah', 'wudu', 'dua', 'zakah', 'ramadan', 'bismillah', 'alhamdulillah']), n: 5, pass: 0.8 },
+    ],
+  };
 
-    // ═════════════════════════════════════════════════════════════════
-    // 📝 ESTACIÓN 7 — Vocabulario esencial (25 palabras clave)
-    // ═════════════════════════════════════════════════════════════════
-    {
-      id: 'vocabulary',
-      icon: '<i class="fas fa-book"></i>',
-      title: { es: 'Vocabulario esencial', ar: 'المفردات الأساسية', en: 'Essential vocabulary' },
-      mascotIntro: {
-        es: '¡Ahora aprendamos palabras que oirás cada día en un contexto islámico y cotidiano!',
-        ar: 'الآن لنتعلّم كلمات ستسمعها كلّ يوم في السياق الإسلاميّ والحياة اليومية!',
-        en: 'Now let\'s learn words you\'ll hear every day in Islamic and daily contexts!',
-      },
-      lessons: [
-        {
-          type: 'card',
-          title: { es: 'Saludos y expresiones', ar: 'التحيّات والتعابير', en: 'Greetings & expressions' },
-          content: {
-            es: '👋 السَّلَامُ عَلَيْكُمْ · as-salāmu \'alaykum · "la paz sea contigo"\n\n👋 وَعَلَيْكُمُ السَّلَامُ · wa \'alaykumu s-salām · "y sobre ti la paz"\n\n🙏 بِسْمِ اللَّهِ · bismillāh · "en el nombre de Allah"\n\n🤲 الْحَمْدُ لِلَّهِ · al-ḥamdu lillāh · "gracias a Allah"\n\n🌟 سُبْحَانَ اللَّهِ · subḥān-Allāh · "gloria a Allah"\n\n☝️ اللَّهُ أَكْبَرُ · Allāhu akbar · "Allah es el más Grande"\n\n💫 إِنْ شَاءَ اللَّهُ · in shā\'a-llāh · "si Allah quiere"\n\n🙏 مَا شَاءَ اللَّهُ · mā shā\'a-llāh · "lo que Allah ha querido"',
-            ar: '👋 السَّلَامُ عَلَيْكُمْ\n👋 وَعَلَيْكُمُ السَّلَامُ\n🙏 بِسْمِ اللَّهِ\n🤲 الْحَمْدُ لِلَّهِ\n🌟 سُبْحَانَ اللَّهِ\n☝️ اللَّهُ أَكْبَرُ\n💫 إِنْ شَاءَ اللَّهُ\n🙏 مَا شَاءَ اللَّهُ',
-            en: '👋 السَّلَامُ عَلَيْكُمْ · as-salāmu \'alaykum · "peace be upon you"\n\n👋 وَعَلَيْكُمُ السَّلَامُ · wa \'alaykumu s-salām · "and peace be upon you (reply)"\n\n🙏 بِسْمِ اللَّهِ · bismillāh · "in the name of Allah"\n\n🤲 الْحَمْدُ لِلَّهِ · al-ḥamdu lillāh · "praise be to Allah"\n\n🌟 سُبْحَانَ اللَّهِ · subḥān-Allāh · "glory be to Allah"\n\n☝️ اللَّهُ أَكْبَرُ · Allāhu akbar · "Allah is the Greatest"\n\n💫 إِنْ شَاءَ اللَّهُ · in shā\'a-llāh · "if Allah wills"\n\n🙏 مَا شَاءَ اللَّهُ · mā shā\'a-llāh · "what Allah has willed"',
-          },
-          source: 'Sahih al-Bukhari · Etiquette of greetings',
-        },
-        {
-          type: 'card',
-          title: { es: 'La familia (الأسرة)', ar: 'الأسرة', en: 'The family (الأسرة)' },
-          content: {
-            es: '👨 أَبٌ · ab · padre\n👩 أُمٌّ · umm · madre\n👦 ابْنٌ · ibn · hijo\n👧 بِنْتٌ · bint · hija\n👴 جَدٌّ · jadd · abuelo\n👵 جَدَّةٌ · jadda · abuela\n👨‍👦 أَخٌ · akh · hermano\n👩‍👧 أُخْتٌ · ukht · hermana\n💍 زَوْجٌ · zawj · esposo\n💍 زَوْجَةٌ · zawja · esposa',
-            ar: '👨 أَبٌ · أب\n👩 أُمٌّ · أم\n👦 ابْنٌ\n👧 بِنْتٌ\n👴 جَدٌّ\n👵 جَدَّةٌ\n👨‍👦 أَخٌ\n👩‍👧 أُخْتٌ\n💍 زَوْجٌ\n💍 زَوْجَةٌ',
-            en: '👨 أَبٌ · ab · father\n👩 أُمٌّ · umm · mother\n👦 ابْنٌ · ibn · son\n👧 بِنْتٌ · bint · daughter\n👴 جَدٌّ · jadd · grandfather\n👵 جَدَّةٌ · jadda · grandmother\n👨‍👦 أَخٌ · akh · brother\n👩‍👧 أُخْتٌ · ukht · sister\n💍 زَوْجٌ · zawj · husband\n💍 زَوْجَةٌ · zawja · wife',
-          },
-          source: 'Madīnah Book 1 · Family unit',
-        },
-        {
-          type: 'card',
-          title: { es: 'Números 1–10', ar: 'الأرقام 1–10', en: 'Numbers 1–10' },
-          content: {
-            es: '1️⃣ وَاحِدٌ · wāḥid\n2️⃣ اثْنَانِ · ithnān\n3️⃣ ثَلَاثَةٌ · thalātha\n4️⃣ أَرْبَعَةٌ · arba\'a\n5️⃣ خَمْسَةٌ · khamsa\n6️⃣ سِتَّةٌ · sitta\n7️⃣ سَبْعَةٌ · sab\'a\n8️⃣ ثَمَانِيَةٌ · thamāniya\n9️⃣ تِسْعَةٌ · tis\'a\n🔟 عَشَرَةٌ · \'ashara\n\nGrafía árabe (Hindī): ٠ ١ ٢ ٣ ٤ ٥ ٦ ٧ ٨ ٩',
-            ar: '1️⃣ وَاحِدٌ\n2️⃣ اثْنَانِ\n3️⃣ ثَلَاثَةٌ\n4️⃣ أَرْبَعَةٌ\n5️⃣ خَمْسَةٌ\n6️⃣ سِتَّةٌ\n7️⃣ سَبْعَةٌ\n8️⃣ ثَمَانِيَةٌ\n9️⃣ تِسْعَةٌ\n🔟 عَشَرَةٌ\n\nالأرقام الهندية: ٠ ١ ٢ ٣ ٤ ٥ ٦ ٧ ٨ ٩',
-            en: '1️⃣ وَاحِدٌ · wāḥid\n2️⃣ اثْنَانِ · ithnān\n3️⃣ ثَلَاثَةٌ · thalātha\n4️⃣ أَرْبَعَةٌ · arba\'a\n5️⃣ خَمْسَةٌ · khamsa\n6️⃣ سِتَّةٌ · sitta\n7️⃣ سَبْعَةٌ · sab\'a\n8️⃣ ثَمَانِيَةٌ · thamāniya\n9️⃣ تِسْعَةٌ · tis\'a\n🔟 عَشَرَةٌ · \'ashara\n\nEastern Arabic (Hindī) numerals: ٠ ١ ٢ ٣ ٤ ٥ ٦ ٧ ٨ ٩',
-          },
-          source: 'Alif Baa · Numbers appendix',
-        },
-        {
-          type: 'card',
-          title: { es: 'Colores (الألوان)', ar: 'الألوان', en: 'Colors (الألوان)' },
-          content: {
-            es: '🔴 أَحْمَرُ · aḥmar · rojo\n🟢 أَخْضَرُ · akhḍar · verde\n🔵 أَزْرَقُ · azraq · azul\n🟡 أَصْفَرُ · aṣfar · amarillo\n⚫ أَسْوَدُ · aswad · negro\n⚪ أَبْيَضُ · abyaḍ · blanco\n🟠 بُرْتُقَالِيٌّ · burtuqālī · naranja\n🟤 بُنِّيٌّ · bunnī · marrón',
-            ar: '🔴 أَحْمَرُ\n🟢 أَخْضَرُ\n🔵 أَزْرَقُ\n🟡 أَصْفَرُ\n⚫ أَسْوَدُ\n⚪ أَبْيَضُ\n🟠 بُرْتُقَالِيٌّ\n🟤 بُنِّيٌّ',
-            en: '🔴 أَحْمَرُ · aḥmar · red\n🟢 أَخْضَرُ · akhḍar · green\n🔵 أَزْرَقُ · azraq · blue\n🟡 أَصْفَرُ · aṣfar · yellow\n⚫ أَسْوَدُ · aswad · black\n⚪ أَبْيَضُ · abyaḍ · white\n🟠 بُرْتُقَالِيٌّ · burtuqālī · orange\n🟤 بُنِّيٌّ · bunnī · brown',
-          },
-          source: 'Madīnah Book 2 · Colors unit',
-        },
-        {
-          type: 'flashcards',
-          title: { es: 'Palabras coránicas frecuentes', ar: 'كلمات قرآنية شائعة', en: 'Frequent Quranic words' },
-          cards: [
-            { front: 'اللَّهُ', back: { es: 'Allāh · Dios', ar: 'الله', en: 'Allāh · God' } },
-            { front: 'رَبٌّ', back: { es: 'Rabb · Señor', ar: 'ربّ', en: 'Rabb · Lord' } },
-            { front: 'كِتَابٌ', back: { es: 'Kitāb · libro', ar: 'كتاب', en: 'Kitāb · book' } },
-            { front: 'صَلَاةٌ', back: { es: 'Ṣalāh · oración', ar: 'صلاة', en: 'Ṣalāh · prayer' } },
-            { front: 'سَلَامٌ', back: { es: 'Salām · paz', ar: 'سلام', en: 'Salām · peace' } },
-            { front: 'رَحْمَةٌ', back: { es: 'Raḥma · misericordia', ar: 'رحمة', en: 'Raḥma · mercy' } },
-            { front: 'دِينٌ', back: { es: 'Dīn · religión', ar: 'دين', en: 'Dīn · religion' } },
-            { front: 'إِيمَانٌ', back: { es: 'Īmān · fe', ar: 'إيمان', en: 'Īmān · faith' } },
-            { front: 'يَوْمٌ', back: { es: 'Yawm · día', ar: 'يوم', en: 'Yawm · day' } },
-            { front: 'لَيْلٌ', back: { es: 'Layl · noche', ar: 'ليل', en: 'Layl · night' } },
-            { front: 'أَرْضٌ', back: { es: 'Arḍ · tierra', ar: 'أرض', en: 'Arḍ · earth' } },
-            { front: 'سَمَاءٌ', back: { es: 'Samā\' · cielo', ar: 'سماء', en: 'Samā\' · heaven' } },
-          ],
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: '¿Cómo se dice "libro" en árabe?',
-            ar: 'كيف تُقال «كتاب» بالعربية؟',
-            en: 'How do you say "book" in Arabic?',
-          },
-          options: ['قَلَمٌ (qalam)', 'بَيْتٌ (bayt)', 'كِتَابٌ (kitāb)', 'قَلْبٌ (qalb)'],
-          correct: 2,
-          feedback: {
-            es: 'كِتَابٌ (kitāb) = libro. De la raíz k-t-b (escribir). El Corán es "Al-Kitāb", "El Libro".',
-            ar: 'كِتَابٌ من الجذر ك-ت-ب. القرآن هو «الكتاب».',
-            en: 'كِتَابٌ (kitāb) = book. From root k-t-b (to write). The Quran is "Al-Kitāb", "The Book".',
-          },
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: '¿Qué se responde a "As-salāmu \'alaykum"?',
-            ar: 'ما جواب «السلام عليكم»؟',
-            en: 'What is the reply to "As-salāmu \'alaykum"?',
-          },
-          options: [
-            { es: 'Bismillāh', ar: 'بسم الله', en: 'Bismillāh' },
-            { es: 'Wa \'alaykumu s-salām', ar: 'وعليكم السلام', en: 'Wa \'alaykumu s-salām' },
-            { es: 'Alḥamdulillāh', ar: 'الحمد لله', en: 'Alḥamdulillāh' },
-            { es: 'In shā\' Allāh', ar: 'إن شاء الله', en: 'In shā\' Allāh' },
-          ],
-          correct: 1,
-          feedback: {
-            es: '"Wa \'alaykumu s-salām" — "y sobre vosotros la paz". El Profeta ﷺ enseñó a devolver el saludo con algo mejor o similar (Corán 4:86).',
-            ar: '«وعليكم السلام». قال تعالى: {وَإِذَا حُيِّيتُم بِتَحِيَّةٍ فَحَيُّوا بِأَحْسَنَ مِنْهَا} (النساء 86).',
-            en: '"Wa \'alaykumu s-salām" — "and upon you be peace". The Prophet ﷺ taught to return greetings with better or equal (Quran 4:86).',
-          },
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: '¿Cuál es el número "5" en árabe?',
-            ar: 'ما هو الرقم 5 بالعربية؟',
-            en: 'What is the number "5" in Arabic?',
-          },
-          options: [
-            { es: 'ثَلَاثَةٌ (thalātha)', ar: 'ثلاثة', en: 'thalātha (3)' },
-            { es: 'أَرْبَعَةٌ (arba\'a)', ar: 'أربعة', en: 'arba\'a (4)' },
-            { es: 'خَمْسَةٌ (khamsa)', ar: 'خمسة', en: 'khamsa (5)' },
-            { es: 'سِتَّةٌ (sitta)', ar: 'ستّة', en: 'sitta (6)' },
-          ],
-          correct: 2,
-          feedback: {
-            es: '¡Correcto! Khamsa (خَمْسَة) = 5. De la misma raíz que "khamsah" (los 5 pilares).',
-            ar: 'صحيح: خمسة.',
-            en: 'Correct! Khamsa = 5. Same root as "khamsah" (the 5 pillars).',
-          },
-        },
-      ],
-    },
+  const S11 = {
+    id: 'vocab_life', kind: 'vocab',
+    icon: '<i class="fas fa-house"></i>',
+    cover: { glyphs: ['بيت', 'ماء', 'أب'], tone: 11 },
+    title: T([`Palabras de cada día`, `كلمات الحياة اليومية`, `Everyday words`]),
+    mascotIntro: T([
+      `Familia, números, colores y cosas de casa: el vocabulario básico para empezar a entender el mundo en árabe.`,
+      `الأسرة والأرقام والألوان وأشياء البيت: المفردات الأساسية لتبدأ فهم العالم بالعربية.`,
+      `Family, numbers, colours and things at home: the basic vocabulary to start understanding the world in Arabic.`]),
+    items: wid(family.concat(numcol, life)),
+    lessons: [
+      vocabLesson(tp('family'), family),
+      matchWords(family),
+      vocabLesson(T([`Números 1–10`, `الأرقام ١–١٠`, `Numbers 1–10`]), numbers),
+      { type: 'listen_choose', items: wid(numbers) },
+      vocabLesson(T([`Colores`, `الألوان`, `Colours`]), colors),
+      { type: 'gen_quiz', items: wid(colors), qtype: 'image' },
+      vocabLesson(tp('life'), life),
+      matchWords(life),
+      { type: 'checkpoint', items: wid(['ab', 'umm', 'sadiq', 'khamsa', 'ahmar', 'bayt', 'maa', 'shams', 'qamar', 'qalam']), n: 5, pass: 0.8 },
+    ],
+  };
 
-    // ═════════════════════════════════════════════════════════════════
-    // 🏆 ESTACIÓN 8 — Lectura de palabras simples + evaluación final
-    // ═════════════════════════════════════════════════════════════════
-    {
-      id: 'reading_practice',
-      icon: '<i class="fas fa-book-open-reader"></i>',
-      title: { es: 'Lectura y examen final', ar: 'القراءة والاختبار النهائي', en: 'Reading & final exam' },
-      mascotIntro: {
-        es: '¡Última estación! Vamos a leer palabras y frases reales. Luego el examen final.',
-        ar: 'المحطة الأخيرة! سنقرأ كلمات وجُمَل حقيقية، ثم الاختبار النهائي.',
-        en: 'Last station! Let\'s read real words & sentences, then the final exam.',
-      },
-      lessons: [
-        {
-          type: 'card',
-          title: { es: 'Palabras completas — leamos juntos', ar: 'كلمات كاملة — لنقرأ معاً', en: 'Complete words — let\'s read together' },
-          content: {
-            es: 'Aplica lo aprendido. Lee de DERECHA a IZQUIERDA:\n\n📚 كِتَابٌ = ki-tā-bun · libro\n🚪 بَابٌ = bā-bun · puerta\n🌙 قَمَرٌ = qa-ma-run · luna\n☀️ شَمْسٌ = sham-sun · sol\n💧 مَاءٌ = mā-\'un · agua\n🏠 بَيْتٌ = bay-tun · casa\n👨 أَبٌ = a-bun · padre\n👩 أُمٌّ = um-mun · madre (¡la م es doble por shadda!)\n❤️ حُبٌّ = ḥub-bun · amor (¡ب doble!)\n📖 قُرْآنٌ = qur-\'ā-nun · Corán\n🕌 مَسْجِدٌ = mas-ji-dun · mezquita\n🕋 كَعْبَةٌ = ka\'-ba-tun · Kaaba',
-            ar: 'طبّق ما تعلّمتَ. اقرأ من اليمين إلى اليسار:\n\n📚 كِتَابٌ · كتاب\n🚪 بَابٌ · باب\n🌙 قَمَرٌ · قمر\n☀️ شَمْسٌ · شمس\n💧 مَاءٌ · ماء\n🏠 بَيْتٌ · بيت\n👨 أَبٌ · أب\n👩 أُمٌّ · أمّ (الميم مشدّدة)\n❤️ حُبٌّ · حبّ\n📖 قُرْآنٌ · قرآن\n🕌 مَسْجِدٌ · مسجد\n🕋 كَعْبَةٌ · كعبة',
-            en: 'Apply what you learned. Read from RIGHT to LEFT:\n\n📚 كِتَابٌ = ki-tā-bun · book\n🚪 بَابٌ = bā-bun · door\n🌙 قَمَرٌ = qa-ma-run · moon\n☀️ شَمْسٌ = sham-sun · sun\n💧 مَاءٌ = mā-\'un · water\n🏠 بَيْتٌ = bay-tun · house\n👨 أَبٌ = a-bun · father\n👩 أُمٌّ = um-mun · mother (م doubled by shadda!)\n❤️ حُبٌّ = ḥub-bun · love (ب doubled!)\n📖 قُرْآنٌ = qur-\'ā-nun · Quran\n🕌 مَسْجِدٌ = mas-ji-dun · mosque\n🕋 كَعْبَةٌ = ka\'-ba-tun · Kaaba',
-          },
-          source: 'Alif Baa · Reading exercises',
-        },
-        {
-          type: 'card',
-          title: { es: 'Frases sagradas — ejemplos del Corán', ar: 'عبارات مقدّسة — أمثلة من القرآن', en: 'Sacred phrases — Quranic examples' },
-          content: {
-            es: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\nbismi-llāhi r-raḥmāni r-raḥīm\n"En el nombre de Allah, el Compasivo, el Misericordioso"\n(Al-Fatiha 1:1)\n\nالْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ\nal-ḥamdu lillāhi rabbi l-\'ālamīn\n"Alabado sea Allah, Señor de los mundos"\n(Al-Fatiha 1:2)\n\nقُلْ هُوَ اللَّهُ أَحَدٌ\nqul huwa-llāhu aḥad\n"Di: Él, Allah, es Uno"\n(Al-Ikhlas 112:1)',
-            ar: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\n(الفاتحة 1)\n\nالْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ\n(الفاتحة 2)\n\nقُلْ هُوَ اللَّهُ أَحَدٌ\n(الإخلاص 1)',
-            en: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\nbismi-llāhi r-raḥmāni r-raḥīm\n"In the name of Allah, the Most Compassionate, the Most Merciful"\n(Al-Fatiha 1:1)\n\nالْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ\nal-ḥamdu lillāhi rabbi l-\'ālamīn\n"All praise is due to Allah, Lord of the worlds"\n(Al-Fatiha 1:2)\n\nقُلْ هُوَ اللَّهُ أَحَدٌ\nqul huwa-llāhu aḥad\n"Say: He, Allah, is One"\n(Al-Ikhlas 112:1)',
-          },
-          source: 'Al-Quran · Surahs 1 & 112',
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: 'Lee: "قَمَرٌ" — ¿qué significa?',
-            ar: 'اقرأ: «قَمَرٌ» — ما معناها؟',
-            en: 'Read: "قَمَرٌ" — what does it mean?',
-          },
-          options: [
-            { es: '☀️ Sol', ar: 'شمس', en: '☀️ Sun' },
-            { es: '🌙 Luna', ar: 'قمر', en: '🌙 Moon' },
-            { es: '⭐ Estrella', ar: 'نجم', en: '⭐ Star' },
-            { es: '☁️ Nube', ar: 'سحاب', en: '☁️ Cloud' },
-          ],
-          correct: 1,
-          feedback: {
-            es: 'Qamar = luna. Sura 54 se llama "Al-Qamar" (La Luna).',
-            ar: 'القمر — سورة 54 تُسمّى «القمر».',
-            en: 'Qamar = moon. Surah 54 is named "Al-Qamar" (The Moon).',
-          },
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: '¿Cuántas letras tiene la palabra "بَيْتٌ" (bayt, casa)?',
-            ar: 'كم عدد الحروف في كلمة «بَيْتٌ»؟',
-            en: 'How many letters are in "بَيْتٌ" (bayt, house)?',
-          },
-          options: ['2', '3', '4', '5'],
-          correct: 1,
-          feedback: {
-            es: '3 letras: ب + ي + ت. Los símbolos (fatha, sukun, damma+tanwīn) NO son letras.',
-            ar: '3 حروف: ب + ي + ت. الحركات ليست حروفاً.',
-            en: '3 letters: ب + ي + ت. Diacritics are NOT letters.',
-          },
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: '¿Cuál es la raíz de "كِتَابٌ, كَاتِبٌ, مَكْتَبَةٌ"?',
-            ar: 'ما هو جذر «كتاب، كاتب، مكتبة»؟',
-            en: 'What is the root of "kitāb, kātib, maktaba"?',
-          },
-          options: ['ق-ر-أ (q-r-\')', 'ك-ت-ب (k-t-b)', 'ع-ل-م (\'-l-m)', 'ذ-ك-ر (dh-k-r)'],
-          correct: 1,
-          feedback: {
-            es: '¡Excelente! La raíz k-t-b relaciona: libro, escritor, biblioteca. Así es cómo funciona el árabe.',
-            ar: 'الجذر ك-ت-ب: كتاب، كاتب، مكتبة. هكذا تعمل العربية.',
-            en: 'Excellent! Root k-t-b links: book, writer, library. That\'s how Arabic works.',
-          },
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: '¿Qué significa "Bismillāh" (بِسْمِ اللَّهِ)?',
-            ar: 'ما معنى «بسم الله»؟',
-            en: 'What does "Bismillāh" (بِسْمِ اللَّهِ) mean?',
-          },
-          options: [
-            { es: 'Gracias a Allah', ar: 'الحمد لله', en: 'Praise to Allah' },
-            { es: 'En el nombre de Allah', ar: 'بسم الله', en: 'In the name of Allah' },
-            { es: 'Allah es Grande', ar: 'الله أكبر', en: 'Allah is Greatest' },
-            { es: 'Gloria a Allah', ar: 'سبحان الله', en: 'Glory to Allah' },
-          ],
-          correct: 1,
-          feedback: {
-            es: 'Bi- (con) + ism (nombre) + Allāh = "En el nombre de Allah". Se dice antes de empezar cualquier cosa buena.',
-            ar: 'بـ + اسم + الله. تُقال قبل بدء كلّ عمل صالح.',
-            en: 'Bi- (in/with) + ism (name) + Allāh. Said before starting anything good.',
-          },
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: '¿Cuál letra tiene 4 formas MUY diferentes entre sí?',
-            ar: 'أيّ حرف أشكاله الأربعة مختلفة جدّاً؟',
-            en: 'Which letter has 4 VERY different forms?',
-          },
-          options: ['ب (Baa)', 'ه (Hāa)', 'م (Mīm)', 'ن (Nūn)'],
-          correct: 1,
-          feedback: {
-            es: 'ه (Hāa): aislada "ه", inicial "هـ", medial "ـهـ", final "ـه" — parecen 4 letras distintas!',
-            ar: 'الهاء: ه ، هـ ، ـهـ ، ـه — تبدو كأنّها أربعة حروف مختلفة!',
-            en: 'ه (Hāa): "ه", "هـ", "ـهـ", "ـه" — they look like 4 different letters!',
-          },
-        },
-        {
-          type: 'quiz',
-          question: {
-            es: '¿Cuál de estas letras es EMPHATIC (mufakhkhama)?',
-            ar: 'أيّ حرف من الحروف المُفَخَّمة؟',
-            en: 'Which letter is EMPHATIC (mufakhkhama)?',
-          },
-          options: ['س', 'ت', 'ص', 'ب'],
-          correct: 2,
-          feedback: {
-            es: 'ص es la versión enfática de س. Las enfáticas: ص ض ط ظ ق (y ر, خ, غ contextualmente).',
-            ar: 'الصاد مفخّمة. المفخّمات: ص ض ط ظ ق.',
-            en: 'ص is the emphatic version of س. Emphatic letters: ص ض ط ظ ق.',
-          },
-        },
-        {
-          type: 'card',
-          title: { es: '🎓 ¡MashaAllah! Has completado el curso', ar: '🎓 ما شاء الله! أتممتَ الدورة', en: '🎓 MashaAllah! You\'ve completed the course' },
-          content: {
-            es: '¡Alḥamdulillāh! Has aprendido:\n\n✅ Las 28 letras del alfabeto árabe\n✅ Las 4 formas de cada letra (aislada/inicial/medial/final)\n✅ Los 5 diacríticos: fatha, damma, kasra, sukūn, shadda\n✅ Más de 40 palabras esenciales\n✅ Frases del Corán\n✅ La estructura de raíces del árabe\n\n📚 Próximos pasos recomendados:\n1. Escuchar el Corán DIARIAMENTE (aunque no entiendas todo)\n2. Aprender la Sura Al-Fatiha\n3. Estudiar el Madīnah Book 1 (gratis online)\n4. Practicar 15 min/día\n\n💫 Recuerda: "Quien recorre un camino en busca de conocimiento, Allah le facilita un camino al Paraíso." (Muslim 2699)',
-            ar: 'الحمد لله! تعلّمتَ:\n\n✅ الحروف الـ28\n✅ الأشكال الأربعة لكلّ حرف\n✅ الحركات الخمس: الفتحة، الضمّة، الكسرة، السكون، الشدّة\n✅ أكثر من 40 كلمة أساسية\n✅ عبارات قرآنية\n✅ نظام الجذور\n\n📚 الخطوات التالية:\n1. سماع القرآن يومياً\n2. حفظ الفاتحة\n3. دراسة كتاب المدينة الأول\n4. التدرّب 15 دقيقة يومياً\n\n💫 «مَن سلك طريقاً يلتمس فيه علماً، سهّل الله له به طريقاً إلى الجنّة» (مسلم 2699)',
-            en: 'Alḥamdulillāh! You\'ve learned:\n\n✅ The 28 Arabic alphabet letters\n✅ The 4 forms of each letter\n✅ The 5 diacritics: fatha, damma, kasra, sukūn, shadda\n✅ 40+ essential words\n✅ Quranic phrases\n✅ The root system of Arabic\n\n📚 Recommended next steps:\n1. Listen to the Quran DAILY (even if you don\'t understand all)\n2. Memorize Surah Al-Fatiha\n3. Study Madīnah Book 1 (free online)\n4. Practice 15 min/day\n\n💫 "Whoever takes a path in search of knowledge, Allah eases for him a path to Paradise." (Muslim 2699)',
-          },
-          source: 'Sahih Muslim 2699',
-        },
-      ],
+  const S12 = {
+    id: 'reading', kind: 'reading',
+    icon: '<i class="fas fa-book-quran"></i>',
+    cover: { glyphs: ['بِسْمِ', 'اللَّهِ'], tone: 12 },
+    title: T([`Lee frases del Corán`, `قراءة عبارات قرآنية`, `Read Quranic phrases`]),
+    mascotIntro: T([
+      `¡Es el momento! Vas a leer frases reales del Corán palabra por palabra, entender qué dice cada una y armarlas tú mismo.`,
+      `حان الوقت! ستقرأ عبارات حقيقية من القرآن كلمة كلمة، وتفهم معنى كلّ كلمة، وتركّبها بنفسك.`,
+      `It's time! You'll read real phrases from the Quran word by word, understand each one, and put them together yourself.`]),
+    items: wid(['allah', 'rabb', 'quran', 'dua', 'bismillah', 'alhamdulillah', 'la_ilaha']),
+    lessons: [
+      { type: 'phrase', ids: ['basmala'] },
+      { type: 'fill_blank', before: 'بِسْمِ', after: 'الرَّحْمَٰنِ الرَّحِيمِ', options: ['اللَّهِ', 'رَبِّ', 'كِتَابٌ', 'أَحَدٌ'], correct: 0,
+        translation: T([`Completa la Basmala.`, `أكمل البسملة.`, `Complete the Basmala.`]),
+        feedback: T([`«Bismi llāhi r-raḥmāni r-raḥīm»: en el nombre de Allah, el Compasivo, el Misericordioso.`, `«بسم الله الرحمن الرحيم».`, `"Bismi llāhi r-raḥmāni r-raḥīm": in the name of Allah, the Most Compassionate, the Most Merciful.`]), learns: ['word:allah'] },
+      { type: 'phrase', ids: ['hamd'] },
+      { type: 'phrase', ids: ['fatiha5'] },
+      { type: 'phrase', ids: ['ikhlas1'] },
+      { type: 'phrase', ids: ['ikhlas2', 'ikhlas3', 'ikhlas4'] },
+      { type: 'word_order', phrase: 'ikhlas1' },
+      { type: 'word_order', phrase: 'zidni' },
+      { type: 'scenario', emoji: '🌙',
+        situation: T([`Lees «رَبِّ زِدْنِي عِلْمًا». ¿Qué le estás pidiendo a Allah?`, `تقرأ «رَبِّ زِدْنِي عِلْمًا». ماذا تسأل الله؟`, `You read "رَبِّ زِدْنِي عِلْمًا". What are you asking Allah for?`]),
+        options: [opt(`Aumenta mi conocimiento`, `أن يزيدني علماً`, `Increase my knowledge`), opt(`Dame más dinero`, `أن يعطيني مالاً`, `Give me more money`), opt(`Protégeme del frío`, `أن يقيني البرد`, `Protect me from the cold`), opt(`Guíame a casa`, `أن يهديني إلى البيت`, `Guide me home`)], correct: 0,
+        feedback: T([`Rabbi zidnī ʿilman: «Señor mío, aumenta mi conocimiento» (Corán 20:114).`, `«ربّ زدني علماً» (طه 114).`, `Rabbi zidnī ʿilman: "My Lord, increase me in knowledge" (Quran 20:114).`]),
+        learns: ['word:rabb'] },
+      { type: 'checkpoint', items: wid(['allah', 'rabb', 'quran', 'dua', 'bismillah', 'alhamdulillah', 'la_ilaha', 'kitab', 'sura', 'aya']), n: 5, pass: 0.8 },
+    ],
+  };
+
+  const S13 = {
+    id: 'final_exam', kind: 'exam',
+    icon: '<i class="fas fa-graduation-cap"></i>',
+    cover: { icon: 'fa-graduation-cap', tone: 13 },
+    title: T([`Examen final`, `الامتحان النهائي`, `Final exam`]),
+    mascotIntro: T([
+      `Última parada: 20 preguntas variadas, con audio e imágenes. Con 70% apruebas y recibes tu certificado de bronce, plata u oro.`,
+      `المحطة الأخيرة: 20 سؤالاً متنوّعاً بالصوت والصور. بنسبة 70% تنجح وتنال شهادتك البرونزية أو الفضّية أو الذهبية.`,
+      `Last stop: 20 mixed questions with audio and pictures. Pass with 70% and earn your bronze, silver or gold certificate.`]),
+    items: [],
+    lessons: [
+      { type: 'infographic', layout: 'grid', title: T([`Antes de empezar`, `قبل أن تبدأ`, `Before you start`]),
+        items: [
+          { icon: 'fa-list-check', title: T([`20 preguntas`, `٢٠ سؤالاً`, `20 questions`]), text: T([`Letras, sonidos, vocales, palabras e imágenes.`, `حروف وأصوات وحركات وكلمات وصور.`, `Letters, sounds, vowels, words and pictures.`]) },
+          { icon: 'fa-volume-high', title: T([`Con audio`, `بالصوت`, `With audio`]), text: T([`Sube el volumen: habrá preguntas para escuchar.`, `ارفع الصوت: ستكون هناك أسئلة للاستماع.`, `Turn the sound on: some questions are for listening.`]) },
+          { icon: 'fa-bullseye', title: T([`Se aprueba con 70%`, `النجاح بنسبة 70%`, `Pass with 70%`]), text: T([`Si no llegas, repasas las falladas y lo intentas de nuevo.`, `إن لم تبلغها راجعت الأخطاء وأعدت المحاولة.`, `If you miss it, review the mistakes and try again.`]) },
+          { icon: 'fa-medal', title: T([`Certificado con nivel`, `شهادة بمستوى`, `Levelled certificate`]), text: T([`Bronce 70–79% · Plata 80–89% · Oro 90–100%.`, `برونزي 70–79% · فضّي 80–89% · ذهبي 90–100%.`, `Bronze 70–79% · Silver 80–89% · Gold 90–100%.`]) },
+        ] },
+      { type: 'final_exam', n: 20, pass: 0.7 },
+    ],
+  };
+
+  // ═══════════════ الكورس ═══════════════
+  const units = [
+    { id: 'basics', icon: '<i class="fas fa-seedling"></i>', title: T([`Lo esencial`, `الأساسيات`, `The basics`]), stations: [S1] },
+    { id: 'letters', icon: '<i class="fas fa-font"></i>', title: T([`Las letras`, `الحروف`, `The letters`]), stations: [S2, S3, S4, S5, S6] },
+    { id: 'reading_mechanics', icon: '<i class="fas fa-music"></i>', title: T([`Cómo se lee`, `آلية القراءة`, `How reading works`]), stations: [S7, S8] },
+    { id: 'words', icon: '<i class="fas fa-book-open-reader"></i>', title: T([`Palabras y lectura`, `كلمات وقراءة`, `Words and reading`]), stations: [S9, S10, S11, S12, S13] },
+  ];
+
+  return {
+    id: 'arabic_language',
+    slug: 'arabic-language',
+    version: 2,
+    icon: '<img class="cx-icon-img" src="assets/courses/arabic/icon-192.webp" alt="" width="56" height="56" decoding="async">',
+    iconImage: 'assets/courses/arabic/icon.webp',
+    certIcon: '🔑',
+    mascotPose: 'welcome',
+    color: '#174430',
+    accent: '#D4A537',
+    ageGroup: 'all',
+    durationMin: 180,
+    dailyGoalMin: 10,
+    difficulty: 'beginner',
+    title: T([
+      `Árabe: la llave para comprender el Corán`,
+      `اللغة العربية: مفتاحك لفهم القرآن`,
+      `Arabic: Your Key to Understanding the Quran`]),
+    description: T([
+      `De las letras a las primeras frases del Corán: forma, sonido y escritura de cada letra, vocales, palabras esenciales del Islam y examen final con certificado.`,
+      `من الحروف إلى أولى عبارات القرآن: شكل كلّ حرف وصوته وكتابته، والحركات، وكلمات إسلامية أساسية، وامتحان نهائي بشهادة.`,
+      `From letters to your first Quranic phrases: the shape, sound and writing of each letter, vowels, essential Islamic words and a final exam with a certificate.`]),
+    units,
+    stations: units.reduce((a, u) => a.concat(u.stations), []),
+    exam: { stationId: 'final_exam', pass: 0.7, tiers: { gold: 0.9, silver: 0.8, bronze: 0.7 } },
+    // ترحيل تقدّم الإصدار القديم (v1) إلى المحطات الجديدة
+    legacyStationMap: {
+      intro: ['welcome'],
+      letters_group_1: ['letters_1'],
+      letters_group_2: ['letters_2'],
+      letters_group_3: ['letters_3'],
+      letters_group_4: ['letters_4', 'letters_5'],
+      harakat: ['harakat'],
     },
-  ],
-};
+  };
+})();
 
 if (typeof window !== 'undefined') window.COURSE_ARABIC_LANGUAGE = COURSE_ARABIC_LANGUAGE;
+if (typeof module !== 'undefined') module.exports = COURSE_ARABIC_LANGUAGE;

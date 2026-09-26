@@ -60,6 +60,7 @@
   <link rel="stylesheet" href="css/screens.css">
   <link rel="stylesheet" href="css/wisdom.css">
   <link rel="stylesheet" href="css/courses.css">
+  <link rel="stylesheet" href="css/courses-v2.css"> <!-- v64: كورس اللغة العربية الجديد -->
   <link rel="stylesheet" href="css/calendar-v16.css">
   <link rel="stylesheet" href="css/qibla-v17.css">
   <link rel="stylesheet" href="css/quran-reader.css">
@@ -227,8 +228,14 @@
   <script src="data/courses/quran_basics.js"></script>
   <script src="data/courses/salah_complete.js"></script>
   <script src="data/courses/wudu_complete.js"></script>
-  <!-- v20: Arabic language course -->
+  <!-- v20/v64: Arabic language course v2 — datos crudos ANTES de arabic_language.js -->
+  <script src="data/courses/arabic_data.js"></script>
+  <script src="data/courses/arabic_vocab.js"></script>
+  <script src="data/arabic_media_manifest.js"></script>
   <script src="data/courses/arabic_language.js"></script>
+  <script src="js/arabic-items.js"></script>
+  <script src="js/arabic-audio.js"></script>
+  <script src="js/courses-srs.js"></script>
   <script src="js/mascot.js"></script>
   <script src="data/famous_verses.js"></script>
   <script src="js/share-card.js"></script>
@@ -237,6 +244,7 @@
 
   <!-- Phase 2: Gamification -->
   <script src="js/gamification.js"></script>
+  <script src="js/courses-i18n.js"></script> <!-- v64: textos cx* (extiende I18N) -->
 
   <!-- Pages -->
   <script src="pages/language.js"></script>
@@ -253,6 +261,7 @@
   <script src="pages/wisdom/tasbih.js"></script>
   <script src="pages/wisdom/adhkar.js"></script>
   <script src="pages/wisdom/courses.js"></script>
+  <script src="js/courses-lessons.js"></script> <!-- v64: tipos de lección del árabe (extiende CoursesPage) -->
   <script src="pages/wisdom/duas.js"></script>
   <script src="pages/wisdom.js"></script>
   <script src="pages/radio.js"></script> <!-- v56: صفحة الراديو الإسلامي -->

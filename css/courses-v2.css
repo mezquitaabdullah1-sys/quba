@@ -1,0 +1,280 @@
+/* 🕌 courses-v2.css — Componentes nuevos del motor de cursos v2.
+   Complementa (no reemplaza) css/courses.css: aquí solo van clases con
+   prefijo cx-/al-/mp-/wo-/wb- y las pocas ya-existentes que necesitan
+   un pequeño extra (lq-big, mp-l/r, picked). Usa las variables de main.css. */
+
+/* ============ REPASO DIARIO (hub) ============ */
+.cx-review-card {
+  display: flex; align-items: center; gap: var(--sp-sm);
+  background: linear-gradient(135deg, var(--emerald-deep), var(--emerald-light));
+  color: #fff; border-radius: var(--r-lg); padding: 14px var(--sp-md);
+  margin-bottom: var(--sp-md); cursor: pointer; box-shadow: var(--shadow);
+}
+.cx-review-card.done { background: var(--surface-alt); color: var(--text); border: 1px solid var(--border); cursor: default; }
+.cx-review-icon { font-size: 22px; width: 40px; text-align: center; }
+.cx-review-text { flex: 1; min-width: 0; }
+.cx-review-title { font-weight: 700; font-size: 15px; }
+.cx-review-sub { font-size: 12.5px; opacity: 0.85; }
+.cx-review-check { color: var(--success); font-size: 20px; }
+
+/* Fila de recordatorio (activar/elegir oración) */
+.cx-reminder-row { display: flex; align-items: center; gap: 8px; margin: -4px 0 var(--sp-md); flex-wrap: wrap; }
+.cx-reminder-toggle {
+  display: flex; align-items: center; gap: 6px; background: none; border: 1px solid var(--border);
+  color: var(--text-secondary); border-radius: var(--r-pill); padding: 5px 12px; font-size: 12px; cursor: pointer;
+}
+.cx-reminder-toggle.on { background: rgba(212,175,55,0.12); border-color: var(--gold-soft); color: var(--gold-soft); }
+.cx-reminder-select {
+  border: 1px solid var(--border); border-radius: var(--r-pill); padding: 5px 10px; font-size: 12px;
+  background: var(--surface-alt); color: var(--text);
+}
+
+/* ============ TARJETAS / CERTIFICADO: mejoras menores ============ */
+.cx-tier-chip { font-size: 18px; }
+.cert-tier { font-size: 18px; font-weight: 800; margin-bottom: 6px; letter-spacing: 0.5px; }
+.cert-tier-gold { color: #B8860B; }
+.cert-tier-silver { color: #8a8a8a; }
+.cert-tier-bronze { color: #a05a2c; }
+.cx-view-cert-btn { margin-top: var(--sp-sm); }
+
+/* ============ VISTA v2: UNIDADES PLEGABLES ============ */
+.cx-overview-v2 .cx-units { padding: 0 var(--sp-md) var(--sp-xl); }
+.cx-unit {
+  background: var(--card); border-radius: var(--r-lg); margin-bottom: var(--sp-sm);
+  box-shadow: var(--shadow); overflow: hidden; border: 1px solid var(--border);
+}
+.cx-unit-head {
+  width: 100%; display: flex; align-items: center; gap: var(--sp-sm);
+  padding: 14px var(--sp-md); background: none; border: none; cursor: pointer;
+  font-family: inherit; color: var(--text); text-align: inherit;
+}
+.cx-unit-icon { font-size: 20px; }
+.cx-unit-title { flex: 1; font-weight: 700; font-size: 15px; }
+.cx-unit-count { font-size: 12.5px; color: var(--text-secondary); background: var(--surface-alt); padding: 2px 8px; border-radius: var(--r-pill); }
+.cx-unit-caret { transition: transform 0.25s; color: var(--text-secondary); }
+.cx-unit.open .cx-unit-caret { transform: rotate(180deg); }
+.cx-unit.unit-done .cx-unit-head { background: rgba(76,175,80,0.06); }
+.cx-unit-body { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+.cx-unit.open .cx-unit-body { max-height: 2000px; }
+
+/* ============ MAPA EN ZIGZAG ============ */
+.cx-zigzag { padding: var(--sp-md); display: flex; flex-direction: column; gap: 6px; }
+.cx-zz-node { display: flex; flex-direction: column; align-items: center; width: 46%; position: relative; }
+.cx-zz-node.zz-l { align-self: flex-start; margin-left: 4%; }
+.cx-zz-node.zz-r { align-self: flex-end; margin-right: 4%; }
+.cx-zz-btn {
+  width: 64px; height: 64px; border-radius: 50%; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 26px;
+  color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.15); position: relative;
+  background: var(--course-color, var(--emerald-deep));
+}
+.cx-zz-btn[data-tone="1"] { filter: hue-rotate(15deg); }
+.cx-zz-btn[data-tone="2"] { filter: hue-rotate(-15deg); }
+.cx-zz-btn[data-tone="3"] { filter: hue-rotate(30deg); }
+.cx-zz-btn[data-tone="4"] { filter: hue-rotate(-30deg) saturate(1.1); }
+.cx-zz-btn.done { background: var(--success); }
+.cx-zz-btn.locked { background: #9aa0a6; cursor: not-allowed; box-shadow: none; }
+.cx-zz-btn.in-progress { box-shadow: 0 0 0 4px rgba(212,175,55,0.3), 0 4px 10px rgba(0,0,0,0.15); }
+.cx-zz-num { font-size: 20px; font-weight: 700; }
+.cx-zz-dot { position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--gold-soft); border: 2px solid var(--card); }
+.cx-zz-label { font-size: 11.5px; text-align: center; margin-top: 4px; max-width: 90px; color: var(--text-secondary); font-weight: 600; }
+.cx-zz-skip {
+  margin-top: 4px; font-size: 10.5px; border: 1px dashed var(--border); background: none;
+  color: var(--text-secondary); border-radius: var(--r-pill); padding: 2px 8px; cursor: pointer;
+}
+
+/* ============ REANUDAR / REINICIAR ESTACIÓN ============ */
+.cx-resume-note {
+  background: rgba(212,175,55,0.12); color: var(--gold-soft); font-weight: 600;
+  border-radius: var(--r-md); padding: 8px 14px; margin: var(--sp-sm) 0; font-size: 13.5px;
+}
+.cx-restart-btn { margin-top: 8px; }
+
+/* ============ MOTOR DE PREGUNTAS (qrun) extras ============ */
+.cx-q-big { font-family: var(--font-arabic); font-size: 52px; text-align: center; margin: var(--sp-sm) 0; color: var(--primary); }
+.cx-q-pic { display: flex; justify-content: center; margin: var(--sp-sm) 0; }
+.cx-audio-btn {
+  display: flex; align-items: center; justify-content: center; width: 52px; height: 52px;
+  border-radius: 50%; background: var(--course-color, var(--emerald-deep)); color: #fff;
+  border: none; margin: var(--sp-sm) auto; font-size: 20px; cursor: pointer;
+}
+.cx-audio-sm { width: 34px; height: 34px; font-size: 14px; margin: 0 6px; flex-shrink: 0; }
+.lq-big .lq-text { font-family: var(--font-arabic); font-size: 22px; }
+.cx-blank { display: inline-block; border-bottom: 3px solid var(--gold-soft); width: 34px; text-align: center; }
+.cx-scenario .lesson-quiz-q { text-align: center; }
+.cx-scenario-emoji { font-size: 46px; text-align: center; margin-bottom: 6px; }
+
+/* ============ IMAGEN/EMOJI DE PALABRA (fallback) ============ */
+.cx-pic { display: inline-flex; align-items: center; justify-content: center; position: relative; }
+.cx-pic-e { font-size: 1em; }
+.cx-pic-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; border-radius: var(--r-sm); }
+
+/* ============ VIDEO (miniatura + iframe bajo demanda) ============ */
+.cx-video-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: var(--sp-sm); }
+.cx-vtab {
+  flex-shrink: 0; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text);
+  border-radius: var(--r-pill); padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.cx-vtab.active { background: var(--course-color, var(--emerald-deep)); color: #fff; border-color: transparent; }
+.cx-video-block { margin: var(--sp-sm) 0; }
+.cx-video-thumb, .cx-video-frame, .cx-video-el {
+  width: 100%; aspect-ratio: 16/9; border-radius: var(--r-md); overflow: hidden;
+  background-size: cover; background-position: center; position: relative; display: flex;
+  align-items: center; justify-content: center; cursor: pointer; background-color: #000;
+}
+.cx-video-frame iframe { width: 100%; height: 100%; border: none; }
+.cx-video-play {
+  width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,0.92); color: var(--emerald-deep);
+  border: none; font-size: 22px; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+}
+.cx-video-title { font-weight: 700; margin-top: 8px; }
+.cx-video-summary { font-size: 13.5px; color: var(--text-secondary); margin-top: 4px; }
+.cx-video-stopnote { font-size: 12px; color: var(--text-secondary); margin-top: 8px; font-style: italic; }
+.cx-listen-row { display: flex; gap: 8px; overflow-x: auto; padding: 8px 0; }
+.cx-listen-chip {
+  flex-shrink: 0; display: flex; align-items: center; gap: 6px; background: var(--surface-alt);
+  border: 1px solid var(--border); border-radius: var(--r-pill); padding: 6px 12px; cursor: pointer;
+  font-family: var(--font-arabic); font-size: 16px; color: var(--text);
+}
+.cx-listen-chip small { font-family: var(--font-main); font-size: 10.5px; color: var(--text-secondary); display: block; }
+
+/* ============ INFOGRAFÍA ============ */
+.cx-info-intro { font-size: 14px; color: var(--text-secondary); margin-bottom: var(--sp-sm); text-align: center; }
+.cx-info-items { display: flex; flex-direction: column; gap: 10px; }
+.cx-layout-grid .cx-info-items { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cx-layout-steps .cx-info-item { border-inline-start: 3px solid var(--course-color, var(--gold-soft)); padding-inline-start: 10px; }
+.cx-info-item {
+  display: flex; align-items: center; gap: 10px; background: var(--surface-alt);
+  border-radius: var(--r-md); padding: 10px 12px;
+}
+.cx-info-visual { font-family: var(--font-arabic); font-size: 24px; width: 34px; text-align: center; color: var(--course-color, var(--emerald-deep)); flex-shrink: 0; }
+.cx-info-body { flex: 1; min-width: 0; }
+.cx-info-title { font-weight: 700; font-size: 14px; }
+.cx-info-text { font-size: 12.5px; color: var(--text-secondary); }
+
+/* ============ TABLA DE SONIDOS ============ */
+.cx-sg-hint { text-align: center; font-size: 13px; color: var(--text-secondary); margin-bottom: var(--sp-sm); }
+.cx-sg-wrap { overflow-x: auto; }
+.cx-sg-table { border-collapse: separate; border-spacing: 6px; margin: 0 auto; }
+.cx-sg-table th { font-size: 13px; color: var(--text-secondary); font-weight: 600; }
+.cx-sg-letter { font-family: var(--font-arabic); font-size: 22px; color: var(--course-color, var(--emerald-deep)); padding-inline-end: 8px; }
+.cx-sg-cell {
+  font-family: var(--font-arabic); font-size: 20px; width: 52px; height: 52px; border-radius: var(--r-md);
+  border: 1px solid var(--border); background: var(--surface-alt); cursor: pointer; color: var(--text);
+}
+.cx-sg-cell:active { background: var(--course-color, var(--emerald-deep)); color: #fff; }
+
+/* ============ FAMILIAS DE FORMA ============ */
+.cx-fam-list { display: flex; flex-direction: column; gap: 10px; }
+.cx-fam-card { background: var(--surface-alt); border-radius: var(--r-md); padding: 12px; text-align: center; }
+.cx-fam-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.cx-fam-glyphs { font-family: var(--font-arabic); font-size: 30px; display: flex; justify-content: center; gap: 10px; margin: 6px 0; color: var(--course-color, var(--emerald-deep)); }
+.cx-fam-hint { font-size: 12.5px; color: var(--text-secondary); }
+
+/* ============ HOJA DE LETRA ============ */
+.arabic-letter-lesson { padding-bottom: var(--sp-lg); }
+.al-letter-hero { display: flex; align-items: center; justify-content: center; gap: 14px; margin: var(--sp-md) 0; }
+.al-letter-glyph { font-family: var(--font-arabic); font-size: 72px; color: var(--course-color, var(--emerald-deep)); line-height: 1; }
+.al-speak-btn {
+  width: 46px; height: 46px; border-radius: 50%; border: none; background: var(--course-color, var(--emerald-deep));
+  color: #fff; font-size: 18px; cursor: pointer; flex-shrink: 0;
+}
+.al-speak-sm { width: 34px; height: 34px; font-size: 13px; }
+.al-letter-name { text-align: center; font-weight: 700; font-size: 16px; margin-bottom: var(--sp-md); }
+.al-name-ar { font-family: var(--font-arabic); color: var(--text-secondary); font-weight: 400; }
+.al-section { margin-bottom: var(--sp-sm); }
+.al-section-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); font-weight: 700; margin-bottom: 6px; }
+.al-forms-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.cx-form-cell { background: var(--surface-alt); border-radius: var(--r-sm); padding: 8px 4px; text-align: center; }
+.cx-form-cell.dim { opacity: 0.35; }
+.cx-form-glyph { font-family: var(--font-arabic); font-size: 24px; }
+.cx-form-lbl { font-size: 9.5px; color: var(--text-secondary); margin-top: 2px; }
+.al-sound-desc { font-size: 13.5px; line-height: 1.5; }
+.al-note { font-size: 12.5px; color: var(--text-secondary); margin-top: 4px; }
+.al-note-box { background: var(--surface-alt); border-radius: var(--r-sm); padding: 8px 10px; }
+.al-example-card { background: var(--surface-alt); border-radius: var(--r-md); padding: 12px; margin: var(--sp-sm) 0; }
+.al-example-row { display: flex; align-items: center; gap: 10px; }
+.al-example-content { flex: 1; min-width: 0; }
+.al-example-word { font-family: var(--font-arabic); font-size: 26px; color: var(--course-color, var(--emerald-deep)); }
+.al-example-translit { font-size: 12.5px; color: var(--text-secondary); }
+.al-example-meaning { font-size: 14px; }
+.cx-writing-btn { margin-top: var(--sp-sm); }
+
+/* ============ VOCABULARIO ============ */
+.cx-vocab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cx-vocab-card {
+  background: var(--surface-alt); border: none; border-radius: var(--r-md); padding: 12px 8px;
+  text-align: center; cursor: pointer; color: var(--text);
+}
+.cx-vocab-pic { display: flex; justify-content: center; margin-bottom: 4px; font-size: 26px; }
+.cx-vocab-ar { font-family: var(--font-arabic); font-size: 20px; color: var(--course-color, var(--emerald-deep)); }
+.cx-vocab-tr { font-size: 11px; color: var(--text-secondary); }
+.cx-vocab-meaning { font-size: 12.5px; font-weight: 600; margin-top: 2px; }
+
+/* ============ FRASE / AZORA ============ */
+.cx-phrase-card { background: var(--surface-alt); border-radius: var(--r-md); padding: 14px; margin-bottom: var(--sp-sm); }
+.cx-phrase-ref { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+.cx-phrase-ar { font-family: var(--font-arabic); font-size: 26px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--course-color, var(--emerald-deep)); }
+.cx-phrase-words { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: var(--sp-sm) 0; }
+.cx-phrase-word { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 6px 10px; cursor: pointer; text-align: center; }
+.cx-pw-ar { display: block; font-family: var(--font-arabic); font-size: 17px; }
+.cx-pw-tr { display: block; font-size: 10px; color: var(--text-secondary); }
+.cx-phrase-trans { text-align: center; font-size: 13.5px; font-style: italic; color: var(--text-secondary); }
+
+/* ============ RAÍCES ============ */
+.cx-root-card { background: var(--surface-alt); border-radius: var(--r-md); padding: 12px; margin-bottom: var(--sp-sm); }
+.cx-root-head { font-family: var(--font-arabic); font-size: 22px; color: var(--course-color, var(--emerald-deep)); text-align: center; }
+.cx-root-head small { font-family: var(--font-main); font-size: 12px; color: var(--text-secondary); }
+.cx-root-meaning { text-align: center; font-size: 12.5px; color: var(--text-secondary); margin-bottom: 8px; }
+.cx-root-words { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.cx-root-word { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 6px 10px; cursor: pointer; text-align: center; }
+.cx-root-word span { display: block; font-family: var(--font-arabic); font-size: 16px; }
+.cx-root-word small { font-size: 10px; color: var(--text-secondary); }
+
+/* ============ MAPA DE RUTA (previa) ============ */
+.cx-jp-units { display: flex; flex-direction: column; gap: var(--sp-sm); margin-top: var(--sp-md); }
+.cx-jp-unit-title { font-weight: 700; font-size: 13.5px; margin-bottom: 6px; }
+.cx-jp-stations { display: flex; align-items: center; flex-wrap: wrap; }
+.cx-jp-node { font-family: var(--font-arabic); font-size: 20px; background: var(--surface-alt); border-radius: 50%; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; }
+.cx-jp-line { width: 14px; height: 2px; background: var(--border); display: inline-block; }
+
+/* ============ ORDENA / CONSTRUYE (word_order, word_builder) ============ */
+.cx-wo-answer {
+  min-height: 56px; border: 2px dashed var(--border); border-radius: var(--r-md);
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; padding: 10px; margin-bottom: var(--sp-sm);
+}
+.cx-wo-hint { font-size: 12.5px; color: var(--text-secondary); }
+.cx-wo-tray { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: var(--sp-sm); }
+.cx-wo-tile {
+  font-family: var(--font-arabic); font-size: 18px; background: var(--surface-alt); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 8px 14px; cursor: pointer; color: var(--text);
+}
+.cx-wo-tile.placed { background: var(--course-color, var(--emerald-deep)); color: #fff; border-color: transparent; cursor: default; }
+.cx-wo-actions { display: flex; gap: var(--sp-sm); justify-content: center; margin-top: var(--sp-sm); }
+.cx-wb-hint { text-align: center; font-size: 13.5px; color: var(--text-secondary); margin-bottom: var(--sp-sm); }
+
+/* ============ MATCH PAIRS ============ */
+.cx-mp-board { display: flex; gap: 10px; }
+.cx-mp-col { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.cx-mp-btn {
+  background: var(--surface-alt); border: 2px solid var(--border); border-radius: var(--r-md);
+  padding: 12px 8px; font-size: 14px; cursor: pointer; color: var(--text); text-align: center;
+}
+.cx-mp-btn.mp-l { font-family: var(--font-arabic); font-size: 18px; }
+.cx-mp-btn.picked { border-color: var(--gold-soft); background: rgba(212,175,55,0.12); }
+.cx-mp-btn.matched { border-color: var(--success); background: rgba(76,175,80,0.12); opacity: 0.7; }
+.cx-mp-btn.mp-wrong { border-color: var(--error); background: rgba(239,83,80,0.12); animation: cxShake 0.4s; }
+
+@keyframes cxShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 380px) {
+  .al-letter-glyph { font-size: 58px; }
+  .cx-vocab-grid { grid-template-columns: 1fr 1fr; }
+  .cx-zz-btn { width: 56px; height: 56px; font-size: 22px; }
+}
