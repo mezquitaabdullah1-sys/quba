@@ -42,6 +42,19 @@ Object.assign(CoursesPage, {
     if (slot) slot.innerHTML = this._videoBlock(this._vid.segs[i], 'cxv' + i);
   },
 
+  // v67: convierte "44:41", "1:02:03", "75" o 75 → segundos (número entero).
+  // Antes los clips de las letras llegaban como texto ("0:49") y acababan en
+  // `start=NaN` en la URL del reproductor: el vídeo no arrancaba en su clip.
+  _toSec(v) {
+    if (v === null || v === undefined || v === '') return 0;
+    if (typeof v === 'number') return isFinite(v) ? Math.max(0, Math.floor(v)) : 0;
+    const s = String(v).trim();
+    if (/^\d+(\.\d+)?$/.test(s)) return Math.floor(parseFloat(s));
+    const p = s.split(':').map(Number);
+    if (!p.length || p.length > 3 || p.some(n => isNaN(n))) return 0;
+    return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : (p.length === 2 ? p[0] * 60 + p[1] : p[0]);
+  },
+
   // Bloque reutilizable: miniatura con botón de reproducir (no carga el
   // iframe hasta el toque, para ahorrar datos), resumen y fila "toca para oír".
   _videoBlock(v, uid) {
@@ -56,20 +69,29 @@ Object.assign(CoursesPage, {
       const say = JSON.stringify({ key: it.key || null, text: it.text || '' });
       return `<button class="cx-listen-chip" onclick='ArabicAudio.play(${say})'><i class="fas fa-volume-low"></i> <span dir="rtl">${it.text || ''}</span>${it.label ? `<small>${it.label}</small>` : ''}</button>`;
     }).join('');
-    let media;
+    const start = this._toSec(v.start);
+    const end = this._toSec(v.end);
+    let media, openLink = '';
     if (v.provider === 'local') {
-      media = `<video class="cx-video-el" controls preload="none" poster="${v.poster || ''}" src="${v.src}"></video>`;
+      // Si el archivo no existe (p. ej. aún no se subió), se muestra un aviso
+      // en lugar de un reproductor roto.
+      media = `<video class="cx-video-el" controls playsinline preload="none" poster="${escapeAttr(v.poster || '')}" src="${escapeAttr(v.src)}" onerror="CoursesPage._videoMissing(this)"></video>`;
     } else {
-      const ytId = v.id;
+      const ytId = /^[\w-]{11}$/.test(String(v.id || '')) ? v.id : '';
+      if (!ytId) return '';
       const thumb = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
       media = `
-        <div class="cx-video-thumb" id="${uid}" style="background-image:url('${thumb}')" onclick="CoursesPage.loadYouTube('${uid}','${ytId}',${v.start || 0},${v.end || 0})">
-          <button class="cx-video-play" aria-label="${t('start') || 'Play'}"><i class="fas fa-play"></i></button>
+        <div class="cx-video-thumb" id="${uid}" role="button" tabindex="0" style="background-image:url('${thumb}')" onclick="CoursesPage.loadYouTube('${uid}','${ytId}',${start},${end})">
+          <span class="cx-video-play" aria-label="${escapeAttr(t('cxPlayClip') || 'Reproducir')}"><i class="fas fa-play"></i></span>
         </div>`;
+      // Enlace de respaldo: si el reproductor incrustado fallara (sin conexión
+      // o bloqueado por el sistema), el clip se abre igual en YouTube.
+      openLink = `<a class="cx-video-open" href="https://www.youtube.com/watch?v=${ytId}${start ? '&t=' + start + 's' : ''}" target="_blank" rel="noopener noreferrer"><i class="fab fa-youtube"></i> ${t('cxOpenYoutube') || 'Abrir en YouTube'}</a>`;
     }
     return `
       <div class="cx-video-block">
         ${media}
+        ${openLink}
         ${title ? `<div class="cx-video-title">${title}</div>` : ''}
         ${summary ? `<div class="cx-video-summary">${summary}</div>` : ''}
         ${listen ? `<div class="cx-listen-row">${listen}</div>` : ''}
@@ -77,13 +99,23 @@ Object.assign(CoursesPage, {
       </div>`;
   },
 
+  _videoMissing(el) {
+    if (!el || !el.parentNode) return;
+    const d = document.createElement('div');
+    d.className = 'cx-video-missing';
+    d.innerHTML = '<i class="fas fa-film"></i> ' + escapeHtml(t('cxVideoMissing') || 'Vídeo no disponible por ahora');
+    el.parentNode.replaceChild(d, el);
+  },
+
   loadYouTube(uid, ytId, start, end) {
     const el = document.getElementById(uid);
-    if (!el) return;
-    const params = ['autoplay=1', 'rel=0', 'modestbranding=1'];
-    if (start) params.push('start=' + Math.max(0, Math.floor(start)));
-    if (end) params.push('end=' + Math.max(0, Math.floor(end)));
-    el.outerHTML = `<div class="cx-video-frame"><iframe src="https://www.youtube-nocookie.com/embed/${ytId}?${params.join('&')}" title="video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>`;
+    if (!el || !/^[\w-]{11}$/.test(String(ytId))) return;
+    const s = this._toSec(start), e = this._toSec(end);
+    const params = ['autoplay=1', 'rel=0', 'modestbranding=1', 'playsinline=1'];
+    if (s) params.push('start=' + s);
+    if (e && e > s) params.push('end=' + e);
+    try { if (/^https?:$/.test(location.protocol)) params.push('origin=' + encodeURIComponent(location.origin)); } catch (_) {}
+    el.outerHTML = `<div class="cx-video-frame"><iframe src="https://www.youtube-nocookie.com/embed/${ytId}?${params.join('&')}" title="video" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`;
   },
 
   // ============ INFOGRAFÍA ============
@@ -188,7 +220,7 @@ Object.assign(CoursesPage, {
     // con el resto de la información, tal como se pidió.
     const clipBlock = l.clip
       ? `<div class="al-section"><div class="al-section-label">${t('cxHowToWrite') || 'Cómo se escribe'}</div>
-           ${this._videoBlock({ provider: 'youtube', id: D.VIDEO.writingId, start: l.clip.start, end: l.clip.end, title: '', summary: '' }, 'cxclip_' + l.id)}
+           ${this._videoBlock(Object.assign({}, D.writingClip(l), { title: '', summary: '' }), 'cxclip_' + l.id)}
          </div>`
       : '';
     return `

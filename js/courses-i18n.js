@@ -217,6 +217,32 @@
     ['cxWriteDir', 'Sigue el trazo punteado, de derecha a izquierda', 'اتبع الخط المنقّط من اليمين إلى اليسار', 'Follow the dotted trace, right to left'],
     ['cxWriteClear', 'Borrar', 'مسح', 'Clear'],
     ['cxWritePick', 'Elige una letra', 'اختر حرفاً', 'Choose a letter'],
+
+    // ── v67: فيديو الحرف · الخروج · اختبار «أعرفها» ──
+    ['cxOpenYoutube', 'Abrir en YouTube', 'فتح في يوتيوب', 'Open on YouTube'],
+    ['cxPlayClip', 'Reproducir el clip', 'تشغيل المقطع', 'Play the clip'],
+    ['cxVideoMissing', 'Vídeo no disponible por ahora', 'الفيديو غير متاح حالياً', 'Video unavailable for now'],
+    ['cxExitTitle', '¿Salir de la lección?', 'هل تريد الخروج من الدرس؟', 'Leave the lesson?'],
+    ['cxExitText', 'Tu progreso se guardará y volverás a las etapas del curso para continuar cuando quieras.', 'سيُحفظ تقدّمك وستعود إلى صفحة مراحل الكورس لتكمل متى شئت.', 'Your progress will be saved and you will return to the course stages to continue whenever you like.'],
+    ['cxExitTextTest', 'Se cancelará la prueba y tu progreso no cambiará. Volverás a las etapas del curso.', 'سيُلغى الاختبار ولن يتغيّر تقدّمك، وستعود إلى صفحة مراحل الكورس.', 'The test will be cancelled and your progress will not change. You will return to the course stages.'],
+    ['cxStay', 'Quedarme', 'البقاء', 'Stay'],
+    ['cxLeave', 'Salir', 'خروج', 'Leave'],
+    ['cxCancel', 'Cancelar', 'إلغاء', 'Cancel'],
+    ['cxBackToStages', 'Volver a las etapas', 'العودة إلى المراحل', 'Back to the stages'],
+    ['cxSkipStation', 'Ya lo sé: saltar esta etapa', 'أعرفها: تخطَّ هذه المرحلة', 'I know it: skip this stage'],
+    ['cxSkipTitle', 'Prueba para saltar', 'اختبار التخطّي', 'Skip test'],
+    ['cxSkipDlgText', 'Para abrir «{next}», supera una prueba sobre la etapa anterior «{prev}»: {n} preguntas y necesitas {need} aciertos a la primera. Si la superas, «{prev}» se marca como saltada y «{next}» se abre.', 'لفتح «{next}» اجتز اختباراً في المرحلة السابقة «{prev}»: {n} أسئلة، ويلزمك {need} إجابات صحيحة من المحاولة الأولى. إن نجحت تُعدّ «{prev}» مُتخطّاة وتُفتح «{next}».', 'To open “{next}”, pass a test on the previous stage “{prev}”: {n} questions, and you need {need} correct on the first try. If you pass, “{prev}” is marked as skipped and “{next}” opens.'],
+    ['cxSkipStart', 'Empezar la prueba', 'ابدأ الاختبار', 'Start the test'],
+    ['cxSkipBanner', 'Prueba para saltar: {prev}', 'اختبار تخطّي: {prev}', 'Skip test: {prev}'],
+    ['cxSkipNeed', 'mínimo {need}/{total}', 'المطلوب {need}/{total}', 'need {need}/{total}'],
+    ['cxSkipPassedTitle', '¡Superado! Etapa abierta', 'أحسنت! فُتحت المحطة', 'Passed! Stage unlocked'],
+    ['cxSkipPassedText', '«{prev}» se marcó como saltada y «{next}» ya está abierta.', 'عُدّت «{prev}» مُتخطّاة، و«{next}» مفتوحة الآن.', '“{prev}” is marked as skipped and “{next}” is now open.'],
+    ['cxSkipOpenNext', 'Empezar «{next}»', 'ابدأ «{next}»', 'Start “{next}”'],
+    ['cxSkipFailedTitle', 'Aún no, ¡tú puedes!', 'ليس بعد، ستنجح!', 'Not yet, you can do it!'],
+    ['cxSkipFailedText', 'No alcanzaste el mínimo. Repasa «{prev}» o repite la prueba cuando quieras.', 'لم تبلغ الحدّ المطلوب. راجع «{prev}» أو أعد الاختبار متى شئت.', 'You did not reach the minimum. Review “{prev}” or retake the test whenever you like.'],
+    ['cxSkipRetry', 'Repetir la prueba', 'إعادة الاختبار', 'Retake the test'],
+    ['cxSkipReview', 'Estudiar «{prev}»', 'دراسة «{prev}»', 'Study “{prev}”'],
+    ['cxSkipped', 'Saltada', 'تم تخطّيها', 'Skipped'],
   ];
 
   ['es', 'ar', 'en'].forEach((loc, i) => {

@@ -450,6 +450,7 @@ const CoursesPage = {
     const tone = (s.cover && s.cover.tone != null) ? s.cover.tone : idx;
     const onClick = isLocked ? `CoursesPage.showLocked()` : `CoursesPage.startStation('${course.id}', '${s.id}')`;
     const canSkip = isLocked && this._canSkipTest(course, s, idx, prog);
+    const wasSkipped = isDone && (prog.skippedStations || []).includes(s.id);
     return `
       <div class="cx-zz-node zz-${side}" id="st-${s.id}">
         <button class="cx-zz-btn ${isDone ? 'done' : ''} ${isLocked ? 'locked' : ''} ${inProgress ? 'in-progress' : ''}" data-tone="${tone % 8}" onclick="${onClick}">
@@ -457,49 +458,170 @@ const CoursesPage = {
           ${inProgress ? '<span class="cx-zz-dot"></span>' : ''}
         </button>
         <div class="cx-zz-label">${this.X(s.title)}</div>
-        ${canSkip ? `<button class="cx-zz-skip" onclick="event.stopPropagation();CoursesPage.offerSkipTest('${course.id}','${s.id}')">${t('cxSkipStation') || 'Saltar con prueba'}</button>` : ''}
+        ${wasSkipped ? `<div class="cx-zz-skipped"><i class="fas fa-forward"></i> ${t('cxSkipped') || 'Saltada'}</div>` : ''}
+        ${canSkip ? `<button class="cx-zz-skip" onclick="event.stopPropagation();CoursesPage.offerSkipTest('${course.id}','${s.id}')"><i class="fas fa-forward-fast"></i> ${t('cxSkipStation') || 'Saltar con prueba'}</button>` : ''}
       </div>`;
   },
 
-  // Puede intentar "saltar" una estación bloqueada si ya completó al menos
-  // la mitad de las estaciones de letras anteriores (evita abusar del salto
-  // en la primera estación del curso).
-  _canSkipTest(course, s, idx, prog) { return idx > 1 && s.kind !== 'exam' && s.kind !== 'intro'; },
+  // ============ «أعرفها»: اختبار تخطّي (v67) ============
+  // الفكرة: المحطة X مقفلة لأن السابقة P لم تُكمَل. زرّ «أعرفها» تحت X يفتح
+  // اختباراً في محتوى P؛ عند اجتيازه تُعدّ P مُتخطّاة وتُفتح X.
+  SKIP_TEST: { n: 8, pass: 0.75 },
 
-  offerSkipTest(courseId, stationId) {
-    const course = this.getAllCourses().find(c => c.id === courseId);
-    const station = course.stations.find(s => s.id === stationId);
-    if (!course || !station) return;
-    const prevIdx = this._globalStationIndex(course, stationId) - 1;
-    const prevStation = course.stations[prevIdx];
-    const gs = this._gs();
-    const prog = this._prog(gs, courseId);
-    if (!prog.completedStations.includes(prevStation.id)) { this.showLocked(); return; }
-    // Construye un mini-examen (5 preguntas) sobre la estación ANTERIOR: si
-    // aprueba, se desbloquea esta sin repetir toda la anterior.
-    const items = (prevStation.items && prevStation.items.length) ? prevStation.items
-      : (typeof ArabicItems !== 'undefined' ? ArabicItems.lettersUpTo(99).slice(0, 6).map(l => 'letter:' + l.id) : []);
-    const qs = (typeof ArabicItems !== 'undefined') ? ArabicItems.session(items.length ? items : ['letter:ba'], 5, {}) : [];
-    if (!qs.length) { this.showLocked(); return; }
-    this.state = { courseId, stationId: prevStation.id, course, station: prevStation, lessonIdx: 0, doneIdx: [], correctAnswers: 0, wrongAnswers: 0, startTime: Date.now(), skipTestFor: stationId };
-    const container = document.getElementById('main-content');
-    container.innerHTML = this._lessonShell(course, '', 0, 1);
-    this.runQuestions(qs, { onDone: (res) => this._afterSkipTest(res, courseId, prevStation.id, stationId) });
+  // عناصر الاختبار المستخرجة من محتوى المحطة (حروف/علامات/كلمات)
+  _skipItems(station) {
+    if (typeof ArabicItems === 'undefined' || !station || !Array.isArray(station.items)) return [];
+    return station.items.filter(id => typeof id === 'string' && ArabicItems.get(id));
   },
 
-  _afterSkipTest(res, courseId, prevStationId, unlockStationId) {
-    const pass = res.accuracy >= 0.8;
+  // يظهر الزرّ فقط على أول محطة مقفلة (السابقة لها مفتوحة وغير مكتملة ولها اختبار)
+  _canSkipTest(course, s, idx, prog) {
+    if (idx < 1) return false;
+    const prev = course.stations[idx - 1];
+    if (!prev || prev.kind === 'intro' || prev.kind === 'exam') return false;
+    if (prog.completedStations.includes(prev.id)) return false;       // X ليست مقفلة أصلاً
+    if (idx >= 2 && !prog.completedStations.includes(course.stations[idx - 2].id)) return false; // P نفسها مقفلة
+    return this._skipItems(prev).length > 0;
+  },
+
+  _skipCtx(courseId, nextId) {
+    const course = this.getAllCourses().find(c => c.id === courseId);
+    if (!course) return null;
+    const idx = course.stations.findIndex(x => x.id === nextId);
+    if (idx < 1) return null;
+    const gs = this._gs();
+    const prog = this._prog(gs, courseId);
+    if (!this._canSkipTest(course, course.stations[idx], idx, prog)) return null;
+    return { course, prev: course.stations[idx - 1], next: course.stations[idx], prog };
+  },
+
+  _fmt(key, vars, fallback) {
+    let str = (typeof t === 'function' ? t(key) : '') || fallback || key;
+    Object.keys(vars || {}).forEach(k => { str = str.split('{' + k + '}').join(vars[k]); });
+    return str;
+  },
+
+  // الخطوة 1: نافذة تشرح الاختبار قبل أن يبدأ
+  offerSkipTest(courseId, nextId) {
+    const ctx = this._skipCtx(courseId, nextId);
+    if (!ctx) { this.showLocked(); return; }
+    const { prev, next } = ctx;
+    const cfg = this.SKIP_TEST;
+    this._cxDialog({
+      icon: '<i class="fas fa-forward-fast"></i>',
+      title: t('cxSkipTitle') || 'Prueba para saltar',
+      text: this._fmt('cxSkipDlgText', {
+        prev: escapeHtml(this.L(prev.title)), next: escapeHtml(this.L(next.title)),
+        n: cfg.n, need: Math.ceil(cfg.n * cfg.pass),
+      }),
+      actions: [
+        { label: t('cxSkipStart') || 'Empezar la prueba', cls: 'primary', fn: () => this.startSkipTest(courseId, nextId) },
+        { label: t('cxCancel') || 'Cancelar', cls: '' },
+      ],
+    });
+  },
+
+  // الخطوة 2: اختبار في محتوى المحطة السابقة
+  startSkipTest(courseId, nextId) {
+    const ctx = this._skipCtx(courseId, nextId);
+    if (!ctx) { this.showLocked(); return; }
+    const { course, prev, next } = ctx;
+    const qs = ArabicItems.session(this._skipItems(prev), this.SKIP_TEST.n, {});
+    if (!qs.length) { this.showLocked(); return; }
+    this.state = {
+      courseId, stationId: prev.id, course, station: prev, lessonIdx: 0, doneIdx: [],
+      correctAnswers: 0, wrongAnswers: 0, startTime: Date.now(), skipTestFor: nextId,
+    };
+    const container = document.getElementById('main-content');
+    container.innerHTML = this._lessonShell(course, '', 0, qs.length);
+    const banner = `<div class="cx-skip-banner"><i class="fas fa-forward-fast"></i> ${this._fmt('cxSkipBanner', { prev: escapeHtml(this.L(prev.title)) })}</div>`;
+    this.runQuestions(qs, { noXp: true, progress: true, banner, onDone: (res) => this._afterSkipTest(res) });
+    container.scrollTop = 0;
+  },
+
+  // الخطوة 3: النتيجة — نجاح: تُعدّ P مُتخطّاة وتُفتح X. فشل: خيارات واضحة.
+  _afterSkipTest(res) {
+    const st = this.state;
+    if (!st || !st.skipTestFor) return;
+    const { courseId, course, station: prev } = st;
+    const next = course.stations.find(x => x.id === st.skipTestFor);
+    const total = res.total, ok = res.firstTryCorrect;
+    const need = Math.ceil(total * this.SKIP_TEST.pass);
+    const pass = ok >= need;
+    const pct = total ? Math.round((ok / total) * 100) : 0;
+
     if (pass) {
       const gs = this._gs();
       const prog = this._prog(gs, courseId);
-      if (!prog.completedStations.includes(prevStationId)) prog.completedStations.push(prevStationId);
+      if (!prog.completedStations.includes(prev.id)) {
+        prog.completedStations.push(prev.id);
+        const partial = ((prog.stationProgress[prev.id] || {}).doneIdx || []).length;
+        prog.completedLessons = Math.min(this.countLessons(course), (prog.completedLessons || 0) + Math.max(0, prev.lessons.length - partial));
+      }
+      if (!prog.skippedStations) prog.skippedStations = [];
+      if (!prog.skippedStations.includes(prev.id)) prog.skippedStations.push(prev.id);
+      delete prog.stationProgress[prev.id];
+      prog.lastStation = next.id;
+      if (typeof CoursesSRS !== 'undefined') CoursesSRS.learn(this._skipItems(prev));
       Gamification.saveState(gs);
-      showToast('✅ ' + (t('cxSkipPassed') || '¡Superado! Estación desbloqueada.'), 2200);
-    } else {
-      showToast('📖 ' + (t('cxSkipFailed') || 'Aún no. Repasa esa estación primero.'), 2600);
+      Gamification.updateStreak();
     }
     this.state = null;
-    this.openCourse(courseId);
+
+    const container = document.getElementById('main-content');
+    const prevT = escapeHtml(this.L(prev.title)), nextT = escapeHtml(this.L(next.title));
+    const stats = `
+      <div class="sc-stats">
+        <div class="sc-stat"><div class="scs-icon"><i class="fas fa-circle-check"></i></div><div class="scs-val">${ok}/${total}</div><div class="scs-lbl">${t('correct') || 'correctas'}</div></div>
+        <div class="sc-stat"><div class="scs-icon"><i class="fas fa-bullseye"></i></div><div class="scs-val">${pct}%</div><div class="scs-lbl">${this._fmt('cxSkipNeed', { need, total })}</div></div>
+      </div>`;
+    if (pass) {
+      container.innerHTML = `
+        <div class="station-complete cx-skip-result" style="--course-color: ${course.color};">
+          <div class="celebration-overlay">
+            ${Mascot.renderWithSpeech('success', t('cxSkipPassedTitle') || '¡Estación abierta!', 'xl')}
+            <div class="confetti-container">${Array(30).fill(0).map((_, i) => `<div class="confetti" style="--i:${i}; --c:${Mascot.confettiColor(i)}; --d:${Math.random() * 0.5}s;"></div>`).join('')}</div>
+          </div>
+          <h2 class="sc-title"><i class="fas fa-lock-open"></i> ${nextT}</h2>
+          ${stats}
+          <p class="cx-skip-result-text">${this._fmt('cxSkipPassedText', { prev: prevT, next: nextT })}</p>
+          <div class="sc-actions">
+            <button class="btn-primary" onclick="CoursesPage.startStation('${courseId}','${next.id}')" style="background:${course.color};">${this._fmt('cxSkipOpenNext', { next: nextT })} →</button>
+            <button class="btn-ghost" onclick="CoursesPage._backToStages('${courseId}','${next.id}')">${t('cxBackToStages') || 'Volver a las etapas'}</button>
+          </div>
+        </div>`;
+    } else {
+      container.innerHTML = `
+        <div class="station-complete cx-skip-result cx-skip-failed" style="--course-color: ${course.color};">
+          <div class="celebration-overlay">
+            ${Mascot.renderWithSpeech('encourage', t('cxSkipFailedTitle') || 'Aún no', 'xl')}
+          </div>
+          <h2 class="sc-title"><i class="fas fa-lock"></i> ${nextT}</h2>
+          ${stats}
+          <p class="cx-skip-result-text">${this._fmt('cxSkipFailedText', { prev: prevT })}</p>
+          <div class="sc-actions">
+            <button class="btn-primary" onclick="CoursesPage.startSkipTest('${courseId}','${next.id}')" style="background:${course.color};"><i class="fas fa-rotate-right"></i> ${t('cxSkipRetry') || 'Repetir la prueba'}</button>
+            <button class="btn-ghost" onclick="CoursesPage.startStation('${courseId}','${prev.id}')">${this._fmt('cxSkipReview', { prev: prevT })}</button>
+            <button class="btn-ghost" onclick="CoursesPage._backToStages('${courseId}','${prev.id}')">${t('cxBackToStages') || 'Volver a las etapas'}</button>
+          </div>
+        </div>`;
+    }
+    container.scrollTop = 0;
+  },
+
+  // العودة إلى صفحة مراحل الكورس (وليس قائمة الكورسات كلها)
+  _backToStages(courseId, stationId) {
+    const course = courseId ? this.getAllCourses().find(c => c.id === courseId) : null;
+    if (!course) { Router.go('wisdom/courses'); return; }
+    const opts = {};
+    if (stationId) {
+      opts.scrollToStation = stationId;
+      if (course.units) {
+        const ui = course.units.findIndex(u => u.stations.some(x => x.id === stationId));
+        if (ui >= 0) opts.openUnit = ui;
+      }
+    }
+    this.openCourse(courseId, opts);
   },
 
   viewCertificate(courseId) {
@@ -719,6 +841,7 @@ const CoursesPage = {
 
     box.innerHTML = `
       <div class="lesson-quiz cx-qrun ${chrome === 'scenario' ? 'cx-scenario' : ''}">
+        ${r.opts.banner || ''}
         ${Mascot.render(chrome === 'scenario' ? 'idle' : 'thinking', 'medium', 'lesson-mascot')}
         ${scenarioHead}
         <h2 class="lesson-quiz-q">${promptHtml}</h2>
@@ -731,6 +854,13 @@ const CoursesPage = {
             </button>`).join('')}
         </div>
       </div>`;
+    if (r.opts.progress) {
+      const done = r.doneIds.size;
+      const cnt = document.querySelector('.lesson-counter');
+      const fill = document.querySelector('.lesson-progress-fill');
+      if (cnt) cnt.textContent = Math.min(done + 1, r.total) + '/' + r.total;
+      if (fill) fill.style.width = (r.total ? Math.round((done / r.total) * 100) : 0) + '%';
+    }
     const scroller = document.getElementById('main-content');
     if (scroller) scroller.scrollTop = 0; // v66: cada pregunta nueva empieza desde arriba
     if (q.autoplay && q.say) setTimeout(() => this.playQSay(), 350);
@@ -759,7 +889,7 @@ const CoursesPage = {
       if (firstTry) r.firstTryCorrect++;
       if (!r.doneIds.has(q)) {
         r.doneIds.add(q);
-        if (!r.opts.isReview) Gamification.addXP(Gamification.XP_CORRECT_ANSWER || 10);
+        if (!r.opts.isReview && !r.opts.noXp) Gamification.addXP(Gamification.XP_CORRECT_ANSWER || 10);
         if (q.ids && typeof CoursesSRS !== 'undefined') q.ids.forEach(id => CoursesSRS.grade(id, true, r.opts.isReview));
       }
       if (navigator.vibrate) navigator.vibrate(50);
@@ -899,21 +1029,77 @@ const CoursesPage = {
     }
   },
 
+  // ============ نافذة حوار موحّدة (v67) ============
+  // بديل confirm() الأصلي: تصميم من التطبيق، أزرار واضحة، Esc/النقر خارجها = إلغاء.
+  _cxDialog(o) {
+    this._cxCloseDialog();
+    const ov = document.createElement('div');
+    ov.id = 'cx-dialog';
+    ov.className = 'cx-dialog-overlay';
+    ov.innerHTML = `
+      <div class="cx-dialog" role="alertdialog" aria-modal="true" aria-labelledby="cx-dlg-title">
+        ${o.icon ? `<div class="cx-dialog-icon">${o.icon}</div>` : ''}
+        <h3 class="cx-dialog-title" id="cx-dlg-title">${o.title}</h3>
+        <div class="cx-dialog-text">${o.text}</div>
+        <div class="cx-dialog-actions">
+          ${o.actions.map((a, i) => `<button type="button" class="cx-dialog-btn ${a.cls || ''}" data-i="${i}">${a.label}</button>`).join('')}
+        </div>
+      </div>`;
+    ov.addEventListener('click', (ev) => {
+      if (ev.target === ov) { this._cxCloseDialog(); if (o.onCancel) o.onCancel(); return; }
+      const b = ev.target.closest('.cx-dialog-btn');
+      if (!b) return;
+      const a = o.actions[Number(b.dataset.i)];
+      this._cxCloseDialog();
+      if (a && a.fn) a.fn();
+    });
+    this._cxKey = (ev) => { if (ev.key === 'Escape') { this._cxCloseDialog(); if (o.onCancel) o.onCancel(); } };
+    document.addEventListener('keydown', this._cxKey);
+    document.body.appendChild(ov);
+    const first = ov.querySelector('.cx-dialog-btn.primary');
+    if (first) first.focus();
+  },
+
+  _cxCloseDialog() {
+    const d = document.getElementById('cx-dialog');
+    if (d) d.remove();
+    if (this._cxKey) { document.removeEventListener('keydown', this._cxKey); this._cxKey = null; }
+  },
+
   // ============ SALIR / REANUDAR ============
+  // v67: زر ✕ يفتح نافذة «البقاء / الخروج». عند الخروج يُحفظ التقدّم ويعود
+  // المستخدم إلى صفحة مراحل الكورس نفسه (لا إلى قائمة الكورسات كلها).
   exitLesson() {
-    if (!confirm(t('confirmExitLesson') || '¿Salir de la lección? Tu progreso se guardará.')) return;
     const st = this.state;
-    if (st && !st.isReview && !st.skipTestFor && st.station && st.station.lessons && st.station.lessons.length) {
-      const gs = this._gs();
-      const prog = this._prog(gs, st.courseId);
-      // FIX: antes se perdía el punto exacto (this.state = null) y al volver
-      // a entrar la estación siempre reiniciaba desde la lección 1.
-      prog.stationProgress[st.stationId] = { lessonIdx: st.lessonIdx, doneIdx: st.doneIdx.slice() };
-      Gamification.saveState(gs);
+    const isTest = !!(st && st.skipTestFor);
+    this._cxDialog({
+      icon: '<i class="fas fa-door-open"></i>',
+      title: t('cxExitTitle') || '¿Salir de la lección?',
+      text: isTest ? (t('cxExitTextTest') || 'Se cancelará la prueba.') : (t('cxExitText') || 'Tu progreso se guardará.'),
+      actions: [
+        { label: t('cxStay') || 'Quedarme', cls: 'primary' },
+        { label: t('cxLeave') || 'Salir', cls: 'danger', fn: () => this._doExitLesson() },
+      ],
+    });
+  },
+
+  _doExitLesson() {
+    const st = this.state;
+    let backStation = null;
+    if (st) {
+      backStation = st.skipTestFor || st.stationId;
+      if (!st.isReview && !st.skipTestFor && st.station && st.station.lessons && st.station.lessons.length) {
+        const gs = this._gs();
+        const prog = this._prog(gs, st.courseId);
+        // يُحفظ الدرس الحالي فعلياً ليُستأنف منه
+        prog.stationProgress[st.stationId] = { lessonIdx: st.lessonIdx, doneIdx: st.doneIdx.slice() };
+        Gamification.saveState(gs);
+      }
     }
+    const courseId = st && st.courseId;
     this.state = null;
     this.qrun = null;
-    Router.go('wisdom/courses');
+    this._backToStages(courseId, backStation === '__review__' ? null : backStation);
   },
 
   cleanup() { this.state = null; this.qrun = null; },
