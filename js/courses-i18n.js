@@ -212,6 +212,11 @@
     ['cxUndo', 'Deshacer', 'تراجع', 'Undo'],
     ['cxViewCertificate', 'Ver certificado', 'مشاهدة الشهادة', 'View certificate'],
     ['cxExamScored', 'Puntuación: {pct}%', 'النتيجة: {pct}%', 'Score: {pct}%'],
+    ['cxCheckLetter', 'Comprobar lo aprendido', 'تحقّق ممّا تعلّمته', 'Check what you learned'],
+    ['cxWriteTitle', 'Practica la escritura', 'تدرّب على الكتابة', 'Practise writing'],
+    ['cxWriteDir', 'Sigue el trazo punteado, de derecha a izquierda', 'اتبع الخط المنقّط من اليمين إلى اليسار', 'Follow the dotted trace, right to left'],
+    ['cxWriteClear', 'Borrar', 'مسح', 'Clear'],
+    ['cxWritePick', 'Elige una letra', 'اختر حرفاً', 'Choose a letter'],
   ];
 
   ['es', 'ar', 'en'].forEach((loc, i) => {

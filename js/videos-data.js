@@ -77,6 +77,7 @@ const ClipsData = {
     { id: 'OjF6qi45Q1E', title: 'Cómo es la Figura de Jesús en el Islam', channel: 'Tengo un Plan' },
     { id: 'yt5WyqQT0GI', title: 'The Biggest Myths About Islam Debunked in 8 Minutes', channel: 'Brother Aqib', cats: ['es', 'en'] },
     { id: 'hE7cnsFfIus', title: 'Corán 1 · Al-Fatiha «El Abridor» — Español', channel: 'Islam Light' },
+    { id: 'OD-onPuCiGs', title: 'Corán 112 · Al-Ikhlas «La Sinceridad» — Español', channel: 'Islam Light' },
     { id: 'U86D0188Mp8', title: 'Quiz Islámico 🌟 Conocimientos generales sobre el Islam', channel: 'Quiz Islámico' },
     { id: 'd0B-N97qLsU', title: 'Ali Dawah responde las preguntas más difíciles del ateísmo', channel: 'Towards Eternity' },
     { id: 'r7HHc08F6P0', title: '¿Qué es el Islam? El Mensaje de Un Solo Dios, explicado simple', channel: 'IslamInSpanishTV' },

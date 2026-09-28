@@ -270,6 +270,7 @@ const CoursesPage = {
     this._migrateLegacyProgress(course);
     if (course.units && course.units.length) this.renderCourseOverviewV2(container, course, opts);
     else this.renderCourseOverviewV1(container, course);
+    container.scrollTop = 0; // v66: que la pantalla se abra desde arriba, no a media altura
   },
 
   // Si el curso trae `legacyStationMap` (ids de estaciones de una versión
@@ -520,6 +521,7 @@ const CoursesPage = {
         ${this.renderCertificate(course, lang, prog.tier)}
         <div class="sc-actions"><button class="btn-ghost" onclick="CoursesPage.openCourse('${course.id}')">${t('backToCourses') || 'Volver'}</button></div>
       </div>`;
+    container.scrollTop = 0;
   },
 
   // ============ REPASO (SRS) ============
@@ -559,6 +561,7 @@ const CoursesPage = {
         </div>
         <div class="sc-actions"><button class="btn-primary" onclick="Router.go('wisdom/courses')" style="background:${course.color || '#174420'};">${t('backToCourses') || 'Volver'}</button></div>
       </div>`;
+    container.scrollTop = 0;
     this.state = null;
   },
 
@@ -581,6 +584,7 @@ const CoursesPage = {
     };
     const container = document.getElementById('main-content');
     this.renderStationIntro(container, !!startAt);
+    container.scrollTop = 0; // v66: abrir la tarjeta de la estación desde arriba
   },
 
   renderStationIntro(container, hasResume) {
@@ -624,11 +628,12 @@ const CoursesPage = {
   nextLesson() {
     const st = this.state;
     const container = document.getElementById('main-content');
-    if (st.lessonIdx >= st.station.lessons.length) { this.completeStation(container); return; }
+    if (st.lessonIdx >= st.station.lessons.length) { this.completeStation(container); container.scrollTop = 0; return; }
 
     const lesson = st.station.lessons[st.lessonIdx];
     container.innerHTML = this._lessonShell(st.course, this.X(st.station.title), st.lessonIdx, st.station.lessons.length);
     this.renderLesson(lesson);
+    container.scrollTop = 0; // v66: cada tarjeta nueva empieza desde arriba, no a media pantalla
   },
 
   // Punto único de despacho por tipo. Los tipos "ricos" del árabe se registran
@@ -726,6 +731,8 @@ const CoursesPage = {
             </button>`).join('')}
         </div>
       </div>`;
+    const scroller = document.getElementById('main-content');
+    if (scroller) scroller.scrollTop = 0; // v66: cada pregunta nueva empieza desde arriba
     if (q.autoplay && q.say) setTimeout(() => this.playQSay(), 350);
   },
 

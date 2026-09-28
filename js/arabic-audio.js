@@ -12,6 +12,8 @@
 const ArabicAudio = {
   BASE: 'assets/audio/ar/',
   _el: null,
+  _reciterEl: null, // عنصر <audio> مستقل لمقاطع القارئ (ملف طويل + قص زمني)
+  _reciterFile: null, // آخر ملف قارئ مُحمَّل في _reciterEl (لتفادي إعادة تحميله دون داعٍ)
   _token: 0,   // يتغيّر مع كل تشغيل/إيقاف: يُبطل الاستدعاءات القديمة
   _seq: 0,     // يتغيّر عند إيقاف تسلسل كامل
   _warnedNoVoice: false,
@@ -38,6 +40,7 @@ const ArabicAudio = {
   _halt() {
     this._token++;
     try { if (this._el) { this._el.pause(); this._el.currentTime = 0; } } catch (e) { /* noop */ }
+    try { if (this._reciterEl) { this._reciterEl.pause(); } } catch (e) { /* noop */ }
     try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (e) { /* noop */ }
   },
 
@@ -71,6 +74,62 @@ const ArabicAudio = {
   },
 
   playText(text, opts) { return this.play({ key: null, text }, opts); },
+
+  /**
+   * يشغّل مقطعاً من تسجيل قارئ حقيقي (ملف سورة كامل + قصّ زمني start/end
+   * بالثواني)، تماماً كآلية مقاطع الفيديو (clip). يُرجع Promise يُحَلّ عند
+   * وصول القصّ لنهايته أو عند أي خطأ (لا يُرفَض أبداً).
+   * reciter: { file: 'fatiha_husary', start: 5.86, end: 11.67 }
+   */
+  playReciterClip(reciter) {
+    this._halt();
+    const token = this._token;
+    return new Promise((resolve) => {
+      const done = () => resolve();
+      if (!reciter || !reciter.file) return done();
+      try {
+        if (!this._reciterEl) this._reciterEl = new Audio();
+        const el = this._reciterEl;
+        const cleanup = () => {
+          el.removeEventListener('timeupdate', onTime);
+          el.removeEventListener('ended', onEnded);
+          el.removeEventListener('error', onError);
+        };
+        const onTime = () => {
+          if (token !== this._token) { cleanup(); return; }
+          if (reciter.end && el.currentTime >= reciter.end) { cleanup(); el.pause(); done(); }
+        };
+        const onEnded = () => { cleanup(); done(); };
+        const onError = () => { cleanup(); done(); };
+        el.addEventListener('timeupdate', onTime);
+        el.addEventListener('ended', onEnded);
+        el.addEventListener('error', onError);
+        const seekAndPlay = () => {
+          if (token !== this._token) return;
+          try { el.currentTime = reciter.start || 0; } catch (e) { /* noop */ }
+          const p = el.play();
+          if (p && p.catch) p.catch(onError);
+        };
+        if (this._reciterFile === reciter.file && el.readyState >= 1) {
+          seekAndPlay();
+        } else {
+          this._reciterFile = reciter.file;
+          el.addEventListener('loadedmetadata', seekAndPlay, { once: true });
+          el.src = this.BASE + reciter.file + '.mp3';
+        }
+      } catch (e) { done(); }
+    });
+  },
+
+  /**
+   * يشغّل صوت آية/عبارة كاملة: تسجيل قارئ حقيقي إن وُجد (ph.reciter)،
+   * وإلا نطق النص كاملاً عبر speechSynthesis كاحتياط (بدل ألا يحدث شيء).
+   */
+  playPhrase(ph) {
+    if (!ph) return Promise.resolve();
+    if (ph.reciter) return this.playReciterClip(ph.reciter);
+    return this.speak(ph.ar || '', 0.7);
+  },
 
   /** تسلسل: ['letter:ba','letter:ta'] بفواصل قصيرة (يتوقّف عند stop()) */
   async playSequence(targets, gapMs) {

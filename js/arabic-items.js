@@ -288,9 +288,12 @@ const ArabicItems = {
   },
   qAudioWord(w) {
     const ds = this._wordDistractors(w, 3);
+    // v66: se simplifica añadiendo el significado junto al nombre — reconocer
+    // por significado (además del sonido) es más fácil para quien aún no lee
+    // el árabe con soltura.
     return this._finish({
       kind: 'mcq', qtype: 'audio', prompt: this.tt('cxQAudioWord'), say: 'word:' + w.id, autoplay: true,
-      options: [w].concat(ds).map(x => ({ t: x.ar, rtl: true, big: true })), correct: 0,
+      options: [w].concat(ds).map(x => ({ t: `${x.ar} — ${this.meaning(x)}`, rtl: true })), correct: 0,
       feedback: `${w.ar} (${w.tr}) = ${this.meaning(w)}`, ids: ['word:' + w.id],
     });
   },
@@ -321,8 +324,12 @@ const ArabicItems = {
     }
     if (it.kind === 'word') {
       const w = it.data;
-      const kinds = ['word', 'meaning', 'audio', 'image'];
-      const k = opts.type || this.pick(kinds.filter(x => x !== opts.avoid), 1)[0];
+      // v66: nunca preguntar «reconoce por la imagen» de una palabra abstracta
+      // sin representación visual real (Allah, adhán, takbir, eid…) — w.pic
+      // marca esto en data/courses/arabic_vocab.js.
+      let kinds = w.pic === false ? ['word', 'meaning', 'audio'] : ['word', 'meaning', 'audio', 'image'];
+      let k = opts.type || this.pick(kinds.filter(x => x !== opts.avoid), 1)[0];
+      if (k === 'image' && w.pic === false) k = 'meaning';
       if (k === 'word') return this.qWordMeaning(w);
       if (k === 'meaning') return this.qMeaningWord(w);
       if (k === 'audio') return this.qAudioWord(w);
@@ -411,9 +418,12 @@ const ArabicItems = {
       for (let i = 0; i < 30; i++) {
         const pool = Math.random() < 0.7 ? religious : others;
         const w = pool[Math.floor(Math.random() * pool.length)];
-        if (!needEmoji || V.WORDS.filter(x => x.e === w.e).length === 1 || true) { if (fresh('w:' + w.id)) return w; }
+        // v66: si la pregunta será de imagen, la palabra debe ser realmente
+        // representable (w.pic !== false) — si no, se descarta y se reintenta.
+        if (needEmoji && w.pic === false) continue;
+        if (fresh('w:' + w.id)) return w;
       }
-      return V.WORDS[0];
+      return needEmoji ? (V.WORDS.find(w => w.pic !== false) || V.WORDS[0]) : V.WORDS[0];
     };
     const pickLetter = (arr) => {
       for (let i = 0; i < 30; i++) {

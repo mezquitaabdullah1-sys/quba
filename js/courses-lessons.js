@@ -175,7 +175,6 @@ Object.assign(CoursesPage, {
     const D = ArabicItems.D();
     const l = D.byId[lesson.letterId];
     if (!l) return this._skipCard();
-    const lang = this.lang();
     const positions = l.conn ? ['iso', 'ini', 'med', 'fin'] : ['iso', 'fin'];
     const formsRow = ['iso', 'ini', 'med', 'fin'].map(p => {
       const active = positions.includes(p);
@@ -184,14 +183,21 @@ Object.assign(CoursesPage, {
     const dots = ArabicItems.dotsText(l.dots);
     const exMeaning = this.L({ es: l.ex.es, ar: l.ex.ar, en: l.ex.en });
     const pic = ArabicItems.pic(l.ex.e, l.ex.s, exMeaning, 'cx-letter-ex-pic');
-    const clipBtn = l.clip ? `<button class="btn-ghost cx-writing-btn" onclick="CoursesPage.toggleWritingClip('${l.id}',${l.clip.start},${l.clip.end})"><i class="fas fa-pen-fancy"></i> ${t('cxHowToWrite') || 'Cómo se escribe'}</button>` : '';
+    // v66: el vídeo de escritura de esta letra vive SIEMPRE dentro de la
+    // tarjeta (no oculto tras un botón) para poder verlo y repasarlo junto
+    // con el resto de la información, tal como se pidió.
+    const clipBlock = l.clip
+      ? `<div class="al-section"><div class="al-section-label">${t('cxHowToWrite') || 'Cómo se escribe'}</div>
+           ${this._videoBlock({ provider: 'youtube', id: D.VIDEO.writingId, start: l.clip.start, end: l.clip.end, title: '', summary: '' }, 'cxclip_' + l.id)}
+         </div>`
+      : '';
     return `
       <div class="arabic-letter-lesson">
         <div class="al-letter-hero">
           <div class="al-letter-glyph" dir="rtl">${l.ch}</div>
           <button class="al-speak-btn" onclick="ArabicAudio.play('letter:${l.id}')"><i class="fas fa-volume-high"></i></button>
         </div>
-        <div class="al-letter-name">${l.tr} <span class="al-name-ar" dir="rtl">(${ArabicItems.strip ? l.nm : l.nm})</span></div>
+        <div class="al-letter-name">${l.tr} <span class="al-name-ar" dir="rtl">(${l.nm})</span></div>
 
         <div class="al-section"><div class="al-section-label">${t('cxForms') || 'Las formas'}</div><div class="al-forms-grid">${formsRow}</div></div>
 
@@ -220,19 +226,23 @@ Object.assign(CoursesPage, {
 
         ${l.note ? `<div class="al-note al-note-box">${this.X(l.note)}</div>` : ''}
         ${l.write ? `<div class="al-note">${this.X(l.write)}</div>` : ''}
-        ${clipBtn}
-        <div id="al-clip-slot"></div>
+        ${clipBlock}
 
-        <button class="btn-primary lesson-continue-btn" onclick="CoursesPage.advanceContent()">${t('continue') || 'Continuar'} →</button>
+        <button class="btn-primary lesson-continue-btn" onclick="CoursesPage.startLetterQuiz('${l.id}')">${t('cxCheckLetter') || 'Comprobar lo aprendido'} →</button>
       </div>`;
   },
 
-  toggleWritingClip(letterId, start, end) {
-    const slot = document.getElementById('al-clip-slot');
-    if (!slot) return;
-    if (slot.innerHTML) { slot.innerHTML = ''; return; }
+  // v66: antes de pasar a la siguiente letra, 3 preguntas SOLO sobre esta.
+  // No hay botón para saltarlas: la lección no avanza hasta resolverlas
+  // (la cola de errores del motor ya permite reintentar las falladas).
+  startLetterQuiz(letterId) {
+    const lesson = this.state.station.lessons[this.state.lessonIdx];
     const D = ArabicItems.D();
-    slot.innerHTML = this._videoBlock({ provider: 'youtube', id: D.VIDEO.writingId, start, end, title: '', summary: '' }, 'cxclip_' + letterId);
+    const l = D.byId[letterId];
+    const qs = ArabicItems.session(['letter:' + letterId], 3, {});
+    if (!qs.length) { this.advanceContent(lesson); return; }
+    if (l) showToast('📝 ' + (t('cxCheckLetter') || 'Comprobar lo aprendido') + ': ' + l.ch, 1200);
+    this.runQuestions(qs, { onDone: () => this.advanceContent(lesson) });
   },
 
   // ============ ESCUCHA Y ELIGE (secuencia de N preguntas de audio) ============
@@ -335,7 +345,7 @@ Object.assign(CoursesPage, {
           <div class="cx-phrase-card">
             ${ph.ref ? `<div class="cx-phrase-ref">${ph.ref}</div>` : ''}
             <div class="cx-phrase-ar" dir="rtl">${ph.ar}
-              <button class="cx-audio-btn cx-audio-sm" onclick="ArabicAudio.play('phrase_${ph.id}')"><i class="fas fa-volume-high"></i></button>
+              <button class="cx-audio-btn cx-audio-sm${ph.reciter ? ' cx-audio-reciter' : ''}" onclick="CoursesPage.playPhraseAudio('${ph.id}')" title="${ph.reciter ? (t('cxListenReciter') || 'Escuchar al recitador') : (t('cxListen') || 'Escuchar')}"><i class="fas fa-volume-high"></i></button>
             </div>
             <div class="cx-phrase-words" dir="rtl">
               ${ph.words.map(w => `<button class="cx-phrase-word" onclick="ArabicAudio.play({key:null,text:'${w[0]}'})"><span class="cx-pw-ar">${w[0]}</span><span class="cx-pw-tr">${w[1]}</span></button>`).join('')}
@@ -344,6 +354,13 @@ Object.assign(CoursesPage, {
           </div>`).join('')}
         <button class="btn-primary lesson-continue-btn" onclick="CoursesPage.advanceContent()">${t('continue') || 'Continuar'} →</button>
       </div>`;
+  },
+
+  /** Reproduce el audio de una frase/aleya por id (recitador real si existe, si no TTS). */
+  playPhraseAudio(id) {
+    const V = ArabicItems.V();
+    const ph = V.PHRASES.find(p => p.id === id);
+    if (ph) ArabicAudio.playPhrase(ph);
   },
 
   // ============ RAÍCES ============
@@ -500,7 +517,130 @@ Object.assign(CoursesPage, {
     }
   },
 
-  // ============ MATCH PAIRS (formas / palabras / pares directos) ============
+  // ============ PRACTICAR LA ESCRITURA (write_trace) ============
+  // Lienzo con el trazo de la letra en puntos para calcar encima, selector de
+  // letra y de posición (aislada/inicial/medial/final), y botón de borrar.
+  // v66: vive solo en la unidad de escritura («وصل الحروف»), no en las
+  // estaciones de letras.
+  render_write_trace(lesson) {
+    const D = ArabicItems.D();
+    const letters = D.LETTERS.filter(l => l.g === lesson.group);
+    this._wt = { letters, letterIdx: 0, pos: 'iso' };
+    return `
+      <div class="lesson-card cx-write-trace">
+        ${Mascot.render('encourage', 'medium', 'lesson-mascot')}
+        <h2 class="lesson-card-title">${t('cxWriteTitle') || 'Practica la escritura'}</h2>
+        <div class="cx-wt-hint">${t('cxWritePick') || 'Elige una letra'}</div>
+        <div class="cx-wt-letters" id="wt-letters"></div>
+        <div class="cx-wt-forms" id="wt-forms"></div>
+        <div class="cx-wt-board-wrap">
+          <div class="cx-wt-arrow"><i class="fas fa-arrow-left-long"></i> ${t('cxWriteDir') || 'Sigue el trazo punteado, de derecha a izquierda'}</div>
+          <canvas id="wt-canvas" class="cx-wt-canvas" width="320" height="320"></canvas>
+        </div>
+        <div class="cx-wo-actions">
+          <button class="btn-ghost" onclick="CoursesPage.wtClear()"><i class="fas fa-eraser"></i> ${t('cxWriteClear') || 'Borrar'}</button>
+        </div>
+        <button class="btn-primary lesson-continue-btn" onclick="CoursesPage.advanceContent()">${t('continue') || 'Continuar'} →</button>
+      </div>`;
+  },
+
+  _wtSetup() {
+    if (!this._wt) return;
+    this._wtRenderPickers();
+    this._wtDrawGuide();
+    this._wtBindCanvas();
+  },
+
+  _wtRenderPickers() {
+    const s = this._wt; if (!s) return;
+    const lettersEl = document.getElementById('wt-letters');
+    if (lettersEl) {
+      lettersEl.innerHTML = s.letters.map((l, i) =>
+        `<button class="cx-wt-letter-btn ${i === s.letterIdx ? 'active' : ''}" onclick="CoursesPage.wtPickLetter(${i})">${l.ch}</button>`).join('');
+    }
+    const l = s.letters[s.letterIdx];
+    const positions = l.conn ? ['iso', 'ini', 'med', 'fin'] : ['iso', 'fin'];
+    if (positions.indexOf(s.pos) === -1) s.pos = positions[0];
+    const formsEl = document.getElementById('wt-forms');
+    if (formsEl) {
+      formsEl.innerHTML = positions.map(p =>
+        `<button class="cx-wt-form-btn ${p === s.pos ? 'active' : ''}" onclick="CoursesPage.wtPickForm('${p}')">${ArabicItems.posLabel(p)}</button>`).join('');
+    }
+  },
+
+  wtPickLetter(i) {
+    const s = this._wt; if (!s) return;
+    s.letterIdx = i;
+    this._wtRenderPickers();
+    this._wtDrawGuide();
+  },
+  wtPickForm(p) {
+    const s = this._wt; if (!s) return;
+    s.pos = p;
+    this._wtRenderPickers();
+    this._wtDrawGuide();
+  },
+  wtClear() {
+    const canvas = document.getElementById('wt-canvas');
+    if (!canvas || !this._wtGuideData) return;
+    canvas.getContext('2d').putImageData(this._wtGuideData, 0, 0);
+  },
+
+  // Dibuja la letra elegida como un trazo punteado (guía) para calcar encima.
+  _wtDrawGuide() {
+    const canvas = document.getElementById('wt-canvas'); if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const s = this._wt;
+    const l = s.letters[s.letterIdx];
+    const glyph = l.forms[s.pos];
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+      || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.getAttribute('data-theme') !== 'light');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `700 ${Math.round(canvas.width * 0.55)}px 'Amiri', serif`;
+    ctx.strokeStyle = isDark ? 'rgba(230,230,230,0.5)' : 'rgba(120,120,120,0.55)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([3, 7]);
+    ctx.strokeText(glyph, canvas.width / 2, canvas.height / 2 + canvas.height * 0.04);
+    // pequeño punto de inicio a la derecha, como referencia general
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'var(--gold-soft, #D4A537)';
+    ctx.beginPath();
+    ctx.arc(canvas.width * 0.86, canvas.height * 0.32, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    this._wtGuideData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  },
+
+  // Dibuja libremente encima de la guía (ratón o dedo).
+  _wtBindCanvas() {
+    const canvas = document.getElementById('wt-canvas'); if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const ink = (this.state && this.state.course && this.state.course.color) || '#174430';
+    let drawing = false, last = null;
+    const getPos = (e) => {
+      const r = canvas.getBoundingClientRect();
+      return { x: (e.clientX - r.left) * (canvas.width / r.width), y: (e.clientY - r.top) * (canvas.height / r.height) };
+    };
+    canvas.style.touchAction = 'none';
+    canvas.onpointerdown = (e) => {
+      drawing = true; last = getPos(e);
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* no-op */ }
+    };
+    canvas.onpointermove = (e) => {
+      if (!drawing) return;
+      const p = getPos(e);
+      ctx.strokeStyle = ink; ctx.lineWidth = 9; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+      last = p;
+    };
+    const stop = () => { drawing = false; last = null; };
+    canvas.onpointerup = stop; canvas.onpointercancel = stop; canvas.onpointerleave = stop;
+  },
+
+
   render_match_pairs(lesson) {
     let pairs = [];
     if (lesson.pairs) {
@@ -565,4 +705,5 @@ CoursesPage._afterRenderLesson = function (lesson) {
   if (lesson.type === 'drag_drop') setTimeout(() => this.initDragDrop(), 100);
   if (lesson.type === 'word_order') this._woRefresh();
   if (lesson.type === 'word_builder') this._wbRefresh();
+  if (lesson.type === 'write_trace') this._wtSetup();
 };

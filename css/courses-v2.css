@@ -99,6 +99,7 @@
   border: none; margin: var(--sp-sm) auto; font-size: 20px; cursor: pointer;
 }
 .cx-audio-sm { width: 34px; height: 34px; font-size: 14px; margin: 0 6px; flex-shrink: 0; }
+.cx-audio-reciter { background: var(--gold-soft, #c9a227); box-shadow: 0 0 0 2px rgba(201,162,39,.25); }
 .lq-big .lq-text { font-family: var(--font-arabic); font-size: 22px; }
 .cx-blank { display: inline-block; border-bottom: 3px solid var(--gold-soft); width: 34px; text-align: center; }
 .cx-scenario .lesson-quiz-q { text-align: center; }
@@ -213,7 +214,10 @@
 .cx-vocab-meaning { font-size: 12.5px; font-weight: 600; margin-top: 2px; }
 
 /* ============ FRASE / AZORA ============ */
-.cx-phrase-card { background: var(--surface-alt); border-radius: var(--r-md); padding: 14px; margin-bottom: var(--sp-sm); }
+.cx-phrase-card { background: var(--surface-alt); border-radius: var(--r-md); padding: 12px 14px; margin-bottom: var(--sp-sm); }
+/* v66: más compacto en pantallas de teléfono — que quepa sin desplazarse mucho */
+.cx-phrase-lesson .lesson-mascot, .cx-video-lesson .lesson-mascot { height: 56px; margin-bottom: 6px; }
+.cx-phrase-lesson.lesson-card, .cx-video-lesson.lesson-card { padding: 16px 14px; }
 .cx-phrase-ref { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
 .cx-phrase-ar { font-family: var(--font-arabic); font-size: 26px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--course-color, var(--emerald-deep)); }
 .cx-phrase-words { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: var(--sp-sm) 0; }
@@ -253,6 +257,27 @@
 .cx-wo-tile.placed { background: var(--course-color, var(--emerald-deep)); color: #fff; border-color: transparent; cursor: default; }
 .cx-wo-actions { display: flex; gap: var(--sp-sm); justify-content: center; margin-top: var(--sp-sm); }
 .cx-wb-hint { text-align: center; font-size: 13.5px; color: var(--text-secondary); margin-bottom: var(--sp-sm); }
+
+/* ============ PRACTICAR LA ESCRITURA (write_trace) ============ */
+.cx-wt-hint { text-align: center; font-size: 12.5px; color: var(--text-secondary); margin-bottom: 6px; }
+.cx-wt-letters { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 8px; }
+.cx-wt-letter-btn {
+  font-family: var(--font-arabic); font-size: 20px; width: 42px; height: 42px; border-radius: 50%;
+  border: 1px solid var(--border); background: var(--surface-alt); color: var(--text); cursor: pointer;
+}
+.cx-wt-letter-btn.active { background: var(--course-color, var(--emerald-deep)); color: #fff; border-color: transparent; }
+.cx-wt-forms { display: flex; gap: 6px; justify-content: center; margin-bottom: var(--sp-sm); }
+.cx-wt-form-btn {
+  border: 1px solid var(--border); background: none; color: var(--text-secondary); border-radius: var(--r-pill);
+  padding: 5px 12px; font-size: 12px; cursor: pointer;
+}
+.cx-wt-form-btn.active { background: rgba(212,175,55,0.12); border-color: var(--gold-soft); color: var(--gold-soft); font-weight: 700; }
+.cx-wt-board-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.cx-wt-arrow { font-size: 12px; color: var(--text-secondary); }
+.cx-wt-canvas {
+  width: 100%; max-width: 320px; aspect-ratio: 1/1; touch-action: none; border-radius: var(--r-md);
+  background: var(--surface-alt); border: 1px dashed var(--border); cursor: crosshair;
+}
 
 /* ============ MATCH PAIRS ============ */
 .cx-mp-board { display: flex; gap: 10px; }

@@ -369,6 +369,9 @@ const ARABIC_DATA = (() => {
       tanween: V('EsQfp1oy0HU', '18:58', '26:34'),
     },
     writingId: 'AJGry6FeJM0',
+    // فيديوهات كاملة (بلا قصّ) لبطاقتَي سورتَي الفاتحة والإخلاص، بترجمة إسبانية.
+    fatihaFull: { provider: 'youtube', id: 'hE7cnsFfIus' },
+    ikhlasFull: { provider: 'youtube', id: 'OD-onPuCiGs' },
   };
 
   // مقطع كتابة حرف: من فيديو الكتابة
