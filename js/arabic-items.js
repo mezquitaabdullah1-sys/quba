@@ -110,10 +110,15 @@ const ArabicItems = {
   hasImage(slug) {
     return typeof ARABIC_MEDIA !== 'undefined' && ARABIC_MEDIA.images && ARABIC_MEDIA.images.indexOf(slug) >= 0;
   },
+  // v68: «صورة حقيقية» = الكلمة تسمح بالصورة (pic !== false) والملف موجود فعلاً في الفهرس.
+  // لا تُولَّد أسئلة «تعرّف من الصورة» إلا للكلمات التي تحقّق هذا الشرط.
+  canImage(w) {
+    return !!w && w.pic !== false && this.hasImage(w.s);
+  },
   pic(emoji, slug, alt, cls) {
     const c = cls ? ' ' + cls : '';
     const img = (slug && this.hasImage(slug))
-      ? `<img src="assets/arabic/words/${escapeAttr(slug)}.webp" alt="${escapeAttr(alt || '')}" loading="lazy" width="800" height="800" onerror="this.remove()">`
+      ? `<img class="cx-pic-img" src="assets/arabic/words/${escapeAttr(slug)}.webp" alt="${escapeAttr(alt || '')}" loading="lazy" decoding="async" width="800" height="800" onerror="this.remove()">`
       : '';
     return `<span class="cx-pic${c}" role="img" aria-label="${escapeAttr(alt || '')}"><span class="cx-pic-emoji" aria-hidden="true">${emoji || ''}</span>${img}</span>`;
   },
@@ -281,7 +286,7 @@ const ArabicItems = {
   qMeaningWord(w) {
     const ds = this._wordDistractors(w, 3);
     return this._finish({
-      kind: 'mcq', qtype: 'word', prompt: this.tt('cxQMeaning', { m: this.meaning(w) }), emoji: w.e, img: w.s,
+      kind: 'mcq', qtype: 'word', prompt: this.tt('cxQMeaning', { m: this.meaning(w) }), emoji: (w.pic === false ? '' : w.e), img: (this.canImage(w) ? w.s : ''),
       options: [w].concat(ds).map(x => ({ t: x.ar, rtl: true, big: true })), correct: 0,
       feedback: `${w.ar} (${w.tr}) = ${this.meaning(w)}`, ids: ['word:' + w.id],
     });
@@ -327,9 +332,12 @@ const ArabicItems = {
       // v66: nunca preguntar «reconoce por la imagen» de una palabra abstracta
       // sin representación visual real (Allah, adhán, takbir, eid…) — w.pic
       // marca esto en data/courses/arabic_vocab.js.
-      let kinds = w.pic === false ? ['word', 'meaning', 'audio'] : ['word', 'meaning', 'audio', 'image'];
+      // v68: la pregunta de imagen solo existe si la palabra tiene una imagen REAL
+      // (archivo presente en ARABIC_MEDIA.images). Sin imagen → nunca se genera.
+      const imgOk = this.canImage(w);
+      let kinds = imgOk ? ['word', 'meaning', 'audio', 'image'] : ['word', 'meaning', 'audio'];
       let k = opts.type || this.pick(kinds.filter(x => x !== opts.avoid), 1)[0];
-      if (k === 'image' && w.pic === false) k = 'meaning';
+      if (k === 'image' && !imgOk) k = 'meaning';
       if (k === 'word') return this.qWordMeaning(w);
       if (k === 'meaning') return this.qMeaningWord(w);
       if (k === 'audio') return this.qAudioWord(w);
@@ -346,6 +354,11 @@ const ArabicItems = {
   session(ids, n, opts) {
     ids = (ids || []).filter(id => this.get(id));
     if (!ids.length) return [];
+    // v68: sesión «de imagen» → solo palabras con imagen real (sin repetir más de la cuenta)
+    if (opts && opts.type === 'image') {
+      const withImg = ids.filter(id => { const it = this.get(id); return it && it.kind === 'word' && this.canImage(it.data); });
+      if (withImg.length) { ids = withImg; n = Math.min(n, withImg.length); }
+    }
     const out = [];
     const order = this.shuffle(ids);
     let i = 0, lastType = null;
@@ -420,10 +433,10 @@ const ArabicItems = {
         const w = pool[Math.floor(Math.random() * pool.length)];
         // v66: si la pregunta será de imagen, la palabra debe ser realmente
         // representable (w.pic !== false) — si no, se descarta y se reintenta.
-        if (needEmoji && w.pic === false) continue;
+        if (needEmoji && !this.canImage(w)) continue;
         if (fresh('w:' + w.id)) return w;
       }
-      return needEmoji ? (V.WORDS.find(w => w.pic !== false) || V.WORDS[0]) : V.WORDS[0];
+      return needEmoji ? (V.WORDS.find(w => this.canImage(w)) || V.WORDS[0]) : V.WORDS[0];
     };
     const pickLetter = (arr) => {
       for (let i = 0; i < 30; i++) {
@@ -447,7 +460,7 @@ const ArabicItems = {
         else if (type === 'shadda') q = this.qMark('shadda', lettersAll);
         else if (type === 'tanween') q = this.qMark(['tan_fath', 'tan_kasr', 'tan_damm'][Math.floor(Math.random() * 3)], lettersAll);
         else if (type === 'wordaudio') q = this.qAudioWord(pickWord());
-        else if (type === 'wordimage') q = this.qImageWord(pickWord(true));
+        else if (type === 'wordimage') { const iw = pickWord(true); q = this.canImage(iw) ? this.qImageWord(iw) : this.qMeaningWord(iw); }
         else if (type === 'wordmeaning') q = this.qWordMeaning(pickWord());
         if (q) out.push(q);
       }

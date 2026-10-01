@@ -68,6 +68,7 @@ const CORE_ASSETS = [
   './css/wisdom.css',
   './css/radio.css',
   './css/clips.css',
+  './css/compact-v68.css',
   './css/onboarding.css',
   './data/adhkar/after_prayer.js',
   './data/adhkar/bathroom.js',
