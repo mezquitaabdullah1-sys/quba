@@ -143,9 +143,18 @@
   animation: cxIntroIn .25s ease;
 }
 @keyframes cxIntroIn { from { opacity: 0; } to { opacity: 1; } }
-.cx-intro-video { width: 100%; height: 100%; object-fit: contain; background: #0b2a20; display: block; }
-/* هواتف طولية (9:18 → 3:4): املأ الشاشة بالكامل؛ غير ذلك (شاشات أطول/أعرض) أظهر الفيديو كاملاً بلا قصّ للترجمة */
-@media (min-aspect-ratio: 9/18) and (max-aspect-ratio: 3/4) { .cx-intro-video { object-fit: cover; } }
+/* v70: خلفية ضبابية من صورة الغلاف تملأ جانبَي/أعلى وأسفل الشاشة، فلا تظهر أشرطة سوداء مهما كانت نسبة الشاشة */
+.cx-intro-overlay::before {
+  content: ''; position: absolute; inset: -40px; z-index: 0;
+  background: var(--cx-intro-bg, none) center / cover no-repeat;
+  filter: blur(26px) brightness(.5) saturate(1.1); transform: scale(1.1);
+}
+/* v70: الفيديو (9:16) يظهر كاملاً دائماً بلا أي قصّ (الترجمة والنصوص داخل الفيديو تبقى سليمة)
+   ويكبر حتى يلامس أقرب حافتين للشاشة؛ المساحة المتبقية تملؤها الخلفية الضبابية */
+.cx-intro-video {
+  position: relative; z-index: 1; display: block; background: transparent;
+  width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain;
+}
 
 .cx-intro-skip {
   position: absolute; top: calc(env(safe-area-inset-top, 0px) + 12px); inset-inline-end: 14px;
@@ -161,6 +170,7 @@
   box-shadow: 0 8px 26px rgba(0,0,0,.45); padding-inline-start: 5px;
 }
 .cx-intro-play[hidden], .cx-intro-end[hidden] { display: none; }
+.cx-intro-skip, .cx-intro-play, .cx-intro-end { z-index: 2; } /* v70: فوق الفيديو والخلفية الضبابية */
 
 .cx-intro-end {
   position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: center;
@@ -182,8 +192,13 @@
 @keyframes cxIntroPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 @media (prefers-reduced-motion: reduce) { .cx-intro-start { animation: none; } .cx-intro-end { transition: none; } }
 
-/* الفيديو التعريفي داخل المرحلة: عمودي 9:16 ويتّسع للشاشة */
-.cx-video-el { aspect-ratio: 9 / 16; width: auto; max-width: 100%; max-height: clamp(240px, calc(var(--cx-vh) * .42), 400px); margin: 0 auto; }
+/* الفيديو التعريفي داخل المرحلة: عمودي 9:16 ويتّسع للشاشة (v70: العرض يُحسب من الارتفاع المتاح فيبقى الإطار 9:16 بالضبط بلا تشويه) */
+.cx-video-el {
+  --cx-vid-h: clamp(240px, calc(var(--cx-vh) - 380px), 480px);
+  display: block; aspect-ratio: 9 / 16; height: auto; max-height: none;
+  width: min(100%, calc(var(--cx-vid-h) * 9 / 16)); margin: 0 auto;
+  object-fit: contain; background: #000;
+}
 .cx-video-lesson .cx-video-summary { font-size: 12.5px; line-height: 1.4; }
 .cx-video-lesson .cx-video-title { font-size: 14px; margin-top: 6px; }
 .cx-video-lesson .cx-video-stopnote { display: none; }

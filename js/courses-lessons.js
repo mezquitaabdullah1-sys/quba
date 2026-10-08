@@ -141,6 +141,9 @@ Object.assign(CoursesPage, {
       <div class="cx-intro-end" hidden>
         <button class="cx-intro-start" type="button">${escapeHtml(t('cxIntroStart') || 'Empezar')}</button>
       </div>`;
+    // v70: صورة الغلاف كخلفية ضبابية خلف الفيديو (لملء المساحة الفارغة حول الفيديو العمودي)
+    // (يُحوَّل المسار إلى مطلق لأن url() داخل متغيّر CSS يُحسب نسبةً إلى ملف الـCSS لا إلى الصفحة)
+    try { if (cfg.poster) el.style.setProperty('--cx-intro-bg', 'url("' + new URL(cfg.poster, document.baseURI).href.replace(/["\\\n]/g, encodeURIComponent) + '")'); } catch (_) {}
     document.body.appendChild(el);
     this._introEl = el;
 
