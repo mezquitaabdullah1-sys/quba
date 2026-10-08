@@ -135,8 +135,8 @@ const COURSE_ARABIC_LANGUAGE = (() => {
       `السلام عليكم! هذا مفتاحك لفهم القرآن: ستتعلّم قراءة العربية خطوة بخطوة بالصوت والفيديو والتدريب.`,
       `As-salamu alaykum! This is your key to understanding the Quran: you'll learn to read Arabic step by step, with sound, video and practice.`]),
     lessons: [
-      { type: 'video', skippable: true, provider: 'local', src: VID.intro.src, poster: VID.intro.poster, start: 0, end: 90,
-        title: T([`Bienvenida al curso (90 s)`, `مرحباً بك في الدورة (90 ثانية)`, `Welcome to the course (90 s)`]),
+      { type: 'video', skippable: true, provider: 'local', src: VID.intro.src, poster: VID.intro.poster, start: 0, end: 30,
+        title: T([`Bienvenida al curso (30 s)`, `مرحباً بك في الدورة (30 ثانية)`, `Welcome to the course (30 s)`]),
         summary: T([
           `Un vistazo rápido a lo que vas a lograr: leer las letras, oír sus sonidos y descubrir tus primeras palabras del Corán. Empezarás sin saber nada y terminarás leyendo frases reales.`,
           `نظرة سريعة على ما ستحقّقه: قراءة الحروف وسماع أصواتها واكتشاف أولى كلمات القرآن. تبدأ من الصفر وتنتهي بقراءة عبارات حقيقية.`,

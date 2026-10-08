@@ -222,6 +222,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
+  // v69: vídeo/audio piden por rangos (206). Cachear/servir una respuesta 200 completa
+  // rompe la reproducción en Android/iOS → se deja pasar directo al navegador.
+  if (req.headers.has('range')) return;
 
   let url;
   try { url = new URL(req.url); } catch (e) { return; }

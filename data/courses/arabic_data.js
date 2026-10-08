@@ -349,7 +349,7 @@ const ARABIC_DATA = (() => {
   const V = (id, a, b) => ({ provider: 'youtube', id, start: ts(a), end: ts(b) });
   const VIDEO = {
     // V0 — فيديو تعريفي ~90 ثانية، يُستضاف داخل التطبيق (≤ 2MB). لم يُرفع بعد.
-    intro: { provider: 'local', src: 'assets/video/arabic_intro.mp4', poster: 'assets/courses/arabic/cover.webp', start: 0, end: 90 },
+    intro: { provider: 'local', src: 'assets/video/arabic_intro.mp4', poster: 'assets/courses/arabic/intro-poster.webp', start: 0, end: 30 },
     lettersIntro: V('LfCWAyQWUWc', '3:19', '8:54'),
     sounds: {
       1: V('73iZ56eliz0', '0:13', '0:36'),

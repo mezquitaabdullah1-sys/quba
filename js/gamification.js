@@ -51,6 +51,10 @@ const Gamification = {
     { id: 'level_5', name: { es: 'Conocedor', ar: 'عارف', en: 'Knowledgeable' }, desc: { es: 'Alcanza el nivel 5', ar: 'اصل إلى المستوى 5', en: 'Reach level 5' }, icon: '<i class="fas fa-star"></i>' },
     { id: 'level_10', name: { es: 'Imam', ar: 'إمام', en: 'Imam' }, desc: { es: 'Alcanza el nivel 10', ar: 'اصل إلى المستوى 10', en: 'Reach level 10' }, icon: '<i class="fas fa-mosque"></i>' },
     { id: 'xp_1000', name: { es: 'Mil XP', ar: 'ألف نقطة', en: 'A thousand XP' }, desc: { es: 'Acumula 1000 XP', ar: 'اجمع 1000 نقطة خبرة', en: 'Accumulate 1000 XP' }, icon: '<i class="fas fa-bolt"></i>' },
+    // أوسمة كورس اللغة العربية (تُعرَّف هنا لتظهر في سجلّ الإنجازات وتُفتح من محرّك الكورس)
+    { id: 'cx_flawless_station', name: { es: 'Estación sin errores', ar: 'محطة بلا أخطاء', en: 'Flawless station' }, desc: { es: 'Termina una estación sin errores', ar: 'أكمل محطة بلا خطأ واحد', en: 'Finish a station with no mistakes' }, icon: '<i class="fas fa-gem"></i>' },
+    { id: 'cx_review_7', name: { es: 'Repasador constante', ar: 'مراجِع مواظب', en: 'Steady reviewer' }, desc: { es: 'Repasa 7 días distintos', ar: 'راجع في 7 أيام مختلفة', en: 'Review on 7 different days' }, icon: '<i class="fas fa-rotate"></i>' },
+    { id: 'cx_gold_cert', name: { es: 'Certificado de oro', ar: 'شهادة ذهبية', en: 'Gold certificate' }, desc: { es: 'Aprueba el examen final con 90% o más', ar: 'انجح في الامتحان النهائي بنسبة 90% فأكثر', en: 'Pass the final exam with 90% or more' }, icon: '<i class="fas fa-medal"></i>' },
   ],
 
   // ============ Estado ============

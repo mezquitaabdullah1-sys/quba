@@ -271,6 +271,7 @@ const CoursesPage = {
     if (course.units && course.units.length) this.renderCourseOverviewV2(container, course, opts);
     else this.renderCourseOverviewV1(container, course);
     container.scrollTop = 0; // v66: que la pantalla se abra desde arriba, no a media altura
+    if (typeof this._maybeShowIntro === 'function') this._maybeShowIntro(course); // v69: vídeo de bienvenida (1.ª vez)
   },
 
   // Si el curso trae `legacyStationMap` (ids de estaciones de una versión
@@ -300,7 +301,10 @@ const CoursesPage = {
     Gamification.saveState(gs);
   },
 
-  showLocked() { Mascot.showTip(t('lockedStation') || '<i class="fas fa-lock"></i> Completa la estación anterior primero', 'thinking', 2500); },
+  showLocked() {
+    // v70: الرسالة الدقيقة تذكر اختبار التخطّي («أعرفها») كبديل عن إكمال المحطة السابقة
+    Mascot.showTip(t('cxLockedHint') || t('lockedStation') || '<i class="fas fa-lock"></i> Completa la estación anterior primero', 'thinking', 2800);
+  },
 
   // ----- Vista clásica (lista plana) para cursos sin `units` -----
   renderCourseOverviewV1(container, course) {
@@ -668,6 +672,10 @@ const CoursesPage = {
   _afterReview(res) {
     CoursesSRS.markReviewDone();
     Gamification.updateStreak();
+    // وسم «مراجِع مواظب»: المراجعة في 7 أيام مختلفة
+    if (typeof CoursesSRS !== 'undefined' && CoursesSRS.totalReviewDays() >= 7) {
+      Gamification.unlockAchievement('cx_review_7');
+    }
     const streak = Gamification.getState().streak || 0;
     const container = document.getElementById('main-content');
     const course = this.state.course;
@@ -969,7 +977,10 @@ const CoursesPage = {
         </div>
       </div>`;
     // segundos de estudio → hacia el objetivo diario (SRS)
-    if (typeof CoursesSRS !== 'undefined') CoursesSRS.addSeconds(Math.round((Date.now() - this.state.startTime) / 1000), CoursesSRS.goalMinutes(course));
+    if (typeof CoursesSRS !== 'undefined') {
+      const justHit = CoursesSRS.addSeconds(Math.round((Date.now() - this.state.startTime) / 1000), CoursesSRS.goalMinutes(course));
+      if (justHit) showToast(t('cxGoalDone') || '🎯 Daily goal reached!', 3000);
+    }
     this.state = null;
   },
 

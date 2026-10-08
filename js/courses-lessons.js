@@ -107,6 +107,89 @@ Object.assign(CoursesPage, {
     el.parentNode.replaceChild(d, el);
   },
 
+  // ============ v69: VÍDEO DE BIENVENIDA A PANTALLA COMPLETA ============
+  // Se muestra UNA sola vez al abrir el curso de árabe por primera vez
+  // (prog.introSeen). Al terminar aparece el botón dorado «Empezar», que cierra
+  // el vídeo y abre la etapa de introducción. El mismo vídeo sigue siendo la
+  // primera lección de esa etapa (lesson type 'video') para verlo más tarde.
+  _introVideoCfg() {
+    const V = (typeof ARABIC_DATA !== 'undefined' && ARABIC_DATA.VIDEO && ARABIC_DATA.VIDEO.intro) || null;
+    return V && V.src ? V : { src: 'assets/video/arabic_intro.mp4', poster: 'assets/courses/arabic/intro-poster.webp' };
+  },
+
+  _maybeShowIntro(course) {
+    if (!course || course.id !== 'arabic_language') return;
+    if (document.getElementById('cx-intro-overlay')) return;
+    const gs = this._gs();
+    const prog = this._prog(gs, course.id);
+    if (prog.introSeen) return;
+    this.showIntroVideo(course);
+  },
+
+  showIntroVideo(course) {
+    if (document.getElementById('cx-intro-overlay')) return;
+    const cfg = this._introVideoCfg();
+    const el = document.createElement('div');
+    el.id = 'cx-intro-overlay';
+    el.className = 'cx-intro-overlay';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.innerHTML = `
+      <video class="cx-intro-video" playsinline webkit-playsinline preload="auto" poster="${escapeAttr(cfg.poster || '')}" src="${escapeAttr(cfg.src)}"></video>
+      <button class="cx-intro-skip" type="button" aria-label="${escapeAttr(t('cxIntroSkip') || 'Saltar')}"><i class="fas fa-xmark"></i></button>
+      <button class="cx-intro-play" type="button" hidden aria-label="${escapeAttr(t('cxIntroPlay') || 'Reproducir')}"><i class="fas fa-play"></i></button>
+      <div class="cx-intro-end" hidden>
+        <button class="cx-intro-start" type="button">${escapeHtml(t('cxIntroStart') || 'Empezar')}</button>
+      </div>`;
+    document.body.appendChild(el);
+    this._introEl = el;
+
+    const video = el.querySelector('video');
+    const playBtn = el.querySelector('.cx-intro-play');
+    const endBox = el.querySelector('.cx-intro-end');
+    // Pantalla completa real cuando el navegador lo permite (si no, el overlay
+    // fijo ya cubre toda la ventana, incluida la barra de pestañas).
+    try { const rf = el.requestFullscreen || el.webkitRequestFullscreen; if (rf) { const p = rf.call(el); if (p && p.catch) p.catch(() => {}); } } catch (_) {}
+
+    const showEnd = () => { playBtn.hidden = true; endBox.hidden = false; requestAnimationFrame(() => endBox.classList.add('show')); };
+    const tryPlay = () => {
+      const p = video.play();
+      if (p && p.catch) p.catch(() => { playBtn.hidden = false; }); // autoplay con sonido bloqueado → botón ▶
+    };
+    video.addEventListener('playing', () => { playBtn.hidden = true; });
+    video.addEventListener('ended', showEnd);
+    video.addEventListener('error', showEnd);   // si el archivo falta, no dejar al usuario bloqueado
+    video.addEventListener('click', () => { if (endBox.hidden) { video.paused ? tryPlay() : video.pause(); } });
+    playBtn.addEventListener('click', tryPlay);
+    el.querySelector('.cx-intro-skip').addEventListener('click', () => this.closeIntroVideo(false));
+    el.querySelector('.cx-intro-start').addEventListener('click', () => this.closeIntroVideo(true));
+    tryPlay();
+  },
+
+  closeIntroVideo(startCourse) {
+    const el = this._introEl || document.getElementById('cx-intro-overlay');
+    if (el) {
+      const v = el.querySelector('video');
+      try { v && v.pause(); } catch (_) {}
+      try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {}); } catch (_) {}
+      el.remove();
+    }
+    this._introEl = null;
+    const gs = this._gs();
+    const prog = this._prog(gs, 'arabic_language');
+    prog.introSeen = true;
+    Gamification.saveState(gs);
+    if (!startCourse) return;
+    // Abre la etapa de introducción. El vídeo ya se acaba de ver, así que se
+    // cuenta como lección hecha y la etapa continúa desde la siguiente.
+    this.startStation('arabic_language', 'welcome');
+    const st = this.state;
+    if (st && st.stationId === 'welcome' && st.lessonIdx === 0 && st.station.lessons[0] && st.station.lessons[0].type === 'video') {
+      this._markLessonDone(0, Gamification.XP_PER_LESSON || 25);
+      st.lessonIdx = 1;
+    }
+  },
+
   loadYouTube(uid, ytId, start, end) {
     const el = document.getElementById(uid);
     if (!el || !/^[\w-]{11}$/.test(String(ytId))) return;
@@ -312,6 +395,8 @@ Object.assign(CoursesPage, {
     const noMistakes = res.mistakes === 0;
     if (noMistakes && res.total > 1) {
       showToast('🌟 ' + (t('cxFlawless') || '¡Punto de control sin errores!'), 2000);
+      // وسم «محطة بلا أخطاء»: يُفتح عند إتمام أي نقطة تحقّق بلا أخطاء
+      if (typeof Gamification !== 'undefined') Gamification.unlockAchievement('cx_flawless_station');
     } else {
       showToast('✅ ' + (t('cxCpPassed') || 'Punto de control superado'), 1600);
     }
@@ -336,6 +421,8 @@ Object.assign(CoursesPage, {
     prog.tier = tier;
     prog.examScore = res.accuracy;
     Gamification.saveState(gs);
+    // وسم «الشهادة الذهبية»: امتحان نهائي بنسبة 90% فأكثر
+    if (tier === 'gold' && typeof Gamification !== 'undefined') Gamification.unlockAchievement('cx_gold_cert');
     showToast(`${this._tierIcon(tier)} ${(t('cxExamScored') || 'Puntuación').replace('{pct}', Math.round(res.accuracy * 100))}`, 2400);
     this.advanceContent();
   },
@@ -407,7 +494,7 @@ Object.assign(CoursesPage, {
             <div class="cx-root-head" dir="rtl">${r.root} <small>(${r.tr})</small></div>
             <div class="cx-root-meaning">${this.X(r.meaning)}</div>
             <div class="cx-root-words">
-              ${r.words.map(w => `<button class="cx-root-word" onclick="ArabicAudio.play({key:null,text:'${w.ar}'})"><span dir="rtl">${w.ar}</span><small>${this.X({ es: w.es, en: w.en, ar: w.es })}</small></button>`).join('')}
+              ${r.words.map(w => `<button class="cx-root-word" onclick="ArabicAudio.play({key:null,text:'${w.ar}'})"><span dir="rtl">${w.ar}</span><small>${this.X({ es: w.es, en: w.en, ar: w.g || w.es })}</small></button>`).join('')}
             </div>
           </div>`).join('')}
         <button class="btn-primary lesson-continue-btn" onclick="CoursesPage.advanceContent()">${t('continue') || 'Continuar'} →</button>

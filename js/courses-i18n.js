@@ -20,6 +20,9 @@
     ['cxSkipPassed', '¡Estación saltada! Ya dominas esto.', 'تم تخطّي المحطة! أنت متمكّن منها.', 'Station skipped! You already know this.'],
     ['cxSkipFailed', 'Aún no. Haz la estación completa; te irá muy bien.', 'ليس بعد. أكمل المحطة كاملة وستنجح.', 'Not yet. Take the full station; you\'ll do great.'],
     ['cxSkipped', 'Saltada', 'تم تخطّيها', 'Skipped'],
+    ['cxIntroStart', 'Empezar', 'ابدأ', 'Start'],
+    ['cxIntroSkip', 'Saltar el vídeo', 'تخطّي الفيديو', 'Skip video'],
+    ['cxIntroPlay', 'Reproducir', 'تشغيل', 'Play'],
     ['cxLockedHint', '🔒 Completa la estación anterior (o supera su prueba para saltarla)', '🔒 أكمل المحطة السابقة (أو اجتز اختبار تخطّيها)', '🔒 Finish the previous station (or pass its skip test)'],
     ['cxYouAreHere', 'Estás aquí', 'أنت هنا', 'You are here'],
     ['cxLessonsN', '{n} lecciones', '{n} دروس', '{n} lessons'],
@@ -201,6 +204,10 @@
     ['cxQAudioWord', 'Escucha y elige la palabra', 'استمع واختر الكلمة', 'Listen and choose the word'],
     ['cxQImage', '¿Qué palabra corresponde a la imagen?', 'أيّ كلمة تناسب الصورة؟', 'Which word matches the picture?'],
 
+    // ── قراءة العبارات: زر الاستماع ──
+    ['cxListen', 'Escuchar', 'استمع', 'Listen'],
+    ['cxListenReciter', 'Escuchar la recitación', 'استمع إلى التلاوة', 'Listen to the recitation'],
+
     // ── صوت ──
     ['cxAudioUnsupported', 'Este navegador no admite audio hablado', 'هذا المتصفّح لا يدعم الصوت المنطوق', 'This browser doesn\'t support spoken audio'],
     ['cxNoArabicVoice', 'Tu dispositivo no tiene una voz árabe. Instálala en Ajustes → Idioma/Voz, o usa el vídeo.', 'جهازك بلا صوت عربي. ثبّته من الإعدادات ← اللغة/الصوت، أو استعن بالفيديو.', 'Your device has no Arabic voice. Install one in Settings → Language/Voice, or use the video.'],
@@ -209,6 +216,9 @@
     ['cxAchFlawless', 'Estación sin errores', 'محطة بلا أخطاء', 'Flawless station'],
     ['cxAchReview7', 'Repasador constante', 'مراجِع مواظب', 'Steady reviewer'],
     ['cxAchGold', 'Certificado de oro', 'شهادة ذهبية', 'Gold certificate'],
+    ['cxAchFlawlessDesc', 'Termina una estación sin errores', 'أكمل محطة بلا خطأ واحد', 'Finish a station with no mistakes'],
+    ['cxAchReview7Desc', 'Repasa 7 días distintos', 'راجع في 7 أيام مختلفة', 'Review on 7 different days'],
+    ['cxAchGoldDesc', 'Aprueba el examen final con 90% o más', 'انجح في الامتحان النهائي بنسبة 90% فأكثر', 'Pass the final exam with 90% or more'],
     ['cxUndo', 'Deshacer', 'تراجع', 'Undo'],
     ['cxViewCertificate', 'Ver certificado', 'مشاهدة الشهادة', 'View certificate'],
     ['cxExamScored', 'Puntuación: {pct}%', 'النتيجة: {pct}%', 'Score: {pct}%'],
