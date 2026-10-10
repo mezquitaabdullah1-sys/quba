@@ -6,6 +6,21 @@ const ClipsData = {
   // ============ نصوص الواجهة (ثلاثي اللغة — نفس أسلوب RadioData.L) ============
   LOCALES: {
     ar: {
+      clipsLangEs: 'الإسبانية',
+      clipsLangAr: 'العربية',
+      clipsLangEn: 'الإنجليزية',
+      clipsTopicAll: 'الكل',
+      clipsTopicFeatured: 'مختارات',
+      clipsTopicKids: 'أطفال',
+      clipsTopicQuran: 'قرآن',
+      clipsTopicPodcast: 'بودكاست',
+      clipsTopicQuestions: 'أسئلة',
+      clipsSeeAll: 'عرض الكل',
+      clipsSearch: 'بحث',
+      clipsSearchPlaceholder: 'ابحث في الفيديوهات…',
+      clipsSearchClose: 'إغلاق البحث',
+      clipsNoResults: 'لا توجد نتائج مطابقة',
+      clipsEmptyTopic: 'لا توجد فيديوهات هنا بعد — ستُضاف قريبًا',
       clipsTitle: 'مقتطفات دينية',
       clipsSubtitle: 'مقاطع مختارة من يوتيوب — تُشغَّل هنا بمشغّله',
       clipsAll: 'الكل',
@@ -25,6 +40,21 @@ const ClipsData = {
       wisdomClipsDesc: 'مقاطع يوتيوب مختارة تُشاهَد داخل التطبيق',
     },
     es: {
+      clipsLangEs: 'Español',
+      clipsLangAr: 'Árabe',
+      clipsLangEn: 'Inglés',
+      clipsTopicAll: 'Todos',
+      clipsTopicFeatured: 'Destacados',
+      clipsTopicKids: 'Niños',
+      clipsTopicQuran: 'Corán',
+      clipsTopicPodcast: 'Podcast',
+      clipsTopicQuestions: 'Preguntas',
+      clipsSeeAll: 'Ver todo',
+      clipsSearch: 'Buscar',
+      clipsSearchPlaceholder: 'Buscar videos…',
+      clipsSearchClose: 'Cerrar búsqueda',
+      clipsNoResults: 'Sin resultados',
+      clipsEmptyTopic: 'Aún no hay videos aquí — pronto se añadirán',
       clipsTitle: 'Clips islámicos',
       clipsSubtitle: 'Videos seleccionados de YouTube — se reproducen aquí',
       clipsAll: 'Todos',
@@ -44,6 +74,21 @@ const ClipsData = {
       wisdomClipsDesc: 'Videos de YouTube seleccionados, dentro de la app',
     },
     en: {
+      clipsLangEs: 'Spanish',
+      clipsLangAr: 'Arabic',
+      clipsLangEn: 'English',
+      clipsTopicAll: 'All',
+      clipsTopicFeatured: 'Featured',
+      clipsTopicKids: 'Kids',
+      clipsTopicQuran: 'Quran',
+      clipsTopicPodcast: 'Podcast',
+      clipsTopicQuestions: 'Questions',
+      clipsSeeAll: 'See all',
+      clipsSearch: 'Search',
+      clipsSearchPlaceholder: 'Search videos…',
+      clipsSearchClose: 'Close search',
+      clipsNoResults: 'No matching results',
+      clipsEmptyTopic: 'No videos here yet — coming soon',
       clipsTitle: 'Islamic clips',
       clipsSubtitle: 'Curated YouTube videos — played right here',
       clipsAll: 'All',
@@ -65,22 +110,25 @@ const ClipsData = {
   },
 
   // فيديوهات مختارة — القائمة الأولية (تُوسَّع لاحقًا)
-  // الحقول: id (معرّف يوتيوب)، العنوان بالإسبانية، القناة
+  // الحقول: id (معرّف يوتيوب)، العنوان، القناة،
+  //   cats   (اختياري) اللغات التي يظهر فيها: 'es' | 'ar' | 'en' — الافتراضي ['es']
+  //   topics (اختياري) التصنيفات: 'featured' | 'kids' | 'quran' | 'podcast' | 'questions'
+  //          يمكن وضع أكثر من تصنيف للفيديو الواحد؛ وبلا topics يدخل «مختارات» تلقائيًا.
   VIDEOS: [
-    { id: '7WvVSdgPCQA', title: '100 preguntas sobre el Islam — Parte 1', channel: 'Mister Tahar' },
-    { id: 'O1RpfRp19co', title: '10 Biggest Misconceptions About Islam Explained in 6 Minutes', channel: 'Brother yusuf', cats: ['es', 'en'] },
-    { id: 'JnECmQ_8C6Q', title: '001 – Surat Al-Faatiha (La Sura que abre el Libro)', channel: 'Europe Revive' },
-    { id: '7lvuE6xwjrY', title: 'El islam NO es Como Tú Crees: Bendiciones, Pruebas y Sabiduría', channel: 'Regreso A La Verdad' },
-    { id: 'Uu2XfkC68Hs', title: 'Cómo hacerte musulmán — 5 pilares del Islam y 6 pilares de fe', channel: 'Savage Petrov' },
-    { id: 'O7jBANtNHHU', title: 'El rezo del Profeta ﷺ descrito — Aprende a rezar fácil', channel: 'Savage Petrov' },
-    { id: 'EajB3cScC38', title: '¿Cómo se ordenó el Corán? Preguntas de Islam | Mohammad Idrissi #13', channel: 'La Última Medina' },
-    { id: 'OjF6qi45Q1E', title: 'Cómo es la Figura de Jesús en el Islam', channel: 'Tengo un Plan' },
-    { id: 'yt5WyqQT0GI', title: 'The Biggest Myths About Islam Debunked in 8 Minutes', channel: 'Brother Aqib', cats: ['es', 'en'] },
-    { id: 'hE7cnsFfIus', title: 'Corán 1 · Al-Fatiha «El Abridor» — Español', channel: 'Islam Light' },
-    { id: 'OD-onPuCiGs', title: 'Corán 112 · Al-Ikhlas «La Sinceridad» — Español', channel: 'Islam Light' },
-    { id: 'U86D0188Mp8', title: 'Quiz Islámico 🌟 Conocimientos generales sobre el Islam', channel: 'Quiz Islámico' },
-    { id: 'd0B-N97qLsU', title: 'Ali Dawah responde las preguntas más difíciles del ateísmo', channel: 'Towards Eternity' },
-    { id: 'r7HHc08F6P0', title: '¿Qué es el Islam? El Mensaje de Un Solo Dios, explicado simple', channel: 'IslamInSpanishTV' },
+    { id: '7WvVSdgPCQA', title: '100 preguntas sobre el Islam — Parte 1', channel: 'Mister Tahar', topics: ['questions'] },
+    { id: 'O1RpfRp19co', title: '10 Biggest Misconceptions About Islam Explained in 6 Minutes', channel: 'Brother yusuf', cats: ['es', 'en'], topics: ['questions'] },
+    { id: 'JnECmQ_8C6Q', title: '001 – Surat Al-Faatiha (La Sura que abre el Libro)', channel: 'Europe Revive', topics: ['quran'] },
+    { id: '7lvuE6xwjrY', title: 'El islam NO es Como Tú Crees: Bendiciones, Pruebas y Sabiduría', channel: 'Regreso A La Verdad', topics: ['featured'] },
+    { id: 'Uu2XfkC68Hs', title: 'Cómo hacerte musulmán — 5 pilares del Islam y 6 pilares de fe', channel: 'Savage Petrov', topics: ['featured'] },
+    { id: 'O7jBANtNHHU', title: 'El rezo del Profeta ﷺ descrito — Aprende a rezar fácil', channel: 'Savage Petrov', topics: ['featured'] },
+    { id: 'EajB3cScC38', title: '¿Cómo se ordenó el Corán? Preguntas de Islam | Mohammad Idrissi #13', channel: 'La Última Medina', topics: ['quran', 'questions'] },
+    { id: 'OjF6qi45Q1E', title: 'Cómo es la Figura de Jesús en el Islam', channel: 'Tengo un Plan', topics: ['featured'] },
+    { id: 'yt5WyqQT0GI', title: 'The Biggest Myths About Islam Debunked in 8 Minutes', channel: 'Brother Aqib', cats: ['es', 'en'], topics: ['questions'] },
+    { id: 'hE7cnsFfIus', title: 'Corán 1 · Al-Fatiha «El Abridor» — Español', channel: 'Islam Light', topics: ['quran'] },
+    { id: 'OD-onPuCiGs', title: 'Corán 112 · Al-Ikhlas «La Sinceridad» — Español', channel: 'Islam Light', topics: ['quran'] },
+    { id: 'U86D0188Mp8', title: 'Quiz Islámico 🌟 Conocimientos generales sobre el Islam', channel: 'Quiz Islámico', topics: ['questions'] },
+    { id: 'd0B-N97qLsU', title: 'Ali Dawah responde las preguntas más difíciles del ateísmo', channel: 'Towards Eternity', topics: ['questions'] },
+    { id: 'r7HHc08F6P0', title: '¿Qué es el Islam? El Mensaje de Un Solo Dios, explicado simple', channel: 'IslamInSpanishTV', topics: ['featured'] },
   ],
 
   // قوائم التشغيل (ألبومات)
@@ -89,12 +137,40 @@ const ClipsData = {
     { id: 'PLVXWYY1l9S_KqDfaEnLAm0RTMS8MI_nyt', kind: 'oral', title: 'El Sagrado Corán en Español' },
   ],
 
+  // v72: التصنيفات (شريط التصنيفات تحت شريط اللغة + صفوف «على طريقة يوتيوب»)
+  // لإضافة تصنيف جديد: أضف مفتاحه هنا + نصّه clipsTopic<Key> في LOCALES الثلاث.
+  TOPICS: ['featured', 'kids', 'quran', 'podcast', 'questions'],
+
+  topicKey(t) { return 'clipsTopic' + t.charAt(0).toUpperCase() + t.slice(1); },
+
   thumb(id) { return 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg'; },
 
   watchUrl(id) { return 'https://youtu.be/' + id; },
 
   // v59: تصنيف حسب اللغة — es هو الافتراضي لكل فيديو بلا حقل cats
   byCat(cat) { return this.VIDEOS.filter(v => (v.cats || ['es']).indexOf(cat) !== -1); },
+  // v72: فيديوهات لغة + تصنيف معيّن (topic = null → كل تصنيفات اللغة)
+  byLangTopic(lang, topic) {
+    return this.byCat(lang).filter(v => !topic || (v.topics && v.topics.length ? v.topics : ['featured']).indexOf(topic) !== -1);
+  },
+
+  // v72: بحث في كل الفيديوهات (كل اللغات) — يتجاهل الحركات والفروق في حالة الأحرف
+  _norm(x) {
+    return String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f\u064B-\u065F\u0670\u0640]/g, '').trim();
+  },
+  search(q) {
+    const words = this._norm(q).split(/\s+/).filter(Boolean);
+    if (!words.length) return [];
+    return this.VIDEOS.filter(v => {
+      const hay = this._norm(v.title + ' ' + v.channel);
+      return words.every(w => hay.indexOf(w) !== -1);
+    });
+  },
+  searchPlaylists(q) {
+    const words = this._norm(q).split(/\s+/).filter(Boolean);
+    if (!words.length) return [];
+    return this.PLAYLISTS.filter(p => { const hay = this._norm(p.title); return words.every(w => hay.indexOf(w) !== -1); });
+  },
   playlistUrl(id) { return 'https://www.youtube.com/playlist?list=' + id; },
 
   L(key) {

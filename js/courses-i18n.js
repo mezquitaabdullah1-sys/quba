@@ -253,6 +253,9 @@
     ['cxSkipRetry', 'Repetir la prueba', 'إعادة الاختبار', 'Retake the test'],
     ['cxSkipReview', 'Estudiar «{prev}»', 'دراسة «{prev}»', 'Study “{prev}”'],
     ['cxSkipped', 'Saltada', 'تم تخطّيها', 'Skipped'],
+    // ── أقسام صفحة الكورسات ──
+    ['cxCatMuslim', 'Nuevo musulmán', 'مسلم جديد', 'New Muslim'],
+    ['cxCatKids', 'Niños', 'الأطفال', 'Kids'],
   ];
 
   ['es', 'ar', 'en'].forEach((loc, i) => {

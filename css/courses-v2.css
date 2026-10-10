@@ -356,3 +356,124 @@
 }
 .cx-skip-result-text { text-align: center; font-size: 14.5px; line-height: 1.7; margin: 8px 12px 14px; color: var(--text-secondary); }
 .cx-skip-result .sc-actions { display: flex; flex-direction: column; gap: 8px; }
+
+
+/* ============ v71 — قسما الكورسات + بطاقات مستطيلة بصفّ كامل ============ */
+.cx-cat-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 5px;
+  margin: 4px 0 16px;
+  background: rgba(0,0,0,0.06);
+  border-radius: 18px;
+}
+.cx-cat-tab {
+  appearance: none; -webkit-appearance: none;
+  border: 0; margin: 0;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-width: 0; min-height: 48px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text-secondary, #555);
+  font: inherit; font-size: 14px; font-weight: 700; line-height: 1.25;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .2s, color .2s, box-shadow .2s;
+}
+.cx-cat-tab .cx-cat-label { min-width: 0; overflow-wrap: anywhere; text-align: center; }
+.cx-cat-tab .cx-cat-count {
+  flex: 0 0 auto; min-width: 22px; height: 22px; padding: 0 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 11px; font-size: 12px; font-weight: 700;
+  background: rgba(0,0,0,0.08);
+}
+.cx-cat-tab.active {
+  background: var(--primary, #0F4C3A);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+}
+.cx-cat-tab.active .cx-cat-count { background: rgba(255,255,255,0.25); }
+[data-theme="dark"] .cx-cat-tabs { background: rgba(255,255,255,0.08); }
+[data-theme="dark"] .cx-cat-tab { color: #cbd5e1; }
+[data-theme="dark"] .cx-cat-tab .cx-cat-count { background: rgba(255,255,255,0.12); }
+[data-theme="dark"] .cx-cat-tab.active { color: #0D1829; }
+[data-theme="dark"] .cx-cat-tab.active .cx-cat-count { background: rgba(13,24,41,0.18); }
+
+/* قائمة عمودية: بطاقة واحدة في كل صفّ مهما كان عرض الشاشة */
+.cx-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+.cx-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  background: var(--bg-card, #fff);
+  border-radius: 18px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .15s, box-shadow .2s;
+}
+.cx-row:active { transform: scale(0.985); }
+.cx-row:focus-visible { outline: 2px solid var(--course-color, #0F4C3A); outline-offset: 2px; }
+.cx-row-icon {
+  position: relative;
+  flex: 0 0 76px;
+  width: 76px; height: 76px;
+  border-radius: 18px;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  font-size: 34px; line-height: 1;
+  background: #eee;
+}
+.cx-row-icon.has-img { background: #f3ecd8; }
+.cx-row-img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cx-row-glyph { display: flex; align-items: center; justify-content: center; }
+.cx-row-done {
+  position: absolute; top: 4px; inset-inline-end: 4px;
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: #4CAF50; color: #fff; font-size: 11px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+}
+.cx-row-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.cx-row-title {
+  font-size: 15.5px; font-weight: 700; line-height: 1.35;
+  color: var(--text, #222);
+  overflow-wrap: anywhere;
+}
+.cx-row-desc {
+  font-size: 12.5px; line-height: 1.5;
+  color: var(--text-secondary, #666);
+  overflow-wrap: anywhere;
+}
+.cx-row-progress { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.cx-row-progress .ccp-bar { flex: 1 1 auto; min-width: 0; }
+.cx-row-progress .ccp-text { flex: 0 0 auto; }
+.cx-row-arrow { flex: 0 0 auto; font-size: 13px; color: var(--text-secondary, #999); opacity: .7; }
+[data-theme="dark"] .cx-row { background: #1f2937; }
+[data-theme="dark"] .cx-row-title { color: #f3f4f6; }
+[data-theme="dark"] .cx-row-desc { color: #9ca3af; }
+@media (max-width: 359px) {
+  .cx-row { gap: 10px; padding: 10px; }
+  .cx-row-icon { flex-basis: 64px; width: 64px; height: 64px; border-radius: 16px; font-size: 28px; }
+  .cx-row-title { font-size: 14.5px; }
+  .cx-cat-tab { font-size: 13px; padding: 8px 6px; gap: 6px; }
+}
+/* على الأجهزة اللوحية يبقى عمود واحد بعرض مريح */
+@media (min-width: 640px) { .cx-list { max-width: 640px; margin-inline: auto; } }

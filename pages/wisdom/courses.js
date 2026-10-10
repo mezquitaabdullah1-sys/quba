@@ -100,6 +100,8 @@ const CoursesPage = {
     const courses = this.getAllCourses();
     const lang = this.lang();
     const gameState = this._gs();
+    const groups = this.groupCourses(courses);
+    const cat = this._hubCat === 'kids' ? 'kids' : 'muslim';
     const userProgress = gameState.stats?.coursesProgress || {};
     const completedCourses = gameState.stats?.coursesCompleted || [];
     const totalXp = gameState.xp || 0;
@@ -127,9 +129,9 @@ const CoursesPage = {
         ${this.renderReviewCard()}
         ${this.renderFeatured(courses, userProgress, lang)}
 
-        <h2 class="section-title"><i class="fas fa-book-open"></i> ${t('allCourses') || 'Todos los cursos'}</h2>
-        <div class="courses-grid">
-          ${courses.map(c => this.renderCourseCard(c, userProgress, completedCourses, lang)).join('')}
+        ${this.renderCategoryTabs(groups, cat)}
+        <div class="cx-list" id="cx-cat-panel" role="tabpanel">
+          ${groups[cat].map(c => this.renderCourseRow(c, userProgress, completedCourses, lang)).join('')}
         </div>
 
         ${this.renderAchievements(gameState)}
@@ -213,31 +215,93 @@ const CoursesPage = {
       </div>`;
   },
 
-  renderCourseCard(course, userProgress, completedCourses, lang) {
+  // ============ CATEGORÍAS (مسلم جديد / الأطفال) ============
+  _hubCat: 'muslim',
+
+  // Orden fijo de cada categoría. Cualquier curso no listado se añade al final
+  // (de «kids» si su ageGroup es 'kids', si no al final de «muslim»).
+  _catIds() {
+    return {
+      muslim: ['journey', 'pillars', 'wudu_complete', 'how_to_pray', 'salah_complete', 'arabic_language', 'quran_basics', 'names_of_allah'],
+      kids: ['kids'],
+    };
+  },
+  groupCourses(courses) {
+    const map = this._catIds();
+    const byId = {};
+    courses.forEach(c => { byId[c.id] = c; });
+    const used = new Set();
+    const pick = ids => ids.map(id => byId[id]).filter(Boolean).map(c => { used.add(c.id); return c; });
+    const muslim = pick(map.muslim);
+    const kids = pick(map.kids);
+    courses.forEach(c => { if (!used.has(c.id)) (c.ageGroup === 'kids' ? kids : muslim).push(c); });
+    return { muslim, kids };
+  },
+
+  renderCategoryTabs(groups, active) {
+    const tab = (key, icon, label) => `
+      <button type="button" class="cx-cat-tab ${active === key ? 'active' : ''}" id="cx-cat-tab-${key}" role="tab"
+              aria-selected="${active === key}" onclick="CoursesPage.setHubCategory('${key}')">
+        <span class="cx-cat-ico"><i class="fas ${icon}"></i></span>
+        <span class="cx-cat-label">${label}</span>
+        <span class="cx-cat-count">${groups[key].length}</span>
+      </button>`;
+    return `
+      <div class="cx-cat-tabs" role="tablist">
+        ${tab('muslim', 'fa-moon', t('cxCatMuslim') || 'Nuevo musulmán')}
+        ${tab('kids', 'fa-child', t('cxCatKids') || 'Niños')}
+      </div>`;
+  },
+
+  // Cambia de categoría sin re-renderizar todo el hub (no se pierde el scroll).
+  setHubCategory(cat) {
+    this._hubCat = cat === 'kids' ? 'kids' : 'muslim';
+    const panel = document.getElementById('cx-cat-panel');
+    if (!panel) { this.renderHub(document.getElementById('main-content')); return; }
+    const gs = this._gs();
+    const groups = this.groupCourses(this.getAllCourses());
+    const userProgress = gs.stats?.coursesProgress || {};
+    const completed = gs.stats?.coursesCompleted || [];
+    const lang = this.lang();
+    panel.innerHTML = groups[this._hubCat].map(c => this.renderCourseRow(c, userProgress, completed, lang)).join('');
+    ['muslim', 'kids'].forEach(k => {
+      const el = document.getElementById('cx-cat-tab-' + k);
+      if (el) { el.classList.toggle('active', k === this._hubCat); el.setAttribute('aria-selected', String(k === this._hubCat)); }
+    });
+  },
+
+  // Tarjeta horizontal a todo el ancho: icono a un lado, título + descripción
+  // completa (sin recortar) + progreso. Nunca dos tarjetas en la misma fila.
+  renderCourseRow(course, userProgress, completedCourses, lang) {
     const prog = userProgress[course.id] || { completedLessons: 0 };
     const total = this.countLessons(course);
     const pct = total > 0 ? Math.min(100, Math.round((prog.completedLessons / total) * 100)) : 0;
     const isDone = completedCourses.includes(course.id);
     const tier = prog.tier;
     const tierBadge = tier ? `<span class="cx-tier-chip cx-tier-${tier}">${this._tierIcon(tier)}</span>` : '';
+    const hasImg = !!course.iconImage;
+    const iconStyle = hasImg ? '' : ` style="background: linear-gradient(135deg, ${course.color}, ${course.accent || course.color});"`;
+    const iconInner = hasImg
+      ? `<img class="cx-row-img" src="${course.iconImage}" alt="" loading="lazy" decoding="async">`
+      : `<span class="cx-row-glyph">${course.icon}</span>`;
+    const desc = this.X(course.description).replace(/<[^>]+>/g, '');
     return `
-      <div class="course-card" onclick="CoursesPage.openCourse('${course.id}')" style="--course-color: ${course.color};">
-        <div class="course-card-header" style="background: linear-gradient(135deg, ${course.color}, ${course.accent || course.color}dd);">
-          <div class="course-card-icon">${course.icon}</div>
-          ${isDone ? `<div class="course-done-badge">${tierBadge || '<i class="fas fa-check"></i>'}</div>` : ''}
-          <div class="course-card-meta">
-            <span><i class="fas fa-clock"></i> ${course.durationMin}m</span>
-            <span><i class="fas fa-signal"></i> ${this.difficultyIcon(course.difficulty)}</span>
-          </div>
+      <div class="cx-row" role="button" tabindex="0" onclick="CoursesPage.openCourse('${course.id}')"
+           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();CoursesPage.openCourse('${course.id}')}"
+           style="--course-color: ${course.color};">
+        <div class="cx-row-icon ${hasImg ? 'has-img' : ''}"${iconStyle}>
+          ${iconInner}
+          ${isDone ? `<span class="cx-row-done">${tierBadge || '<i class="fas fa-check"></i>'}</span>` : ''}
         </div>
-        <div class="course-card-body">
-          <div class="course-card-title">${this.X(course.title)}</div>
-          <div class="course-card-desc">${this.X(course.description).replace(/<[^>]+>/g, '').slice(0, 80)}...</div>
-          <div class="course-card-progress">
+        <div class="cx-row-body">
+          <div class="cx-row-title">${this.X(course.title)}</div>
+          <div class="cx-row-desc">${desc}</div>
+          <div class="cx-row-progress">
             <div class="ccp-bar"><div class="ccp-fill" style="width:${pct}%; background:${course.color};"></div></div>
             <div class="ccp-text">${pct}%</div>
           </div>
         </div>
+        <i class="fas fa-chevron-${lang === 'ar' ? 'left' : 'right'} cx-row-arrow" aria-hidden="true"></i>
       </div>`;
   },
 

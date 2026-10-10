@@ -124,29 +124,149 @@
 }
 .clips-yt-badge { font-size: 26px; opacity: 0.9; }
 
-.clips-tabs {
+/* ---------- v72: أزرار التقسيم — أنحف وأطول (حبّات)، بلا أيقونات، تُمرَّر يمينًا/يسارًا ---------- */
+.clips-tabs,
+.clips-chips {
   display: flex;
+  flex-wrap: nowrap;
   gap: 8px;
-  padding: 12px var(--sp-md, 16px) 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  padding: 10px var(--sp-md, 16px) 2px;
 }
-.clips-tab {
-  flex: 1;
+.clips-tabs::-webkit-scrollbar,
+.clips-chips::-webkit-scrollbar { display: none; }
+.clips-chips { padding-top: 8px; padding-bottom: 4px; }
+.clips-chips[hidden] { display: none; }
+
+.clips-tab,
+.clips-chip {
+  flex: 0 0 auto;           /* عرض بحسب النص — لا تمدّد ولا انكماش */
+  white-space: nowrap;
   border: none;
-  border-radius: 12px;
-  padding: 10px 8px;
+  border-radius: 999px;
+  padding: 0 16px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
+  line-height: 1;
   background: var(--card-bg, #f0f0f0);
   color: var(--text-secondary, #666);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
 }
-.clips-tab.active {
+.clips-tab-n { font-size: 11px; font-weight: 700; opacity: 0.6; }
+.clips-tab.active,
+.clips-chip.active {
   background: #0F4C3A;
   color: #fff;
   box-shadow: 0 2px 8px rgba(15, 76, 58, 0.3);
 }
+.clips-tab.active .clips-tab-n { opacity: 0.85; }
+/* شريط التصنيفات أخف بصريًا من شريط اللغة */
+.clips-chip { height: 30px; padding: 0 14px; font-size: 12.5px; font-weight: 600; background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.28); }
+.clips-chip.active { background: #0F766E; box-shadow: 0 2px 8px rgba(15, 118, 110, 0.3); }
+
+/* ---------- v72: البحث ---------- */
+.clips-searchbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px var(--sp-md, 16px) 0;
+  padding: 0 14px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--card-bg, #f0f0f0);
+  box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.25);
+  color: var(--text-secondary, #777);
+}
+.clips-searchbar[hidden] { display: none; }
+.clips-searchbar input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--text-primary, #1a1a1a);
+}
+.clips-searchbar input::-webkit-search-cancel-button { display: none; }
+/* أثناء البحث تُخفى أشرطة اللغة والتصنيف */
+.clips-page.is-searching .clips-tabs,
+.clips-page.is-searching .clips-chips { display: none; }
+
+/* ---------- v72: صفوف التصنيفات (عرض «الكل») ---------- */
+.clips-body { min-height: 120px; }
+.clips-row-sec { padding-top: 14px; }
+.clips-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 var(--sp-md, 16px);
+  margin-bottom: 10px;
+}
+.clips-row-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a1a);
+}
+.clips-row-all {
+  border: none;
+  background: none;
+  padding: 4px 2px;
+  color: #0F766E;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.clips-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  padding: 2px var(--sp-md, 16px) 8px;
+  scroll-padding: 0 var(--sp-md, 16px);
+}
+.clips-row::-webkit-scrollbar { display: none; }
+.clip-card--row {
+  flex: 0 0 62%;
+  max-width: 280px;
+  min-width: 180px;
+  scroll-snap-align: start;
+}
+
+.clips-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px var(--sp-md, 16px);
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-secondary, #777);
+}
+.clips-empty i { font-size: 30px; opacity: 0.5; }
 
 .clips-grid {
   display: grid;
