@@ -18,6 +18,8 @@ const Router = {
     radio: { page: RadioPage, tabId: 'wisdom' },
     // v57: مقتطفات دينية (فيديوهات يوتيوب داخل التطبيق) — تاب الحكمة أيضًا
     videos: { page: ClipsPage, tabId: 'wisdom' },
+    // v73: المكتبة الإسلامية — كتب دينية تُنزَّل وتُقرأ داخل التطبيق
+    'wisdom/library': { page: LibraryPage, tabId: 'wisdom' },
   },
 
   current: null,

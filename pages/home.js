@@ -315,6 +315,42 @@ const HomePage = {
           `).join('')}
         </div>
 
+        <!-- v83: المكتبة الإسلامية — كتب رفّك أولًا، ثم بطاقات تصفّح المكتبة -->
+        <div class="clips-home-head">
+          <h2 class="section-title"><i class="fas fa-book-bookmark"></i> ${LibraryData.L('libHomeShelfTitle')}</h2>
+          <button class="clips-home-all" onclick="Router.go('wisdom/library',{shelf:true})">${LibraryData.L('libSeeAll')} <i class="fas fa-chevron-${document.documentElement.dir === 'rtl' ? 'left' : 'right'}"></i></button>
+        </div>
+        ${(() => {
+          const sl = (typeof LibraryService !== 'undefined' && LibraryService.shelf()) || [];
+          if (!sl.length) return `<button class="lib-empty-home" onclick="Router.go('wisdom/library')">
+              <span class="lib-empty-ic"><i class="fas fa-plus"></i></span>
+              <span class="lib-empty-t">${LibraryData.L('libShelfHomeEmptyTitle')}</span>
+              <span class="lib-empty-d">${LibraryData.L('libShelfHomeEmptyDesc')}</span>
+            </button>`;
+          return `<div class="clips-home-row lib-home-row">${sl.slice(0, 12).map(b => {
+            const k = b.kind || 't';
+            const go = k === 'ih' ? ('Router.go(\'wisdom/library\',{ihbook:' + b.id + '})') : ('Router.go(\'wisdom/library\',{book:' + b.id + '})');
+            return `<button class="lib-home-card" onclick="${go}" aria-label="${escapeAttr(b.name || '')}">
+                ${LibraryPage._cover(b, '', k)}
+                <span class="clip-home-title">${escapeHtml(b.name || '')}</span>
+                <span class="lib-home-author">${escapeHtml(b.author || '')}</span>
+              </button>`;
+          }).join('')}</div>`;
+        })()}
+
+        <div class="clips-home-head">
+          <h2 class="section-title"><i class="fas fa-book-open"></i> ${LibraryData.L('libExploreLibrary')}</h2>
+          <button class="clips-home-all" onclick="Router.go('wisdom/library')">${LibraryData.L('libMore')} <i class="fas fa-chevron-${document.documentElement.dir === 'rtl' ? 'left' : 'right'}"></i></button>
+        </div>
+        <div class="lib-hub-grid">
+          <button class="lib-hub-btn lh-nm" onclick="Router.go('wisdom/library',{newmuslims:true})"><i class="fas fa-seedling"></i><span>${LibraryData.L('libCardNewMuslims')}</span></button>
+          <button class="lib-hub-btn lh-kids" onclick="Router.go('wisdom/library',{kids:true})"><i class="fas fa-child-reaching"></i><span>${LibraryData.L('libCardKids')}</span></button>
+          <button class="lib-hub-btn lh-qisas" onclick="Router.go('wisdom/library',{topic:'qisas'})"><i class="fas fa-feather"></i><span>${LibraryData.L('libSecQisas')}</span></button>
+          <button class="lib-hub-btn lh-seerah" onclick="Router.go('wisdom/library',{topic:'seerah'})"><i class="fas fa-book"></i><span>${LibraryData.L('libSecSeerah')}</span></button>
+          <button class="lib-hub-btn lh-hadith" onclick="Router.go('wisdom/library',{topic:'hadith'})"><i class="fas fa-quote-right"></i><span>${LibraryData.L('libSecHadith')}</span></button>
+          <button class="lib-hub-btn lh-fiqh" onclick="Router.go('wisdom/library',{topic:'fiqh'})"><i class="fas fa-scale-balanced"></i><span>${LibraryData.L('libSecFiqh')}</span></button>
+        </div>
+
         <!-- v63: حديث اليوم — أسفل مقتطفات دينية، ببطاقة على نمط دعاء اليوم -->
         ${this._hadithCardHtml(hadith)}
 

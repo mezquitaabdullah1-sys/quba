@@ -1,0 +1,188 @@
+/* ============================================================
+   v1.0.82 — الترويسة الموحّدة الخضراء (Unified Deep-Green Header)
+   ترويسة واحدة لكل التطبيق: الرئيسية · الصفحات الداخلية (.page-header)
+   · صفحات المكتبة (.lib-header) · الأشرطة العلوية (.top-bar / .sub-topbar)
+   أخضر عميق هادئ + ذهبي مقروء، ومحتوى مُعاد تصميمه ليناسب هذا اللون.
+   تثبت أعلى الشاشة وتصغر عند النزول (compact). طبقة عرض فقط.
+   ============================================================ */
+
+:root {
+  --hd1: #0E4636;                 /* أخضر الترويسة الأساسي */
+  --hd2: #0A342A;                 /* أخضر أعمق */
+  --hd3: #14563F;                 /* أخضر أفتح للوهج */
+  --hd-ink:    #F6F1E4;           /* حبر كريمي على الأخضر */
+  --hd-ink-2:  rgba(246,241,228,.74);
+  --hd-ink-3:  rgba(246,241,228,.55);
+  --hd-gold:   #E8D9A0;           /* ذهبي مقروء على الأخضر (تباين ≈ 8:1) */
+  --hd-gold-2: #D4AF37;           /* الذهبي الزخرفي */
+  --hd-line:   rgba(212,175,55,.32);
+  --hd-glass:  rgba(255,255,255,.10);
+  --hd-glass-2:rgba(255,255,255,.06);
+  --hd-bar:    #0B3A2C;           /* شريط العنوان المضغوط */
+}
+[data-theme="dark"] {
+  --hd1: #0F2E3F;
+  --hd2: #0A2130;
+  --hd3: #14405A;
+  --hd-ink: #F5F0E6;
+  --hd-ink-2: rgba(245,240,230,.74);
+  --hd-ink-3: rgba(245,240,230,.52);
+  --hd-gold: #E6C868;
+  --hd-bar: #0A2130;
+}
+
+/* ---------- 1) السطح الأخضر الموحّد ---------- */
+.home-header,
+.page-header,
+.lib-header,
+.top-bar,
+.sub-topbar {
+  background:
+    radial-gradient(130% 100% at 100% 0%, rgba(212,175,55,.16) 0%, rgba(212,175,55,0) 58%),
+    linear-gradient(160deg, var(--hd3) 0%, var(--hd1) 52%, var(--hd2) 100%);
+  color: var(--hd-ink);
+  border-bottom: 1px solid var(--hd-line);
+  box-shadow: 0 10px 26px -16px rgba(0,0,0,.65);
+}
+[data-theme] .home-header,
+[data-theme] .page-header,
+[data-theme] .lib-header,
+[data-theme] .top-bar,
+[data-theme] .sub-topbar {
+  background:
+    radial-gradient(130% 100% at 100% 0%, rgba(212,175,55,.16) 0%, rgba(212,175,55,0) 58%),
+    linear-gradient(160deg, var(--hd3) 0%, var(--hd1) 52%, var(--hd2) 100%);
+  color: var(--hd-ink);
+}
+.page-header { border-radius: 0 0 26px 26px; }
+.home-header { border-radius: 0 0 26px 26px; }
+
+/* ---------- 2) النقش: شبكة زخرفية رقيقة تتلاشى ---------- */
+.home-header::before,
+.page-header::before {
+  content: '' !important;
+  position: absolute; inset: 0;
+  width: auto !important; height: auto !important; top: 0 !important; right: 0 !important;
+  background-image:
+    repeating-linear-gradient(60deg,  rgba(212,175,55,.13) 0 1px, transparent 1px 16px),
+    repeating-linear-gradient(-60deg, rgba(212,175,55,.13) 0 1px, transparent 1px 16px);
+  background-size: auto !important;
+  opacity: .8;
+  -webkit-mask-image: radial-gradient(120% 130% at 100% 0%, #000 0%, transparent 62%);
+          mask-image: radial-gradient(120% 130% at 100% 0%, #000 0%, transparent 62%);
+  pointer-events: none;
+}
+.home-header::after { content: none !important; }
+
+/* ---------- 3) ثبات الترويسة + وضع مضغوط عند النزول ---------- */
+#main-content { scroll-behavior: smooth; }
+.page-header,
+.lib-header,
+.top-bar,
+.sub-topbar {
+  position: sticky; top: 0;
+  z-index: 60;
+  transition: padding .22s ease, box-shadow .22s ease, border-radius .22s ease;
+}
+.page-header { padding: calc(env(safe-area-inset-top, 0) + var(--sp-lg)) var(--sp-md) var(--sp-lg); }
+
+.lib-header {
+  padding: calc(env(safe-area-inset-top, 0) + 10px) var(--sp-md) 10px;
+  display: flex; align-items: center; gap: 12px;
+}
+.sub-topbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: calc(env(safe-area-inset-top, 0) + 10px) var(--sp-md) 10px;
+}
+.sub-topbar-btn {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--hd-glass); color: var(--hd-ink); font-size: 16px;
+  border: 1px solid var(--hd-line);
+}
+.sub-topbar-btn:active { transform: scale(.93); }
+.sub-topbar-title { font-size: 15.5px; font-weight: 800; color: var(--hd-ink); flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sub-topbar-sub { font-size: 11.5px; color: var(--hd-ink-2); margin-top: 2px; }
+
+/* الوضع المضغوط: العنوان يبقى وزر الرجوع يبقى، والارتفاع يصغر */
+.is-scrolled .page-header { padding-top: calc(env(safe-area-inset-top, 0) + 8px); padding-bottom: 8px; border-radius: 0 0 18px 18px; }
+.is-scrolled .page-title { font-size: 17px; }
+.is-scrolled .page-subtitle { display: none; }
+.is-scrolled .page-meta { display: none; }
+.is-scrolled .page-header .inner-tabs { margin-top: 6px; }
+.is-scrolled .page-header .search-box { margin-top: 8px; }
+.is-scrolled .lib-header,
+.is-scrolled .sub-topbar { padding-top: calc(env(safe-area-inset-top, 0) + 5px); padding-bottom: 5px; }
+.is-scrolled .lib-title { font-size: 16px; }
+.is-scrolled .lib-subtitle { display: none; }
+.is-scrolled .lib-back,
+.is-scrolled .lib-header-btn { width: 34px; height: 34px; }
+.is-scrolled .sub-topbar-btn { width: 34px; height: 34px; }
+.is-scrolled .sub-topbar-sub { display: none; }
+
+/* ---------- 4) عناصر الرئيسية على الأخضر ---------- */
+.home-greeting { color: var(--hd-ink); font-weight: 800; }
+.home-location { color: var(--hd-ink-2); opacity: 1; }
+.home-hijri    { color: var(--hd-gold); font-weight: 700; }
+.home-profile-btn { color: var(--hd-ink); background: var(--hd-glass); }
+.home-header .quick-access-label { color: var(--hd-ink); text-shadow: none; }
+.home-header .quick-access-icon  { background: var(--hd-glass); }
+.home-header .quick-access-icon i,
+.home-header .quick-access-icon img { color: var(--hd-gold); }
+.home-header .next-prayer-card,
+.next-prayer-card {
+  background: var(--hd-glass);
+  border: 1px solid var(--hd-line);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  box-shadow: 0 8px 22px -14px rgba(0,0,0,.6);
+}
+.next-prayer-label     { color: var(--hd-gold); }
+.next-prayer-name      { color: var(--hd-ink); }
+.next-prayer-time      { color: var(--hd-ink-2); opacity: 1; }
+.next-prayer-countdown { color: var(--hd-ink); font-weight: 700; }
+.estimated-badge { color: var(--hd-gold); }
+
+/* ---------- 5) عناصر الصفحات الداخلية ---------- */
+.page-title    { color: var(--hd-ink); }
+.page-subtitle { color: var(--hd-gold); }
+.page-meta     { color: var(--hd-ink-2); opacity: 1; }
+.page-header h1, .page-header h2, .page-header h3,
+.page-header .section-title { color: var(--hd-ink); }
+.page-header p { color: var(--hd-ink-2); }
+.page-header .card { background: var(--hd-glass-2); border-color: var(--hd-line); color: var(--hd-ink); }
+.page-header a { color: var(--hd-gold); }
+
+.search-box       { background: var(--hd-glass); border: 1px solid var(--hd-line); }
+.search-box i     { color: var(--hd-ink-2); }
+.search-box input { color: var(--hd-ink); }
+.search-box input::placeholder { color: var(--hd-ink-3); opacity: 1; }
+
+.inner-tabs       { background: var(--hd-glass-2); }
+.inner-tab        { color: var(--hd-ink-2); }
+.inner-tab.active { background: var(--hd-gold); color: var(--hd2); font-weight: 800; }
+[data-theme] .inner-tabs { background: var(--hd-glass-2); }
+[data-theme] .inner-tab.active { background: var(--hd-gold); color: var(--hd2); }
+
+.top-bar       { color: var(--hd-ink); }
+.top-bar-btn   { color: var(--hd-ink); }
+.top-bar-title { color: var(--hd-ink); }
+
+/* ---------- 6) ترويسة المكتبة تتبع اللغة نفسها ---------- */
+.lib-header { border-radius: 0 0 20px 20px; }
+.lib-title    { color: var(--hd-ink); }
+.lib-subtitle { color: var(--hd-ink-2); }
+.lib-back,
+.lib-header-btn {
+  background: var(--hd-glass); color: var(--hd-ink);
+  border: 1px solid var(--hd-line);
+}
+.lib-back:active, .lib-header-btn:active { transform: scale(.93); }
+.lib-header-btn.active { background: var(--hd-gold); color: var(--hd2); border-color: var(--hd-gold); }
+[dir="rtl"] .home-header,
+[dir="rtl"] .page-header,
+[dir="rtl"] .lib-header { border-radius: 0 0 26px 26px; }
+[dir="rtl"] .lib-header { border-radius: 0 0 20px 20px; }
+
+/* ---------- 7) أزرار الرجوع داخل التقويم والجدول الشهري ---------- */
+.cal-topbar, .monthly-topbar { margin-bottom: 10px; }

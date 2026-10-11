@@ -188,3 +188,16 @@ if (document.readyState === 'loading') {
 }
 
 // popstate ahora manejado por Router.init() con historial nativo
+
+// ============ v1.0.82: ترويسة ثابتة تصغر عند النزول ============
+(function () {
+  try {
+    var mc = document.getElementById('main-content');
+    if (!mc) return;
+    var raf = 0;
+    var apply = function () { raf = 0; mc.classList.toggle('is-scrolled', (mc.scrollTop || 0) > 8); };
+    mc.addEventListener('scroll', function () {
+      if (!raf) raf = window.requestAnimationFrame ? window.requestAnimationFrame(apply) : setTimeout(apply, 16);
+    }, { passive: true });
+  } catch (e) { /* تجاهل: لا يجب أن يمنع هذا أي شيء */ }
+})();

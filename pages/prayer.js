@@ -342,6 +342,7 @@ const PrayerPage = {
     // Trigger async load
     setTimeout(() => this.loadMonthlyPrayers(loc), 100);
     return `
+      <div class="sub-topbar monthly-topbar"><button class="sub-topbar-btn" onclick="PrayerPage.switchTab('times')" aria-label="${LibraryData.L('libBack')}"><i class="fas ${document.documentElement.dir === 'rtl' ? 'fa-arrow-right' : 'fa-arrow-left'}"></i></button><div><div class="sub-topbar-title">${t('monthlyTable') || 'Mensual'}</div></div></div>
       <div id="monthly-prayer-container">
         ${Skeleton.prayerMonth()}
       </div>

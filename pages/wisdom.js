@@ -79,6 +79,14 @@ const WisdomPage = {
         color: '#B91C1C',
         route: 'videos',
       },
+      // v73: المكتبة الإسلامية — كتب دينية من المكتبة الشاملة ومكتبات معتمدة
+      {
+        id: 'library', icon: '<i class="fas fa-book-bookmark"></i>',
+        title: LibraryData.L('libTitle'),
+        desc: LibraryData.L('libSubtitle'),
+        color: '#0E6B5C',
+        route: 'wisdom/library',
+      },
     ];
 
     container.innerHTML = `

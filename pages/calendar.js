@@ -9,6 +9,7 @@ const CalendarPage = {
 
   async render(container) {
     container.innerHTML = `
+      <div class="sub-topbar cal-topbar"><button class="sub-topbar-btn" onclick="Router.go('home')" aria-label="${LibraryData.L('libBack')}"><i class="fas ${document.documentElement.dir === 'rtl' ? 'fa-arrow-right' : 'fa-arrow-left'}"></i></button><div><div class="sub-topbar-title">${t('hijriCalendar')}</div><div class="sub-topbar-sub">${t('hijriCalendarSub') || ''}</div></div></div>
       <div class="cal-header-v16">
         <div class="cal-header-title" id="cal-title"></div>
         <div class="cal-header-sub" id="cal-sub"></div>

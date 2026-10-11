@@ -82,6 +82,21 @@ const TTL = {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    // v73: بروكسي المكتبة الإسلامية — يمرّر طلبات turath.io ويتجاوز CORS
+    if (url.pathname === '/lib') {
+      const target = url.searchParams.get('u') || '';
+      if (!/^https:\/\/(api|files)\.turath\.io\//.test(target)) {
+        return new Response(JSON.stringify({ error: 'invalid target' }), { status: 400, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' } });
+      }
+      const upstream = await fetch(target, { headers: { 'Accept': 'application/json' } });
+      const body = await upstream.arrayBuffer();
+      return new Response(body, { status: upstream.status, headers: {
+        'content-type': upstream.headers.get('content-type') || 'application/json; charset=utf-8',
+        'access-control-allow-origin': '*',
+        'cache-control': 'public, max-age=86400',
+      } });
+    }
     const origin = request.headers.get('Origin') || '';
     const cors = CORS_HEADERS(origin);
 

@@ -1,0 +1,31 @@
+/* v1.0.83 — بطاقات «تصفّح المكتبة» في الرئيسية + بطاقة الرفّ الفارغة */
+.lib-hub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.lib-hub-btn {
+  border: none; border-radius: 18px; padding: 16px 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  color: #fff; font-family: inherit; font-size: 12.5px; font-weight: 700;
+  cursor: pointer; box-shadow: 0 6px 16px rgba(15, 76, 58, 0.18);
+  transition: transform 0.12s ease;
+  background: linear-gradient(150deg, #1A6B52, #0F4C3A);
+}
+.lib-hub-btn:active { transform: scale(0.95); }
+.lib-hub-btn i { font-size: 20px; }
+.lib-hub-btn.lh-nm     { background: linear-gradient(150deg, #2B8A6B, #0F4C3A); }
+.lib-hub-btn.lh-kids   { background: linear-gradient(150deg, #3E8E52, #235C33); }
+.lib-hub-btn.lh-qisas  { background: linear-gradient(150deg, #A1887F, #6D4C41); }
+.lib-hub-btn.lh-seerah { background: linear-gradient(150deg, #2E7D32, #16341A); }
+.lib-hub-btn.lh-hadith { background: linear-gradient(150deg, #2C4A75, #14243F); }
+.lib-hub-btn.lh-fiqh   { background: linear-gradient(150deg, #128BA8, #0A453F); }
+.lib-empty-home {
+  width: 100%; border: 1.5px dashed var(--emerald-bright, #2B8A6B);
+  background: var(--surface-2, rgba(15, 76, 58, 0.04));
+  border-radius: 18px; padding: 18px 14px; margin-bottom: 16px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  cursor: pointer; font-family: inherit; color: var(--text-primary, #1A2B4A);
+}
+.lib-empty-home .lib-empty-ic {
+  width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+  background: linear-gradient(150deg, #1A6B52, #0F4C3A); color: #fff; font-size: 18px;
+}
+.lib-empty-home .lib-empty-t { font-weight: 800; font-size: 14px; }
+.lib-empty-home .lib-empty-d { font-size: 12px; color: var(--text-secondary, #55606E); text-align: center; }

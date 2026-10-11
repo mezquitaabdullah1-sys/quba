@@ -1,0 +1,477 @@
+/* 📚 المكتبة الإسلامية — library.css (v73)
+   مكتبة كتب إسلامية داخل قسم الحكمة: تصفّح (الجامع) + رفّي + قارئ + تنزيل للأوفلاين */
+
+:root {
+  --lib-teal: #0E6B5C;
+  --lib-teal-dark: #0A5548;
+  --lib-mint: #E6F4EF;
+  --lib-mint-2: #D6ECE4;
+  --lib-gold: #D4AF37;
+}
+[data-theme="dark"] {
+  --lib-mint: rgba(20, 60, 52, 0.55);
+  --lib-mint-2: rgba(20, 60, 52, 0.8);
+}
+
+.lib-page { padding-bottom: calc(var(--sp-xl) + env(safe-area-inset-bottom, 0)); }
+
+/* ============ ترويسة ============ */
+.lib-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: calc(env(safe-area-inset-top, 0) + 12px) var(--sp-md) 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+[data-theme="dark"] .lib-header { background: #16233c; }
+.lib-back {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--lib-mint);
+  color: var(--lib-teal);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.lib-header-text { flex: 1; min-width: 0; }
+.lib-title { font-size: 19px; font-weight: 800; color: var(--text); line-height: 1.2; }
+.lib-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.lib-header-btn {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--lib-mint); color: var(--lib-teal);
+  display: flex; align-items: center; justify-content: center; font-size: 15px;
+}
+.lib-header-btn.active { background: var(--lib-teal); color: #fff; }
+
+/* ============ بانر تصفّح ============ */
+.lib-banner {
+  margin: var(--sp-md);
+  padding: 18px;
+  border-radius: var(--r-lg);
+  background: linear-gradient(135deg, var(--lib-teal-dark), var(--lib-teal));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 10px 24px rgba(10, 85, 72, 0.28);
+  position: relative;
+  overflow: hidden;
+}
+.lib-banner::after {
+  content: '';
+  position: absolute;
+  inset-inline-end: -30px; top: -30px;
+  width: 160px; height: 160px;
+  background: radial-gradient(circle at center, rgba(212,175,55,0.22), transparent 62%);
+  pointer-events: none;
+}
+.lib-banner-cover { display: flex; gap: 3px; flex-shrink: 0; }
+.lib-banner-cover span {
+  width: 12px; height: 46px; border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+.lib-banner-cover span:nth-child(1) { background: #5D4037; height: 40px; margin-top: 6px; }
+.lib-banner-cover span:nth-child(2) { background: #263238; height: 46px; }
+.lib-banner-cover span:nth-child(3) { background: #8D6E63; height: 36px; margin-top: 10px; }
+.lib-banner-body { flex: 1; min-width: 0; z-index: 1; }
+.lib-banner-title { font-size: 16px; font-weight: 800; }
+.lib-banner-desc { font-size: 12px; opacity: 0.9; margin-top: 4px; line-height: 1.5; }
+.lib-banner-btn {
+  margin-top: 12px;
+  background: #fff; color: var(--lib-teal-dark);
+  padding: 9px 16px; border-radius: var(--r-pill);
+  font-weight: 800; font-size: 13px;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+
+/* ============ أقسام المكتبة ============ */
+.lib-section-title {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 15px; font-weight: 800; color: var(--text);
+  padding: var(--sp-md) var(--sp-md) 10px;
+}
+.lib-section-title .lib-see-all { font-size: 12px; color: var(--lib-teal); font-weight: 700; }
+.lib-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 0 var(--sp-md);
+}
+.lib-tile {
+  border-radius: var(--r-lg);
+  padding: 14px 8px;
+  color: #fff;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  text-align: center;
+  min-height: 92px;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  transition: transform .15s;
+}
+.lib-tile:active { transform: scale(0.96); }
+.lib-tile i { font-size: 20px; }
+.lib-tile-txt { font-size: 12px; font-weight: 700; line-height: 1.3; }
+
+/* ============ الرفّ ============ */
+.lib-shelf-wrap { padding: 4px var(--sp-md) var(--sp-md); }
+.lib-shelf {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px 12px;
+  padding: 4px 0 0;
+}
+.lib-shelf-book { text-align: center; cursor: pointer; }
+/* ============ غلاف الكتاب (v1.0.78) — شكل غلاف حقيقي: كعب + إطار ذهبي + عنوان ومؤلف ============ */
+.lib-cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: 3px 9px 9px 3px;
+  background:
+    radial-gradient(125% 78% at 50% 0%, rgba(255,255,255,0.12), transparent 58%),
+    linear-gradient(152deg, var(--cov-b, #6D4C41) 0%, var(--cov-a, #3E2723) 84%);
+  box-shadow:
+    0 9px 20px rgba(0,0,0,0.34),
+    inset 0 0 0 1px rgba(255,255,255,0.10),
+    inset 0 -20px 28px rgba(0,0,0,0.30);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: space-between;
+  padding: 11px 9px 9px calc(9px + 9px);
+  text-align: center;
+  overflow: hidden;
+}
+.lib-cover::before { /* كعب الكتاب (الطرف المجلَّد) */
+  content: '';
+  position: absolute; inset-block: 0; inset-inline-start: 0; width: 9px;
+  background: linear-gradient(90deg, rgba(0,0,0,0.58), rgba(0,0,0,0.08) 62%, rgba(255,255,255,0.20));
+  box-shadow: 1px 0 0 rgba(255,255,255,0.14);
+}
+.lib-cover::after { /* الإطار الذهبي المنقوش */
+  content: '';
+  position: absolute; inset: 6px 6px 6px 15px;
+  border: 1px solid rgba(212,175,55,0.62);
+  border-radius: 2px 6px 6px 2px;
+  box-shadow: inset 0 0 0 1px rgba(212,175,55,0.20);
+  pointer-events: none;
+}
+.lib-cov-top { display: flex; align-items: center; gap: 6px; width: 100%; }
+.lib-cov-top i { color: var(--lib-gold); font-size: 8px; opacity: 0.9; }
+.lib-cov-top span { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(212,175,55,0.65), transparent); }
+.lib-cov-mid { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 3px; max-width: 100%; }
+.lib-cover-title {
+  font-family: var(--font-arabic);
+  font-size: 12.5px; line-height: 1.34; font-weight: 700; letter-spacing: 0.2px;
+  color: #F4E5BC; text-align: center; text-shadow: 0 1px 2px rgba(0,0,0,0.45);
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+}
+.lib-cov-rule { display: flex; align-items: center; gap: 5px; color: var(--lib-gold); font-size: 7.5px; line-height: 1; }
+.lib-cov-rule i { width: 16px; height: 1px; background: currentColor; opacity: 0.75; }
+.lib-cover-author {
+  font-size: 8.5px; color: rgba(244,229,188,0.86); line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.lib-cov-bot { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; }
+.lib-cov-imp { font-size: 7px; letter-spacing: 0.7px; text-transform: uppercase; color: rgba(244,229,188,0.70); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lib-cov-vol { font-size: 7px; padding: 1px 5px; border-radius: 7px; border: 1px solid rgba(212,175,55,0.5); color: var(--lib-gold); }
+.lib-cover.lg { aspect-ratio: 2 / 3; padding: 18px 16px 14px calc(16px + 12px); border-radius: 5px 12px 12px 5px; }
+.lib-cover.lg::before { width: 12px; }
+.lib-cover.lg::after { inset: 10px 10px 10px 24px; border-width: 1.5px; }
+.lib-cover.lg .lib-cov-mid { gap: 10px; }
+.lib-cover.lg .lib-cover-title { font-size: 19px; -webkit-line-clamp: 6; }
+.lib-cover.lg .lib-cover-author { font-size: 12px; }
+.lib-cover.lg .lib-cov-imp { font-size: 9.5px; }
+.lib-cover.lg .lib-cov-rule { font-size: 10px; }
+.lib-cover.lg .lib-cov-rule i { width: 26px; }
+.lib-shelf-title {
+  font-size: 11px; color: var(--text); margin-top: 7px; font-weight: 600;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35;
+}
+.lib-shelf-author { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
+.lib-shelf-row {
+  display: flex; gap: 12px; overflow-x: auto; padding: 4px var(--sp-md) 10px;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.lib-shelf-row::-webkit-scrollbar { display: none; }
+.lib-shelf-row .lib-shelf-book { flex: 0 0 96px; }
+
+/* ============ حالات فارغة / معلومات ============ */
+.lib-empty { text-align: center; padding: 34px var(--sp-md) 10px; }
+.lib-empty i { font-size: 46px; color: var(--border); }
+.lib-empty-title { font-size: 15px; font-weight: 800; color: var(--text); margin-top: 12px; }
+.lib-empty-desc { font-size: 12px; color: var(--text-secondary); margin-top: 6px; line-height: 1.6; }
+.lib-info-card {
+  margin: var(--sp-md); padding: 14px; border-radius: var(--r-md);
+  background: var(--lib-mint); color: var(--text);
+  font-size: 12.5px; line-height: 1.65;
+  display: flex; gap: 10px;
+}
+.lib-info-card i { color: var(--lib-teal); font-size: 16px; margin-top: 2px; }
+.lib-steps-title { font-size: 13px; font-weight: 800; color: var(--lib-teal); margin: 4px var(--sp-md) 8px; }
+.lib-steps { padding: 0 var(--sp-md); }
+.lib-step { display: flex; gap: 12px; margin-bottom: 12px; }
+.lib-step-num {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  background: var(--lib-mint-2); color: var(--lib-teal-dark);
+  display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px;
+}
+.lib-step-b { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.4; }
+.lib-step-d { font-size: 11.5px; color: var(--text-secondary); margin-top: 3px; line-height: 1.6; }
+.lib-features { padding: 0 var(--sp-md); }
+.lib-feature { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+.lib-feature i { color: var(--lib-teal); font-size: 15px; width: 20px; text-align: center; margin-top: 2px; }
+.lib-feature span { font-size: 12.5px; color: var(--text); line-height: 1.6; }
+.lib-refresh {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin: var(--sp-md); color: var(--lib-teal); font-weight: 700; font-size: 13px;
+}
+
+/* ============ البحث والتصنيفات (الجامع) ============ */
+.lib-search {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 var(--sp-md) 12px;
+  background: var(--surface-alt); border: 1px solid var(--border);
+  border-radius: var(--r-pill); padding: 11px 16px;
+}
+[data-theme="dark"] .lib-search { background: #1f2f4d; }
+.lib-search i { color: var(--text-secondary); }
+.lib-search input { flex: 1; border: none; background: transparent; color: var(--text); font-size: 14px; }
+.lib-chips {
+  display: flex; gap: 8px; overflow-x: auto; padding: 0 var(--sp-md) 12px;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.lib-chips::-webkit-scrollbar { display: none; }
+.lib-chip {
+  flex: 0 0 auto; padding: 7px 14px; border-radius: var(--r-pill);
+  background: var(--surface-alt); border: 1px solid var(--border);
+  color: var(--text-secondary); font-size: 12.5px; font-weight: 700; white-space: nowrap;
+}
+.lib-chip.active { background: var(--lib-teal); border-color: var(--lib-teal); color: #fff; }
+
+/* ============ بطاقات الكتب (الجامع) ============ */
+.lib-books { padding: 0 var(--sp-md); }
+.lib-book-card {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 12px; margin-bottom: 10px;
+  box-shadow: var(--shadow);
+}
+.lib-book-card .lib-cover { width: 54px; flex: 0 0 54px; aspect-ratio: 2/3; padding: 5px 4px 4px calc(4px + 6px); border-radius: 2px 6px 6px 2px; }
+.lib-book-card .lib-cover::before { width: 6px; }
+.lib-book-card .lib-cover::after { inset: 3px 3px 3px 9px; }
+.lib-book-card .lib-cover-title { font-size: 6.8px; -webkit-line-clamp: 3; }
+.lib-book-card .lib-cover-author,
+.lib-book-card .lib-cov-rule,
+.lib-book-card .lib-cov-top { display: none; }
+.lib-book-card .lib-cov-imp { font-size: 5.6px; letter-spacing: 0.2px; }
+.lib-bc-info { flex: 1; min-width: 0; }
+.lib-bc-title { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.4; }
+.lib-bc-meta { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+.lib-bc-src { font-size: 10.5px; color: var(--lib-teal); margin-top: 3px; font-weight: 600; }
+.lib-dl {
+  width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+  background: var(--lib-mint); color: var(--lib-teal);
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.lib-dl.done { background: var(--success); color: #fff; }
+.lib-dl.loading { background: var(--lib-teal); color: #fff; }
+@keyframes libspin { to { transform: rotate(360deg); } }
+.lib-dl.loading i { animation: libspin 0.9s linear infinite; }
+.lib-empty-list { text-align: center; color: var(--text-secondary); padding: 30px var(--sp-md); font-size: 13px; }
+
+/* ============ تفاصيل الكتاب ============ */
+.lib-detail { padding: var(--sp-md); }
+.lib-detail-cover { display: flex; justify-content: center; margin: 8px 0 18px; }
+.lib-detail-cover .lib-cover {
+  width: 156px;
+  box-shadow: 0 16px 34px rgba(0,0,0,0.38), inset 0 0 0 1px rgba(255,255,255,0.14);
+}
+.lib-detail-title { font-size: 17px; font-weight: 800; color: var(--text); text-align: center; line-height: 1.45; }
+.lib-detail-author { font-size: 12.5px; color: var(--text-secondary); text-align: center; margin-top: 6px; }
+.lib-resume {
+  margin-top: 18px; padding: 16px; border-radius: var(--r-lg);
+  background: linear-gradient(135deg, var(--lib-teal-dark), var(--lib-teal)); color: #fff;
+  display: flex; align-items: center; gap: 14px; cursor: pointer;
+}
+.lib-resume i.big { font-size: 22px; color: var(--lib-gold); }
+.lib-resume-b { flex: 1; min-width: 0; }
+.lib-resume-t { font-size: 15px; font-weight: 800; }
+.lib-resume-d { font-size: 11.5px; opacity: 0.9; margin-top: 4px; }
+.lib-actions { display: flex; gap: 10px; margin-top: 14px; }
+.lib-btn {
+  flex: 1; padding: 12px; border-radius: var(--r-md); font-weight: 700; font-size: 13.5px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.lib-btn.primary { background: var(--lib-teal); color: #fff; }
+.lib-btn.ghost { background: var(--lib-mint); color: var(--lib-teal-dark); border: 1px solid var(--border); }
+.lib-btn.danger { background: rgba(239,83,80,0.12); color: var(--error); }
+.lib-index { margin-top: 22px; }
+.lib-index-title { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 10px; }
+.lib-index-item {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 8px;
+}
+.lib-index-num { font-size: 13px; font-weight: 800; color: var(--lib-teal); min-width: 34px; }
+.lib-index-txt { flex: 1; font-size: 13px; color: var(--text); line-height: 1.4; }
+.lib-index-lvl { font-size: 10px; color: var(--text-secondary); }
+.lib-index-go { color: var(--text-secondary); font-size: 13px; }
+
+/* ============ القارئ ============ */
+.lib-reader { padding: 0 0 90px; }
+.lib-reader-text {
+  padding: var(--sp-md); direction: rtl; text-align: right;
+  font-family: var(--font-arabic);
+  font-size: var(--lib-fs, 20px); line-height: 2.05; color: var(--text);
+  min-height: 60vh;
+}
+.lib-reader-text .lib-h {
+  display: block; font-weight: 800; color: var(--lib-teal);
+  margin: 18px 0 8px; font-size: calc(var(--lib-fs, 20px) + 3px);
+}
+.lib-reader-text em { font-style: normal; color: var(--gold-soft); font-weight: 700; }
+.lib-reader-text p { margin: 0 0 12px; }
+.lib-reader-foot {
+  position: fixed; inset-inline: 0; bottom: 0;
+  background: var(--surface); border-top: 1px solid var(--border);
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0));
+  display: flex; align-items: center; gap: 10px; z-index: 30;
+}
+[data-theme="dark"] .lib-reader-foot { background: #16233c; }
+.lib-rf-btn {
+  width: 40px; height: 40px; border-radius: 50%; background: var(--lib-mint); color: var(--lib-teal);
+  display: flex; align-items: center; justify-content: center; font-size: 15px;
+}
+.lib-rf-btn:disabled { opacity: 0.35; }
+.lib-rf-mid { flex: 1; text-align: center; font-size: 12px; color: var(--text-secondary); }
+.lib-rf-mid input[type=range] { width: 100%; accent-color: var(--lib-teal); }
+.lib-progress-line {
+  height: 3px; background: var(--border); position: sticky; top: 63px; z-index: 19;
+}
+.lib-progress-line > div { height: 100%; background: var(--lib-teal); transition: width .3s; }
+
+/* ============ ورقة التنزيل ============ */
+.lib-sheet-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 900;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.lib-sheet-overlay.hidden { display: none; }
+.lib-sheet {
+  width: 100%; max-width: 520px; background: var(--surface);
+  border-radius: 20px 20px 0 0; padding: 18px 18px calc(24px + env(safe-area-inset-bottom, 0));
+  animation: libup .25s ease;
+}
+@keyframes libup { from { transform: translateY(40px); opacity: .6; } }
+.lib-sheet-title { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 14px; }
+.lib-bar { height: 8px; background: var(--border); border-radius: var(--r-pill); overflow: hidden; }
+.lib-bar > div { height: 100%; background: linear-gradient(90deg, var(--lib-teal), var(--gold-soft)); width: 0; transition: width .25s; }
+.lib-bar-txt { font-size: 12px; color: var(--text-secondary); margin-top: 8px; text-align: center; }
+.lib-toast {
+  position: fixed; inset-inline: 0; bottom: calc(84px + env(safe-area-inset-bottom, 0)); z-index: 950;
+  display: flex; justify-content: center; pointer-events: none;
+}
+.lib-toast > div {
+  background: rgba(15,40,35,0.94); color: #fff; font-size: 13px;
+  padding: 10px 18px; border-radius: var(--r-pill); max-width: 90%;
+}
+
+/* بطاقة المكتبة في صفحة الحكمة */
+.lib-module-badge { font-size: 10px; background: var(--gold-soft); color: #3a2c00; padding: 2px 8px; border-radius: var(--r-pill); font-weight: 700; }
+/* v75: بطاقة المكتبة في الصفحة الرئيسية */
+.lib-home-row { align-items: flex-start; }
+.lib-home-row .lib-home-card {
+  flex: 0 0 104px;
+  display: flex; flex-direction: column; gap: 8px;
+  border: none; background: transparent; padding: 0; text-align: start;
+  cursor: pointer; font-family: inherit;
+}
+.lib-home-card:active { transform: scale(0.97); }
+.lib-home-card .lib-cover {
+  width: 104px; aspect-ratio: 2 / 3;
+  transition: box-shadow .15s;
+}
+.lib-home-card .lib-cover-title { font-size: 12.5px; -webkit-line-clamp: 5; }
+.lib-home-card .lib-cover-author { -webkit-line-clamp: 1; }
+.lib-home-card .lib-cover::after { inset: 5px 5px 5px 14px; }
+.lib-home-card .clip-home-title { font-size: 11.5px; min-height: 2.4em; line-height: 1.3; padding: 0; }
+.lib-home-author { font-size: 10px; color: var(--text-secondary); }
+
+/* ===== v76: بطاقات «مسلمون جدد» و«الأطفال» ===== */
+.lib-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 var(--sp-md) var(--sp-md); }
+.lib-duo-card {
+  border-radius: var(--r-lg); padding: 16px 14px; color: #fff;
+  display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
+  text-align: start; box-shadow: var(--shadow); min-height: 108px;
+}
+.lib-duo-card:active { transform: scale(0.97); }
+.lib-duo-card i { font-size: 22px; }
+.lib-duo-t { font-size: 14px; font-weight: 800; }
+.lib-duo-d { font-size: 11px; opacity: 0.92; line-height: 1.45; }
+.du-nm { background: linear-gradient(135deg, #0E6B5C, #12907A); }
+.du-kids { background: linear-gradient(135deg, #B25E2E, #E0A04A); }
+
+/* ===== v1.0.77: شريط اللغة + مصدر الأحاديث + الكتب الخارجية ===== */
+.lib-langbar { display:flex; gap:8px; padding: 10px var(--sp-md) 4px; }
+.lib-lang { flex:1; padding:9px 8px; border-radius: var(--r-pill); border:1px solid var(--border);
+  background: var(--surface); color: var(--text-secondary); font-size:12.5px; font-weight:800; }
+.lib-lang.on { background: var(--lib-teal); border-color: var(--lib-teal); color:#fff; }
+.lib-hadith-entry { display:flex; align-items:center; gap:12px; margin: var(--sp-md);
+  padding:14px; border-radius: var(--r-lg); background: var(--lib-mint); color: var(--text); cursor:pointer; }
+.lib-hadith-entry > i { color: var(--lib-teal); font-size:20px; }
+.lib-hadith-entry .lib-he-t { font-size:14px; font-weight:800; }
+.lib-hadith-entry .lib-he-d { font-size:11px; color: var(--text-secondary); margin-top:2px; }
+.lib-hadith-entry .fa-chevron-right, .lib-hadith-entry .fa-chevron-left { color: var(--text-secondary); font-size:13px; }
+.lib-hadith-ico { width:42px; height:42px; border-radius:50%; flex-shrink:0; background: var(--lib-mint); color: var(--lib-teal);
+  display:flex; align-items:center; justify-content:center; font-size:16px; }
+.lib-hadith-body { font-family: var(--font-arabic); font-size:18px; line-height:1.95; direction:rtl; text-align:right;
+  color: var(--text); margin: 6px 0 12px; }
+.lib-hadith-expl { font-size:13.5px; line-height:1.8; color: var(--text-secondary); }
+
+
+/* ===== v1.0.80: أزرار صغيرة + المفضّلة + قارئ PDF ===== */
+.lib-actions-col { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; align-items: center; }
+.lib-mini {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--lib-mint); color: var(--lib-teal); font-size: 13px;
+  border: 1px solid transparent; cursor: pointer;
+  transition: transform .12s, background .15s, color .15s;
+}
+.lib-mini:active { transform: scale(.9); }
+.lib-mini.dl { background: var(--lib-teal); color: #fff; }
+.lib-mini.done { background: var(--success); color: #fff; }
+.lib-mini.ext { background: var(--card); border-color: var(--border); color: var(--text-secondary); }
+.lib-mini.fav { background: var(--card); border-color: var(--border); color: var(--text-secondary); }
+.lib-mini.fav.on { background: #FDE7EA; border-color: #F2B9C0; color: #D93B4C; }
+[data-theme="dark"] .lib-mini.fav.on { background: rgba(217,59,76,.16); border-color: rgba(217,59,76,.45); color: #F2878F; }
+
+.lib-fav-entry {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 var(--sp-md) var(--sp-md); padding: 12px 14px;
+  border-radius: var(--r-lg); background: var(--card);
+  border: 1px solid var(--border); box-shadow: var(--shadow); cursor: pointer;
+}
+.lib-fav-entry:active { transform: scale(.985); }
+.lib-fav-heart {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: #FDE7EA; color: #D93B4C; font-size: 15px;
+}
+[data-theme="dark"] .lib-fav-heart { background: rgba(217,59,76,.16); color: #F2878F; }
+.lib-fav-t { flex: 1; text-align: start; font-weight: 800; font-size: 14px; color: var(--text); }
+.lib-fav-n {
+  font-size: 12px; font-weight: 800; color: var(--lib-teal);
+  background: var(--lib-mint); border-radius: 10px; padding: 2px 9px;
+}
+
+.lib-pdf-page { display: flex; flex-direction: column; }
+.lib-pdf-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px var(--sp-md); border-bottom: 1px solid var(--border); background: var(--surface);
+}
+[data-theme="dark"] .lib-pdf-bar { background: #16233c; }
+.lib-pdf-note { flex: 1; text-align: start; font-size: 11.5px; color: var(--text-secondary); }
+.lib-pdf-frame { width: 100%; min-height: 68vh; border: 0; background: #4a4f55; margin-top: 8px; }

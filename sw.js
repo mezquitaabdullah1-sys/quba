@@ -68,7 +68,11 @@ const CORE_ASSETS = [
   './css/wisdom.css',
   './css/radio.css',
   './css/clips.css',
+  './css/library.css',
   './css/compact-v68.css',
+  './css/header-v82.css',
+  './css/library-v82.css',
+      './css/library-v83.css',
   './css/onboarding.css',
   './data/adhkar/after_prayer.js',
   './data/adhkar/bathroom.js',
@@ -134,6 +138,9 @@ const CORE_ASSETS = [
   './js/radio-service.js',
   './js/hadith.js',
   './js/videos-data.js',
+  './js/library-data.js',
+  './js/library-service.js',
+  './js/library-sources.js',
   './js/i18n.js',
   './js/mascot.js',
   './js/mp-cities.js',
@@ -174,6 +181,7 @@ const CORE_ASSETS = [
   './pages/wisdom/duas.js',
   './pages/wisdom/quiz.js',
   './pages/wisdom/tasbih.js',
+  './pages/wisdom/library.js',
 ];
 
 // Dominios externos que también queremos disponibles sin conexión
