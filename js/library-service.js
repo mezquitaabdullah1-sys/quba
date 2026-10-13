@@ -12,7 +12,7 @@ const LibraryService = {
   },
 
   async _fetchJson(url) {
-    const proxy = (typeof CONFIG !== 'undefined' && CONFIG.API && CONFIG.API.PROXY) || '';
+    const proxy = this._proxy();
     const attempts = [];
     if (proxy) attempts.push(proxy.replace(/\/$/, '') + '/lib?u=' + encodeURIComponent(url));
     attempts.push(url);
@@ -25,6 +25,12 @@ const LibraryService = {
       } catch (e) { lastErr = e; }
     }
     throw lastErr || new Error('fetch failed');
+  },
+
+  // v1.0.84 — الوسيط من إعداد المستخدم أولًا، ثم من متغيّر البيئة.
+  _proxy() {
+    try { if (typeof Storage !== 'undefined') { const v = Storage.get('library_proxy'); if (v) return String(v); } } catch (e) { /* تجاهل */ }
+    return (typeof CONFIG !== 'undefined' && CONFIG.API && CONFIG.API.PROXY) || '';
   },
 
   // ============ بيانات الكتاب والفهرس ============

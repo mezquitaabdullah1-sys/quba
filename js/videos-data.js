@@ -1,5 +1,6 @@
 // 🎬 ClipsData — مقتطفات دينية: قائمة فيديوهات يوتيوب + قوائم تشغيل + نصوص الواجهة (AR/ES/EN)
 // v57: مشاهدة الفيديوهات داخل التطبيق (مشغّل يوتيوب المدمج) — تظهر في الرئيسية تحت الراديو وفي صفحة الحكمة
+// v85: نبذة (وصف) أسفل كل فيديو + أصناف جديدة (لغة/محاضرات/تلاوات) + مفضلة (قلب) محفوظة محليًا
 // الصور المصغّرة تُجلب مباشرة من i.ytimg.com (بدون مفتاح API) — hqdefault.jpg
 const ClipsData = {
 
@@ -15,6 +16,9 @@ const ClipsData = {
       clipsTopicQuran: 'قرآن',
       clipsTopicPodcast: 'بودكاست',
       clipsTopicQuestions: 'أسئلة',
+      clipsTopicLang: 'لغة',
+      clipsTopicLectures: 'محاضرات',
+      clipsTopicRecitation: 'تلاوات',
       clipsSeeAll: 'عرض الكل',
       clipsSearch: 'بحث',
       clipsSearchPlaceholder: 'ابحث في الفيديوهات…',
@@ -38,6 +42,13 @@ const ClipsData = {
       clipsAlbumWrittenDesc: 'القرآن الكريم كاملًا (١–١١٤) بالترجمة الإسبانية المكتوبة',
       clipsAlbumOralDesc: 'القرآن الكريم بالترجمة الإسبانية الصوتية',
       wisdomClipsDesc: 'مقاطع يوتيوب مختارة تُشاهَد داخل التطبيق',
+      clipsFavorites: 'المفضلة',
+      clipsFavClose: 'إغلاق المفضلة',
+      clipsFavEmpty: 'لا توجد فيديوهات في المفضلة بعد — اضغط القلب أسفل أي فيديو لإضافته',
+      clipsFavAdd: 'أضف إلى المفضلة',
+      clipsFavRemove: 'إزالة من المفضلة',
+      clipsFavAdded: 'أُضيف إلى المفضلة',
+      clipsFavRemoved: 'أُزيل من المفضلة',
     },
     es: {
       clipsLangEs: 'Español',
@@ -49,6 +60,9 @@ const ClipsData = {
       clipsTopicQuran: 'Corán',
       clipsTopicPodcast: 'Podcast',
       clipsTopicQuestions: 'Preguntas',
+      clipsTopicLang: 'Idioma',
+      clipsTopicLectures: 'Conferencias',
+      clipsTopicRecitation: 'Recitaciones',
       clipsSeeAll: 'Ver todo',
       clipsSearch: 'Buscar',
       clipsSearchPlaceholder: 'Buscar videos…',
@@ -72,6 +86,13 @@ const ClipsData = {
       clipsAlbumWrittenDesc: 'El Corán completo (1–114) con traducción escrita al español',
       clipsAlbumOralDesc: 'El Corán con traducción oral al español',
       wisdomClipsDesc: 'Videos de YouTube seleccionados, dentro de la app',
+      clipsFavorites: 'Favoritos',
+      clipsFavClose: 'Cerrar favoritos',
+      clipsFavEmpty: 'Aún no hay favoritos — toca el corazón bajo un video para añadirlo',
+      clipsFavAdd: 'Añadir a favoritos',
+      clipsFavRemove: 'Quitar de favoritos',
+      clipsFavAdded: 'Añadido a favoritos',
+      clipsFavRemoved: 'Quitado de favoritos',
     },
     en: {
       clipsLangEs: 'Spanish',
@@ -83,6 +104,9 @@ const ClipsData = {
       clipsTopicQuran: 'Quran',
       clipsTopicPodcast: 'Podcast',
       clipsTopicQuestions: 'Questions',
+      clipsTopicLang: 'Language',
+      clipsTopicLectures: 'Lectures',
+      clipsTopicRecitation: 'Recitations',
       clipsSeeAll: 'See all',
       clipsSearch: 'Search',
       clipsSearchPlaceholder: 'Search videos…',
@@ -106,6 +130,13 @@ const ClipsData = {
       clipsAlbumWrittenDesc: 'The full Quran (1–114) with written Spanish translation',
       clipsAlbumOralDesc: 'The Quran with spoken Spanish translation',
       wisdomClipsDesc: 'Curated YouTube videos inside the app',
+      clipsFavorites: 'Favorites',
+      clipsFavClose: 'Close favorites',
+      clipsFavEmpty: 'No favorites yet — tap the heart under a video to add it',
+      clipsFavAdd: 'Add to favorites',
+      clipsFavRemove: 'Remove from favorites',
+      clipsFavAdded: 'Added to favorites',
+      clipsFavRemoved: 'Removed from favorites',
     },
   },
 
@@ -113,22 +144,197 @@ const ClipsData = {
   // الحقول: id (معرّف يوتيوب)، العنوان، القناة،
   //   cats   (اختياري) اللغات التي يظهر فيها: 'es' | 'ar' | 'en' — الافتراضي ['es']
   //   topics (اختياري) التصنيفات: 'featured' | 'kids' | 'quran' | 'podcast' | 'questions'
+  //          | 'lang' | 'lectures' | 'recitation'
   //          يمكن وضع أكثر من تصنيف للفيديو الواحد؛ وبلا topics يدخل «مختارات» تلقائيًا.
+  //   desc   (اختياري) نبذة ثلاثية اللغة { ar, es, en } تظهر أسفل البطاقة.
   VIDEOS: [
-    { id: '7WvVSdgPCQA', title: '100 preguntas sobre el Islam — Parte 1', channel: 'Mister Tahar', topics: ['questions'] },
-    { id: 'O1RpfRp19co', title: '10 Biggest Misconceptions About Islam Explained in 6 Minutes', channel: 'Brother yusuf', cats: ['es', 'en'], topics: ['questions'] },
-    { id: 'JnECmQ_8C6Q', title: '001 – Surat Al-Faatiha (La Sura que abre el Libro)', channel: 'Europe Revive', topics: ['quran'] },
-    { id: '7lvuE6xwjrY', title: 'El islam NO es Como Tú Crees: Bendiciones, Pruebas y Sabiduría', channel: 'Regreso A La Verdad', topics: ['featured'] },
-    { id: 'Uu2XfkC68Hs', title: 'Cómo hacerte musulmán — 5 pilares del Islam y 6 pilares de fe', channel: 'Savage Petrov', topics: ['featured'] },
-    { id: 'O7jBANtNHHU', title: 'El rezo del Profeta ﷺ descrito — Aprende a rezar fácil', channel: 'Savage Petrov', topics: ['featured'] },
-    { id: 'EajB3cScC38', title: '¿Cómo se ordenó el Corán? Preguntas de Islam | Mohammad Idrissi #13', channel: 'La Última Medina', topics: ['quran', 'questions'] },
-    { id: 'OjF6qi45Q1E', title: 'Cómo es la Figura de Jesús en el Islam', channel: 'Tengo un Plan', topics: ['featured'] },
-    { id: 'yt5WyqQT0GI', title: 'The Biggest Myths About Islam Debunked in 8 Minutes', channel: 'Brother Aqib', cats: ['es', 'en'], topics: ['questions'] },
-    { id: 'hE7cnsFfIus', title: 'Corán 1 · Al-Fatiha «El Abridor» — Español', channel: 'Islam Light', topics: ['quran'] },
-    { id: 'OD-onPuCiGs', title: 'Corán 112 · Al-Ikhlas «La Sinceridad» — Español', channel: 'Islam Light', topics: ['quran'] },
-    { id: 'U86D0188Mp8', title: 'Quiz Islámico 🌟 Conocimientos generales sobre el Islam', channel: 'Quiz Islámico', topics: ['questions'] },
-    { id: 'd0B-N97qLsU', title: 'Ali Dawah responde las preguntas más difíciles del ateísmo', channel: 'Towards Eternity', topics: ['questions'] },
-    { id: 'r7HHc08F6P0', title: '¿Qué es el Islam? El Mensaje de Un Solo Dios, explicado simple', channel: 'IslamInSpanishTV', topics: ['featured'] },
+    // ── القائمة الأصلية (إسبانية/إنجليزية) ─────────────────────────
+    { id: '7WvVSdgPCQA', title: '100 preguntas sobre el Islam — Parte 1', channel: 'Mister Tahar', topics: ['questions'],
+      desc: { ar: 'أسئلة وأجوبة مبسّطة تعرّفك بالإسلام من الصفر: العقيدة والعبادات والأخلاق.',
+              es: 'Preguntas y respuestas sencillas para conocer el Islam desde cero: creencias, adoración y moral.',
+              en: 'Simple questions and answers to get to know Islam from scratch: beliefs, worship and morals.' } },
+    { id: 'O1RpfRp19co', title: '10 Biggest Misconceptions About Islam Explained in 6 Minutes', channel: 'Brother yusuf', cats: ['es', 'en'], topics: ['questions'],
+      desc: { ar: 'أشهر عشر مغالطات عن الإسلام وتصحيحها في ست دقائق.',
+              es: 'Las diez ideas erróneas más comunes sobre el Islam, aclaradas en seis minutos.',
+              en: 'The ten biggest misconceptions about Islam, cleared up in six minutes.' } },
+    { id: 'JnECmQ_8C6Q', title: '001 – Surat Al-Faatiha (La Sura que abre el Libro)', channel: 'Europe Revive', topics: ['quran'],
+      desc: { ar: 'تفسير وترتيل سورة الفاتحة مع شرح معاني آياتها.',
+              es: 'Explicación y recitación de la sura Al-Fatiha con el significado de sus versos.',
+              en: 'Explanation and recitation of Surat Al-Fatiha with the meaning of its verses.' } },
+    { id: '7lvuE6xwjrY', title: 'El islam NO es Como Tú Crees: Bendiciones, Pruebas y Sabiduría', channel: 'Regreso A La Verdad', topics: ['featured'],
+      desc: { ar: 'لماذا يظلم كثيرون فهم الإسلام؟ رحلة في معانيه الحقيقية: البركة والابتلاء والحكمة.',
+              es: '¿Por qué se malinterpreta tanto el Islam? Un recorrido por su sentido real: bendición, prueba y sabiduría.',
+              en: 'Why is Islam so often misunderstood? A journey through its real meaning: blessing, trials and wisdom.' } },
+    { id: 'Uu2XfkC68Hs', title: 'Cómo hacerte musulmán — 5 pilares del Islam y 6 pilares de fe', channel: 'Savage Petrov', topics: ['featured'],
+      desc: { ar: 'خطوات الدخول في الإسلام مع شرح أركانه الخمسة وأركان الإيمان الستة.',
+              es: 'Los pasos para abrazar el Islam, con los cinco pilares y los seis pilares de la fe.',
+              en: 'The steps to embrace Islam, with the five pillars and the six pillars of faith.' } },
+    { id: 'O7jBANtNHHU', title: 'El rezo del Profeta ﷺ descrito — Aprende a rezar fácil', channel: 'Savage Petrov', topics: ['featured'],
+      desc: { ar: 'وصف صلاة النبي ﷺ خطوة بخطوة — تعلّم الصلاة بسهولة.',
+              es: 'La oración del Profeta ﷺ paso a paso, para aprender a rezar con facilidad.',
+              en: 'The prayer of the Prophet ﷺ step by step, to learn to pray with ease.' } },
+    { id: 'EajB3cScC38', title: '¿Cómo se ordenó el Corán? Preguntas de Islam | Mohammad Idrissi #13', channel: 'La Última Medina', topics: ['quran', 'questions'],
+      desc: { ar: 'كيف جُمع القرآن ورُتّبت سوره؟ أجوبة عن أكثر ما يُسأل عنه.',
+              es: '¿Cómo se recopiló el Corán y se ordenaron sus suras? Respuestas a las dudas más frecuentes.',
+              en: 'How was the Quran compiled and its suras ordered? Answers to the most common questions.' } },
+    { id: 'OjF6qi45Q1E', title: 'Cómo es la Figura de Jesús en el Islam', channel: 'Tengo un Plan', topics: ['featured'],
+      desc: { ar: 'مكانة عيسى عليه السلام في الإسلام: نبيّ الله ورسوله، لا ابن الله.',
+              es: 'El lugar de Jesús (Isa) en el Islam: profeta y siervo de Dios, no hijo de Dios.',
+              en: 'The place of Jesus (Isa) in Islam: a prophet and servant of God, not His son.' } },
+    { id: 'yt5WyqQT0GI', title: 'The Biggest Myths About Islam Debunked in 8 Minutes', channel: 'Brother Aqib', cats: ['es', 'en'], topics: ['questions'],
+      desc: { ar: 'أكبر الأساطير عن الإسلام وتفنيدها في ثماني دقائق.',
+              es: 'Los mayores mitos sobre el Islam, desmentidos en ocho minutos.',
+              en: 'The biggest myths about Islam, debunked in eight minutes.' } },
+    { id: 'hE7cnsFfIus', title: 'Corán 1 · Al-Fatiha «El Abridor» — Español', channel: 'Islam Light', topics: ['quran'],
+      desc: { ar: 'سورة الفاتحة بالعربية مع الترجمة الإسبانية المكتوبة.',
+              es: 'Surat Al-Fatiha en árabe con traducción escrita al español.',
+              en: 'Surat Al-Fatiha in Arabic with a written Spanish translation.' } },
+    { id: 'OD-onPuCiGs', title: 'Corán 112 · Al-Ikhlas «La Sinceridad» — Español', channel: 'Islam Light', topics: ['quran'],
+      desc: { ar: 'سورة الإخلاص بالعربية مع الترجمة الإسبانية المكتوبة.',
+              es: 'Surat Al-Ikhlas en árabe con traducción escrita al español.',
+              en: 'Surat Al-Ikhlas in Arabic with a written Spanish translation.' } },
+    { id: 'U86D0188Mp8', title: 'Quiz Islámico 🌟 Conocimientos generales sobre el Islam', channel: 'Quiz Islámico', topics: ['questions'],
+      desc: { ar: 'مسابقة معلومات عامة عن الإسلام — اختبر معرفتك.',
+              es: 'Concurso de conocimientos generales sobre el Islam: pon a prueba lo que sabes.',
+              en: 'A general knowledge quiz about Islam: test what you know.' } },
+    { id: 'd0B-N97qLsU', title: 'Ali Dawah responde las preguntas más difíciles del ateísmo', channel: 'Towards Eternity', topics: ['questions'],
+      desc: { ar: 'ردود على أصعب أسئلة الإلحاد بأسلوب مبسّط.',
+              es: 'Respuestas a las preguntas más difíciles del ateísmo, de forma sencilla.',
+              en: 'Answers to the hardest questions of atheism, explained simply.' } },
+    { id: 'r7HHc08F6P0', title: '¿Qué es el Islam? El Mensaje de Un Solo Dios, explicado simple', channel: 'IslamInSpanishTV', topics: ['featured'],
+      desc: { ar: 'ما هو الإسلام؟ رسالة التوحيد مشروحة ببساطة.',
+              es: '¿Qué es el Islam? El mensaje del Dios Único, explicado de forma sencilla.',
+              en: 'What is Islam? The message of the One God, explained simply.' } },
+
+    // ── كورس اللغة العربية (صنف: لغة) ─────────────────────────────
+    { id: 'LfCWAyQWUWc', title: 'Alfabeto Árabe — Aprende a Leer Árabe desde Cero (clase 1)', channel: 'ArabeConHanifa', cats: ['es'], topics: ['lang'],
+      desc: { ar: 'الدرس الأول من كورس اللغة العربية: تعلّم الحروف العربية ونطقها من الصفر.',
+              es: 'Clase 1 del curso de árabe: aprende el alfabeto árabe y su pronunciación desde cero.',
+              en: 'Lesson 1 of the Arabic course: learn the Arabic alphabet and pronunciation from scratch.' } },
+    { id: '73iZ56eliz0', title: 'El Alfabeto Árabe COMPLETO — Árabe desde Cero', channel: 'Árabe Facilitado', cats: ['es'], topics: ['lang'],
+      desc: { ar: 'الأبجدية العربية كاملة في درس واحد مبسّط للناطقين بالإسبانية.',
+              es: 'El alfabeto árabe completo en una sola clase sencilla.',
+              en: 'The complete Arabic alphabet in a single, simple lesson.' } },
+    { id: 'EsQfp1oy0HU', title: 'Cómo Leer Árabe desde Cero: Tashkīl, Harakāt y Tanwīn (clase 2)', channel: 'ArabeConHanifa', cats: ['es'], topics: ['lang'],
+      desc: { ar: 'الدرس الثاني من كورس اللغة العربية: الحركات والتشكيل والتنوين وكيفية القراءة.',
+              es: 'Clase 2 del curso de árabe: tashkil, harakat y tanwin, y cómo leer con vocales.',
+              en: 'Lesson 2 of the Arabic course: tashkil, harakat and tanween, and how to read with vowels.' } },
+    { id: 'AJGry6FeJM0', title: 'Alfabeto Árabe — Curso Completo de Escritura', channel: 'Árabe Facilitado', cats: ['es'], topics: ['lang'],
+      desc: { ar: 'دورة كاملة لكتابة الحروف العربية وقراءتها خطوة بخطوة.',
+              es: 'Curso completo para escribir y leer las letras árabes paso a paso.',
+              en: 'A complete course to write and read the Arabic letters step by step.' } },
+
+    // ── إضافات v85 — فيديوهات عربية: محاضرات ودروس ─────────────────
+    { id: 'lkX6mcCD3CI', title: '«أنا صاحبُك القرآن» — كيف يكون القرآن صاحبي؟ | د. أحمد العربي', channel: 'د. هيثم طلعت', cats: ['ar'], topics: ['quran', 'featured'],
+      desc: { ar: 'كيف يصبح القرآن صاحبك في الدنيا والآخرة؟ وقفة إيمانية مع د. أحمد العربي.',
+              es: '¿Cómo puede el Corán ser tu compañero en esta vida y en la otra? Reflexión del Dr. Ahmad Al-Arabi.',
+              en: 'How can the Quran become your companion in this life and the next? A reflection with Dr. Ahmad Al-Arabi.' } },
+    { id: 'jz4cqxNBspY', title: 'الإلحاد بنكهة إسلامية — مع د. هيثم طلعت | صراحة بودكاست (٢٨)', channel: 'Dr Mohamad Goda', cats: ['ar'], topics: ['podcast'],
+      desc: { ar: 'حلقة بودكاست تناقش الإلحاد بصورته الجديدة وردود العلم والإيمان.',
+              es: 'Episodio de podcast sobre el ateísmo moderno y las respuestas de la fe y la razón.',
+              en: 'A podcast episode on modern atheism and the answers of faith and reason.' } },
+    { id: 'hB8iQkv7-88', title: 'محاضرة «فاستقم كما أمرت» — الشيخ عبدالعزيز الطريفي', channel: 'AlBalaGh01', cats: ['ar'], topics: ['lectures', 'featured'],
+      desc: { ar: 'محاضرة عن الاستقامة كما أمر الله وأثرها في حياة المسلم.',
+              es: 'Conferencia sobre la firmeza (istiqama) tal como Dios la ordenó y su efecto en la vida del musulmán.',
+              en: 'A lecture on steadfastness (istiqama) as God commanded it, and its effect on the life of a Muslim.' } },
+    { id: 'Iz1Eh7k-q94', title: 'مقطع يريح القلوب: محنة الدين والدنيا — الشيخ الحويني', channel: 'الشيخ أبو إسحاق الحويني', cats: ['ar'], topics: ['lectures'],
+      desc: { ar: 'كلمات تبعث الطمأنينة عن فتنة الدين والدنيا وكيف يواجهها المؤمن.',
+              es: 'Palabras que serenan el corazón sobre la prueba de la religión y de lo material, y cómo la afronta el creyente.',
+              en: 'Reassuring words about the trial of faith and worldly life, and how a believer faces it.' } },
+    { id: 'JO4Nm8obyEc', title: 'هل كل بلاء رسالة من الله؟ — الشيخ د. محمد حسان', channel: 'محفوف', cats: ['ar'], topics: ['questions'],
+      desc: { ar: 'أجوبة عن معنى الابتلاء: هل كل بلاء رسالة من الله؟',
+              es: 'Respuestas sobre el sentido de las pruebas: ¿toda desgracia es un mensaje de Dios?',
+              en: 'Answers on the meaning of trials: is every hardship a message from God?' } },
+    { id: '_sC2-nGBlnE', title: 'لا تهتم برأي الناس… المهم منزلتك عند الله — الشيخ سمير مصطفى', channel: 'واحة الإيمان', cats: ['ar'], topics: ['lectures'],
+      desc: { ar: 'كيف تتحرّر من رأي الناس وتطلب رضا الله وحده؟ محاضرة مؤثرة.',
+              es: 'Cómo liberarte de la opinión de la gente y buscar solo la satisfacción de Dios.',
+              en: 'How to free yourself from the opinions of people and seek only the pleasure of God.' } },
+    { id: 'MFLHYRtXjSE', title: 'طريق الإلتزام — الشيخ سمير مصطفى', channel: 'قناة الشيخ سمير مصطفى', cats: ['ar'], topics: ['lectures'],
+      desc: { ar: 'دروس عملية في طريق الالتزام بالدين والثبات عليه.',
+              es: 'Lecciones prácticas sobre el camino del compromiso religioso y la constancia.',
+              en: 'Practical lessons on the path of religious commitment and steadfastness.' } },
+    { id: 'iTQnfYmS3co', title: 'الاستقامة وعلاج نقض العهد مع الله — الشيخ سمير مصطفى', channel: 'أحمد عبد الله', cats: ['ar'], topics: ['lectures'],
+      desc: { ar: 'علاج النقض المتكرر للعهد مع الله وكيف تعود وتثبت.',
+              es: 'Cómo sanar el incumplimiento repetido de tu pacto con Dios y volver a Él.',
+              en: 'How to heal the repeated breaking of your covenant with God and return to Him.' } },
+    { id: 'JD_WA-KKBBQ', title: 'رسالة من ربنا ليك… اسمعها قبل ما تضيع — الشيخ أمجد سمير', channel: 'أبي هريرة', cats: ['ar'], topics: ['lectures', 'featured'],
+      desc: { ar: 'رسالة مؤثرة تذكّرك بما أعده الله للتائبين قبل أن يضيع العمر.',
+              es: 'Un mensaje conmovedor que recuerda lo que Dios prepara para quien se arrepiente.',
+              en: 'A moving message that reminds you of what God has prepared for those who repent.' } },
+    { id: 'zSBNnueoiVo', title: 'عبادة بسيطة تهزم الشهوة بالكامل — الشيخ أمجد سمير', channel: 'سَبيل', cats: ['ar'], topics: ['lectures'],
+      desc: { ar: 'كيف تهزم الشهوة بعبادة بسيطة غافل عنها كثيرون؟',
+              es: 'Cómo vencer la concupiscencia con una adoración sencilla que muchos descuidan.',
+              en: 'How to overcome desire with a simple act of worship that many overlook.' } },
+    { id: 'l5NpHG3u48E', title: 'كيف تبدأ صفحة جديدة مع الله؟ — مع الشيخ أمجد سمير', channel: 'Basirah Podcast', cats: ['ar'], topics: ['podcast', 'questions'],
+      desc: { ar: 'خطوات عملية لبداية جديدة مع الله والتوبة النصوح.',
+              es: 'Pasos prácticos para empezar de nuevo con Dios y arrepentirte de corazón.',
+              en: 'Practical steps to start over with God and repent sincerely.' } },
+    { id: 'ESlJo2jqBa4', title: 'محاضرة: أسباب النجاة من الفتن — الشيخ عبدالسلام الشويعر', channel: 'تراث الشيخ عبد السلام الشويعر', cats: ['ar'], topics: ['lectures'],
+      desc: { ar: 'أسباب النجاة من الفتن، وأخطرها فتنة الشبهات والشهوات.',
+              es: 'Las causas de salvación ante las tribulaciones, en especial las dudas y los deseos.',
+              en: 'The means of salvation from trials, especially doubts and desires.' } },
+    { id: 'ZtQpdJXf8GY', title: 'شرح شروط الصلاة وأركانها وواجباتها — الشيخ عبد السلام الشويعر', channel: 'أجر', cats: ['ar'], topics: ['lectures'],
+      desc: { ar: 'درس فقهي في شروط الصلاة وأركانها وواجباتها من «الدروس المهمة».',
+              es: 'Lección de fiqh sobre las condiciones, los pilares y las obligaciones de la oración.',
+              en: 'A fiqh lesson on the conditions, pillars and obligations of the prayer.' } },
+    { id: 'ud6Jq3xbQFc', title: 'لا تجعل عقلك فارغاً، اشغله بما ينفعه! — الشيخ عبدالسلام الشويعر', channel: 'أثر طيب', cats: ['ar'], topics: ['lectures'],
+      desc: { ar: 'دعوة لشغل العقل والفكر بما ينفع في الدنيا والآخرة.',
+              es: 'Una invitación a ocupar la mente en lo que beneficia en esta vida y en la otra.',
+              en: 'A call to occupy your mind with what benefits you in this life and the next.' } },
+    { id: 's5ekQ0Uu09k', title: 'الصدق مع الله — أحمد السيد', channel: 'أحمد السيد', cats: ['ar'], topics: ['lectures', 'featured'],
+      desc: { ar: 'معنى الصدق مع الله وأثره في إصلاح القلب والسلوك.',
+              es: 'El significado de la sinceridad con Dios y su efecto en el corazón y la conducta.',
+              en: 'The meaning of sincerity with God and its effect on the heart and behaviour.' } },
+    { id: '1PgE5YJMgNc', title: 'هكذا غيَّرَهم القرآن — أحمد السيد', channel: 'أحمد السيد', cats: ['ar'], topics: ['quran', 'featured'],
+      desc: { ar: 'كيف غيّر القرآن حياة الصحابة والسلف؟ وقفات وعبر.',
+              es: 'Cómo transformó el Corán la vida de los primeros musulmanes: lecciones y ejemplos.',
+              en: 'How the Quran transformed the lives of the early Muslims: lessons and examples.' } },
+    { id: 'tMoAx-ppLsw', title: 'مهم | خلاصة مشاكل الأمة الإسلامية وعلاجها — أحمد السيد', channel: 'أحمد السيد', cats: ['ar'], topics: ['lectures'],
+      desc: { ar: 'تشخيص لأهم مشاكل الأمة الإسلامية وسبل علاجها.',
+              es: 'Diagnóstico de los principales problemas de la comunidad islámica y sus remedios.',
+              en: 'A diagnosis of the main problems of the Muslim community and their remedies.' } },
+    { id: 'g4kKUZ8HtWo', title: 'النية.. سر لا يعرفه إلا الله — د. عبد الرحمن الحرمي', channel: 'ترتيل', cats: ['ar'], topics: ['lectures', 'featured'],
+      desc: { ar: 'أثر النية الصالحة في قبول الأعمال وسرّها الذي لا يعلمه إلا الله.',
+              es: 'El efecto de la buena intención en la aceptación de las obras y su secreto.',
+              en: 'The effect of a good intention on the acceptance of deeds and its secret.' } },
+    { id: 'Ed24YWDWz6Y', title: 'التسويف.. جندي من جنود إبليس — د. عبدالرحمن الحرمي', channel: 'ترتيل', cats: ['ar'], topics: ['lectures'],
+      desc: { ar: 'خطر التسويف في الطاعة وكيف تتخلّص منه.',
+              es: 'El peligro de posponer la adoración y cómo librarte de él.',
+              en: 'The danger of putting off worship and how to overcome it.' } },
+    { id: 'McJWSyDwnpE', title: 'تمنيت ألا ينتهي هذا الدرس — كيف تصلح علاقتك مع الله | د. أحمد العربي', channel: 'مسك الختام', cats: ['ar'], topics: ['lectures', 'featured'],
+      desc: { ar: 'كيف تصلح علاقتك مع الله لتشعر بلذة الإيمان وراحة القلب؟',
+              es: 'Cómo reparar tu relación con Dios para sentir la dulzura de la fe y la paz del corazón.',
+              en: 'How to repair your relationship with God so you feel the sweetness of faith and peace of heart.' } },
+    { id: '884zeWNvI54', title: 'أمور إذا ألقاها الشيطان في قلبك فاعلم أنك شديد الإيمان — د. أحمد العربي', channel: 'مسك الختام', cats: ['ar'], topics: ['lectures'],
+      desc: { ar: 'وساوس يلقيها الشيطان في القلب، وفيها بشارة لقوة الإيمان.',
+              es: 'Susurros que el demonio arroja al corazón y que, en realidad, anuncian una fe fuerte.',
+              en: 'Whispers the devil casts into the heart that actually announce a strong faith.' } },
+
+    // ── إضافات v85 — تلاوات قرآنية ────────────────────────────────
+    { id: 'g8yMMoCr4Uw', title: '(يا عباد لا خوف عليكم اليوم) — تلاوة عذبة للشيخ المنشاوي', channel: 'Tajwed | تجويد', cats: ['ar'], topics: ['recitation'],
+      desc: { ar: 'تلاوة عذبة بصوت الشيخ محمد صديق المنشاوي تملأ القلب خشوعًا.',
+              es: 'Recitación dulce del jeque Al-Minshawi que llena el corazón de recogimiento.',
+              en: 'A sweet recitation by Sheikh Al-Minshawi that fills the heart with humility.' } },
+    { id: 'ORilHbMl31E', title: 'أجمل تجليات الشيخ المنشاوي | سورة الملك كاملة', channel: 'أجمل تلاوات القرآن الكريم', cats: ['ar'], topics: ['recitation', 'quran'],
+      desc: { ar: 'سورة الملك كاملة بصوت المنشاوي، تُسمع بنيّة الرزق والتيسير بإذن الله.',
+              es: 'Surat Al-Mulk completa recitada por Al-Minshawi, con la intención de sustento y facilidad.',
+              en: 'Surat Al-Mulk in full, recited by Al-Minshawi, with the intention of provision and ease.' } },
+    { id: 'gun0kmRcczw', title: 'تلاوة تشرح الصدر وتُبكي العين | المنشاوي', channel: 'الشيخ المنشاوي - صوت السماء', cats: ['ar'], topics: ['recitation'],
+      desc: { ar: 'تلاوة تبعث السكينة وتُدمع العين بخشوع المنشاوي.',
+              es: 'Recitación que serena el pecho y hace brotar lágrimas, con la voz de Al-Minshawi.',
+              en: 'A recitation that calms the chest and brings tears, in the voice of Al-Minshawi.' } },
+    { id: '9zu7dpztLFk', title: 'سورة التوبة — تلاوة خاشعة | القارئ محمد اللحيدان', channel: 'إحسان', cats: ['ar'], topics: ['recitation', 'quran'],
+      desc: { ar: 'تلاوة خاشعة من سورة التوبة بصوت القارئ محمد اللحيدان.',
+              es: 'Recitación humilde de Surat At-Tawba por el recitador Muhammad Al-Luhaidan.',
+              en: 'A humble recitation of Surat At-Tawba by the reciter Muhammad Al-Luhaidan.' } },
+    { id: '_OYt6l7lzJI', title: 'أفضل تلاوات محمد اللحيدان (خشوع وراحة)', channel: 'Rashed alrashed', cats: ['ar'], topics: ['recitation'],
+      desc: { ar: 'مختارات من أجمل تلاوات محمد اللحيدان: خشوع وراحة للقلب.',
+              es: 'Selección de las mejores recitaciones de Muhammad Al-Luhaidan: recogimiento y calma.',
+              en: 'A selection of the finest recitations of Muhammad Al-Luhaidan: humility and calm.' } },
+    { id: '9k1U0aGQRNA', title: 'سورة الكهف بصوت الشيخ ماهر المعيقلي', channel: 'الشيخ ماهر المعيقلي', cats: ['ar'], topics: ['recitation', 'quran'],
+      desc: { ar: 'سورة الكهف كاملة بصوت الشيخ ماهر المعيقلي.',
+              es: 'Surat Al-Kahf completa, recitada por el jeque Maher Al-Muaiqly.',
+              en: 'Surat Al-Kahf in full, recited by Sheikh Maher Al-Muaiqly.' } },
   ],
 
   // قوائم التشغيل (ألبومات)
@@ -138,8 +344,9 @@ const ClipsData = {
   ],
 
   // v72: التصنيفات (شريط التصنيفات تحت شريط اللغة + صفوف «على طريقة يوتيوب»)
+  // v85: أُضيفت «لغة» (كورس العربية) + «محاضرات» + «تلاوات».
   // لإضافة تصنيف جديد: أضف مفتاحه هنا + نصّه clipsTopic<Key> في LOCALES الثلاث.
-  TOPICS: ['featured', 'kids', 'quran', 'podcast', 'questions'],
+  TOPICS: ['featured', 'quran', 'recitation', 'lectures', 'lang', 'podcast', 'questions', 'kids'],
 
   topicKey(t) { return 'clipsTopic' + t.charAt(0).toUpperCase() + t.slice(1); },
 
@@ -154,6 +361,20 @@ const ClipsData = {
     return this.byCat(lang).filter(v => !topic || (v.topics && v.topics.length ? v.topics : ['featured']).indexOf(topic) !== -1);
   },
 
+  // v85: التصنيفات التي تحتوي فيديوهات فعلًا في لغة معيّنة (لإخفاء الحبّات الفارغة)
+  topicsFor(lang) {
+    return this.TOPICS.filter(t => this.byLangTopic(lang, t).length > 0);
+  },
+
+  // v85: نبذة الفيديو حسب لغة الواجهة الحالية
+  desc(v) {
+    if (!v || !v.desc) return '';
+    if (typeof v.desc === 'string') return v.desc;
+    const l = (typeof currentLocale !== 'undefined' && currentLocale) || 'es';
+    const loc = this.LOCALES[l] ? l : 'es';
+    return v.desc[loc] || v.desc.es || v.desc.ar || v.desc.en || '';
+  },
+
   // v72: بحث في كل الفيديوهات (كل اللغات) — يتجاهل الحركات والفروق في حالة الأحرف
   _norm(x) {
     return String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f\u064B-\u065F\u0670\u0640]/g, '').trim();
@@ -162,7 +383,7 @@ const ClipsData = {
     const words = this._norm(q).split(/\s+/).filter(Boolean);
     if (!words.length) return [];
     return this.VIDEOS.filter(v => {
-      const hay = this._norm(v.title + ' ' + v.channel);
+      const hay = this._norm(v.title + ' ' + v.channel + ' ' + (typeof v.desc === 'string' ? v.desc : (v.desc ? (v.desc.ar + ' ' + v.desc.es + ' ' + v.desc.en) : '')));
       return words.every(w => hay.indexOf(w) !== -1);
     });
   },

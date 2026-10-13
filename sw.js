@@ -73,6 +73,7 @@ const CORE_ASSETS = [
   './css/header-v82.css',
   './css/library-v82.css',
       './css/library-v83.css',
+      './css/library-v84.css',
   './css/onboarding.css',
   './data/adhkar/after_prayer.js',
   './data/adhkar/bathroom.js',

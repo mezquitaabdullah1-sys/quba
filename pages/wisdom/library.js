@@ -8,6 +8,7 @@ const LibraryPage = {
   _loading: false, _timer: null, _dlStop: null, _fs: null, _token: 0,
   _rpage: 1, _hcats: null, _hlist: null, _hcat: null,
 
+  _dlState: {},
   L(k, v) { return LibraryData.L(k, v); },
   _el() { return document.getElementById('main-content'); },
   _rtl() { return document.documentElement.dir === 'rtl'; },
@@ -115,6 +116,7 @@ const LibraryPage = {
 
         <button class="lib-refresh" onclick="LibraryPage._refreshShelf(this)"><i class="fas fa-rotate"></i> ${esc(this.L('libRefreshShelf'))}</button>
         <div class="lib-refresh-note">${esc(this.L('libRefreshShelfNote'))}</div>
+        <button class="lib-src-btn" onclick="LibraryPage._srcSettings()"><i class="fas fa-plug"></i> ${esc(this.L('libSourceSettings'))}</button>
         ${this._attribution()}
       </div>`;
   },
@@ -169,8 +171,7 @@ const LibraryPage = {
     if (!topic) return ['ar', 'es', 'en'];
     const out = [];
     if (LibraryData.TOPIC_DEFS[topic]) out.push('ar');
-    const g = LibraryData.ESEN_MAP[topic] || (LibraryData.ESEN_TOPICS.indexOf(topic) !== -1 ? topic : null);
-    if (g) ['es', 'en'].forEach(l => { if (LibraryData.ihGroupBooks(l, g).length) out.push(l); });
+    ['es', 'en'].forEach(l => { if (LibraryData.ihTopicBooks(l, topic).length) out.push(l); });
     return out.length ? out : ['ar'];
   },
   _topicLangBar() {
@@ -192,56 +193,44 @@ const LibraryPage = {
   // v1.0.83 — الجامع: كل الأبواب + تصنيف اللغة العام (من زر «استكشاف وأضف»)
   _openJami() {
     this._view = 'jami'; this._topic = null; this._q = ''; this._results = null;
+    this._jcat = null; this._jlimit = 120; this._loading = false;
     const el = this._el(); if (!el) return;
     el.innerHTML = `
-      <div class="lib-page">
+      <div class="lib-page lib-jami">
         ${this._header(this.L('libBrowseTitle'), this.L('libJamiDesc'), 'LibraryPage._home()')}
         ${this._langBar()}
+        <div class="lib-cats" id="lib-cats">${this._jamiChips()}</div>
         <div class="lib-search"><i class="fas fa-magnifying-glass"></i>
           <input id="lib-q" type="search" dir="auto" autocomplete="off" enterkeyhint="search"
             placeholder="${escapeAttr(this.L('libSearchPlaceholder'))}" value="" oninput="LibraryPage._onJamiInput(this.value)"></div>
-        <div id="lib-books">${this._jamiGrid()}</div>
+        <div id="lib-books">${this._jamiHtml()}</div>
+        <div class="lib-jami-more"><button class="lib-btn ghost" onclick="LibraryPage._moreJami()"><i class="fas fa-plus"></i> ${esc(this.L('libMore'))}</button></div>
         ${this._attribution()}
       </div>`;
   },
-  _jamiGrid() {
-    const ts = LibraryData.topicsFor(this._lang);
-    return `<div class="lib-section-title"><span>${esc(this.L('libTopicAll'))}</span></div>
-      <div class="lib-section-title" style="padding-top:0;font-size:12px;font-weight:600;color:var(--text-secondary);"><span>${esc(this.L('libTopicSub'))}</span></div>
-      <div class="lib-topics">${ts.map(t => {
-        const label = t.key ? this.L(t.key) : t.label;
-        const sub = t.key ? this.L('libPartOfLib') : this.L('libBooksCount', { n: LibraryData.ihGroupBooks(this._lang, t.group).length });
-        return `<button class="lib-topic" onclick="LibraryPage._openTopic('${t.id}')">
-          <span class="lib-topic-ic" style="--tc:${t.color}"><i class="fas ${t.icon}"></i></span>
-          <span class="lib-topic-b"><span class="lib-topic-t">${esc(label)}</span><span class="lib-topic-n">${esc(sub)}</span></span>
-        </button>`;
-      }).join('')}</div>`;
-  },
+  _jamiGrid() { return this._jamiHtml(); },
   _onJamiInput(v) {
-    const box = document.getElementById('lib-books'); if (!box) return;
     const q = String(v || '').trim();
-    this._q = q;
-    if (!q) { box.innerHTML = this._jamiGrid(); return; }
-    if (this._lang !== 'ar') {
-      const found = this._ihSearch(q);
-      box.innerHTML = found.length
-        ? `<div class="lib-books">${found.map(x => this._externalCard(x.b, x.g)).join('')}</div>`
-        : `<div class="lib-empty-list"><i class="fas fa-magnifying-glass"></i> ${esc(this.L('libNoResults'))}</div>`;
-      return;
-    }
-    box.innerHTML = `<div class="lib-empty-list">${esc(this.L('libLoading'))}</div>`;
-    this._jamiSearch(q, box);
+    this._q = q; this._results = null;
+    if (!q || this._lang !== 'ar') { this._loading = false; this._paintJami(); return; }
+    this._loading = true; this._paintJami();
+    this._jamiSearch(q);
   },
-  async _jamiSearch(q, box) {
+  async _jamiSearch(q) {
     const token = ++this._token;
-    let list = [];
-    try { const r = await LibraryService.search(q, null); list = r.books || []; } catch (e) { list = []; }
-    if (token !== this._token || !box) return;
-    box.innerHTML = list.length
-      ? `<div class="lib-books">${list.map(b => this._bookCard(b)).join('')}</div>`
-      : `<div class="lib-empty-list"><i class="fas fa-magnifying-glass"></i> ${esc(this.L('libNoResults'))}</div>`;
+    const def = this._jcat ? LibraryData.TOPIC_DEFS[this._jcat] : null;
+    let list = [], filterOk = true;
+    try {
+      const r = await LibraryService.search(q, def ? def.cat : null);
+      list = r.books || [];
+      if (def) filterOk = list.some(b => Number(b.catId) === def.cat);
+      if (def && filterOk) list = list.filter(b => Number(b.catId) === def.cat);
+    } catch (e) { list = []; }
+    if (token !== this._token) return;
+    this._results = list;
+    this._loading = false;
+    this._paintJami();
   },
-
   _openTopic(topicId, q) {
     this._view = 'topic';
     if (topicId !== undefined && topicId !== null && topicId !== '') { this._topic = topicId; this._q = ''; }
@@ -309,50 +298,50 @@ const LibraryPage = {
     if (!list.length) return this._fallbackBlock();
     return `<div class="lib-books">${list.map(b => this._bookCard(b)).join('')}</div>`;
   },
-
   _ihSearch(q) {
     const qq = String(q || '').toLowerCase().trim();
-    const out = [];
+    if (!qq) return [];
+    const out = [], seen = {};
     const t = this._topic ? this._topicDef(this._topic) : null;
-    const gsel = t ? (LibraryData.ESEN_MAP[t.topic] || t.group) : null;
-    const groups = gsel ? [gsel] : LibraryData.ESEN_TOPICS;
-    groups.forEach(gid => {
-      LibraryData.ihGroupBooks(this._lang, gid).forEach(b => {
-        if (String(b.name || '').toLowerCase().indexOf(qq) !== -1 || String(b.author || '').toLowerCase().indexOf(qq) !== -1) out.push({ b: b, g: gid });
-      });
+    const pool = t ? LibraryData.ihTopicBooks(this._lang, t.topic).concat(LibraryData.ihGroupBooks(this._lang, LibraryData.ESEN_MAP[t.topic] || t.group || '')) : LibraryData.ihAllBooks(this._lang);
+    pool.forEach(b => {
+      const id = Number(b.id); if (!id || seen[id]) return;
+      if (String(b.name || '').toLowerCase().indexOf(qq) !== -1 || String(b.author || '').toLowerCase().indexOf(qq) !== -1) { seen[id] = 1; out.push({ b: b, g: b.group || '' }); }
     });
     return out;
   },
-
   _ihBlock() {
     const t = this._topic ? this._topicDef(this._topic) : null;
-    const gsel = t ? (LibraryData.ESEN_MAP[t.topic] || t.group) : null;
-    const groups = gsel ? [gsel] : LibraryData.ESEN_TOPICS;
+    if (t) {
+      const g = LibraryData.ESEN_MAP[t.topic] || t.group || '';
+      const seen = {}, merged = [];
+      LibraryData.ihTopicBooks(this._lang, t.topic).concat(LibraryData.ihGroupBooks(this._lang, g)).forEach(b => {
+        const id = Number(b.id); if (!id || seen[id]) return; seen[id] = 1; merged.push(b);
+      });
+      if (!merged.length) return `<div class="lib-empty-list">${esc(this.L('libNoCatBooks'))}</div>`;
+      return `<div class="lib-books">${merged.map(b => this._externalCard(b, b.group || g)).join('')}</div>`;
+    }
     let html = '';
-    groups.forEach(gid => {
+    LibraryData.ESEN_TOPICS.forEach(gid => {
       const books = LibraryData.ihGroupBooks(this._lang, gid);
       if (!books.length) return;
-      html += `<div class="lib-sub-head">
-          <span class="lib-sub-t"><i class="fas ${LibraryData.ihGroupIcon(gid)}" style="color:${LibraryData.ihGroupColor(gid)}"></i> ${esc(LibraryData.ihLabel(gid))}</span>
-          <span class="lib-sub-d">${esc(this.L('libBooksCount', { n: books.length }))}</span>
-        </div>
-        <div class="lib-books">${books.map(b => this._externalCard(b, gid)).join('')}</div>`;
+      html += `<div class="lib-sub-head"><span class="lib-sub-t"><i class="fas ${LibraryData.ihGroupIcon(gid)}" style="color:${LibraryData.ihGroupColor(gid)}"></i> ${esc(LibraryData.ihLabel(gid))}</span><span class="lib-sub-d">${esc(this.L('libBooksCount', { n: books.length }))}</span></div><div class="lib-books">${books.map(b => this._externalCard(b, gid)).join('')}</div>`;
     });
     return html || `<div class="lib-empty-list">${esc(this.L('libNoCatBooks'))}</div>`;
   },
-
   _kidsBlock() {
-    let books, note;
-    if (this._lang === 'ar') { books = LibraryData.KIDS_CHILDREN_AR; note = this.L('libKidsNote'); }
-    else { books = LibraryData.ihGroupBooks(this._lang, 'kids'); note = this.L('libKidsNote'); }
-    const cards = books.length
-      ? books.map(b => (this._lang === 'ar' ? this._bookCard(b) : this._externalCard(b, 'kids'))).join('')
-      : `<div class="lib-empty-list">${esc(this.L('libNoCatBooks'))}</div>`;
+    const books = this._topicKids() || [];
+    const note = this.L('libKidsNote');
+    if (!books.length) {
+      return `<div class="lib-note-inline"><i class="fas fa-child-reaching"></i><div>${esc(note)}</div></div>
+        <div class="lib-empty-list">${esc(this.L('libNoKidsTopic'))}</div>
+        <button class="lib-btn ghost" onclick="LibraryPage._openKids()"><i class="fas fa-child-reaching"></i> ${esc(this.L('libCardKids'))}</button>`;
+    }
+    const cards = books.map(b => (this._lang === 'ar' ? this._bookCard(b) : this._externalCard(b, 'kids'))).join('');
     return `<div class="lib-note-inline"><i class="fas fa-child-reaching"></i><div>${esc(note)}</div></div>
       <div class="lib-books">${cards}</div>
       ${this._lang === 'ar' ? `<div class="lib-fallback-note">${esc(this.L('libKidsBookletSoon'))}</div>` : ''}`;
   },
-
   _fallbackBlock() {
     const t = this._topic ? this._topicDef(this._topic) : null;
     const def = t ? LibraryData.TOPIC_DEFS[t.topic] : null;
@@ -535,29 +524,23 @@ const LibraryPage = {
         LibraryData.NEW_MUSLIM_GROUPS.map(g => {
           const list = LibraryData.NEW_MUSLIMS.filter(b => b.cat === g.cat);
           if (!list.length) return '';
-          return `<div class="lib-sub-head"><span class="lib-sub-t">${esc(this.L(g.key))}</span>
-              <span class="lib-sub-d">${esc(this.L('libBooksCount', { n: list.length }))}</span></div>
-            <div class="lib-books">${list.map(b => this._bookCard(b)).join('')}</div>`;
+          return `<div class="lib-sub-head"><span class="lib-sub-t">${esc(this.L(g.key))}</span><span class="lib-sub-d">${esc(this.L('libBooksCount', { n: list.length }))}</span></div><div class="lib-books">${list.map(b => this._bookCard(b)).join('')}</div>`;
         }).join('');
     } else {
+      const groups = LibraryData.ESEN_TOPICS.filter(g => g === 'nm' || g === 'basics');
       inner = `<div class="lib-note-inline"><i class="fas fa-seedling"></i><div>${esc(this.L('libNewMuslimsIntro'))}</div></div>` +
-        ['nm', 'basics'].map(g => {
+        groups.map(g => {
           const list = LibraryData.ihGroupBooks(this._lang, g);
           if (!list.length) return '';
-          return `<div class="lib-sub-head"><span class="lib-sub-t"><i class="fas ${LibraryData.ihGroupIcon(g)}" style="color:${LibraryData.ihGroupColor(g)}"></i> ${esc(LibraryData.ihLabel(g))}</span>
-              <span class="lib-sub-d">${esc(this.L('libBooksCount', { n: list.length }))}</span></div>
-            <div class="lib-books">${list.map(b => this._externalCard(b, g)).join('')}</div>`;
+          return `<div class="lib-sub-head"><span class="lib-sub-t"><i class="fas ${LibraryData.ihGroupIcon(g)}" style="color:${LibraryData.ihGroupColor(g)}"></i> ${esc(LibraryData.ihLabel(g))}</span><span class="lib-sub-d">${esc(this.L('libBooksCount', { n: list.length }))}</span></div><div class="lib-books">${list.map(b => this._externalCard(b, g)).join('')}</div>`;
         }).join('');
+      if (!groups.some(g => LibraryData.ihGroupBooks(this._lang, g).length)) inner += `<div class="lib-empty-list">${esc(this.L('libNoCatBooks'))}</div>`;
     }
     el.innerHTML = `<div class="lib-page">
       ${this._header(this.L('libCardNewMuslims'), this.L('libNewMuslimsSubtitle'), 'LibraryPage._home()')}
-      ${inner}
+      ${this._sectionLangBar('newmuslims')}${inner}
       ${this._attribution()}</div>`;
   },
-
-  // ============================================================
-  // ================ الأطفال: للأطفال / للآباء =================
-  // ============================================================
   _openKids() {
     this._view = 'kids';
     const el = this._el(); if (!el) return;
@@ -576,10 +559,11 @@ const LibraryPage = {
       const g = tab === 'parents' ? 'family' : 'kids';
       const list = LibraryData.ihGroupBooks(this._lang, g);
       inner = `<div class="lib-note-inline"><i class="fas ${tab === 'parents' ? 'fa-people-roof' : 'fa-child-reaching'}"></i><div>${esc(tab === 'parents' ? this.L('libParentsNote') : this.L('libKidsNote'))}</div></div>
-        <div class="lib-books">${list.map(b => this._externalCard(b, g)).join('')}</div>`;
+        ${list.length ? `<div class="lib-books">${list.map(b => this._externalCard(b, g)).join('')}</div>` : `<div class="lib-empty-list">${esc(this.L('libNoCatBooks'))}</div>`}`;
     }
     el.innerHTML = `<div class="lib-page">
       ${this._header(this.L('libCardKids'), this.L('libKidsSubtitle'), 'LibraryPage._home()')}
+      ${this._sectionLangBar('kids')}
       <div class="lib-split">
         <button class="lib-split-btn kids ${tab === 'kids' ? 'on' : ''}" onclick="LibraryPage._setKidsTab('kids')"><i class="fas fa-child-reaching"></i> ${esc(this.L('libForKids'))}</button>
         <button class="lib-split-btn parents ${tab === 'parents' ? 'on' : ''}" onclick="LibraryPage._setKidsTab('parents')"><i class="fas fa-people-roof"></i> ${esc(this.L('libForParents'))}</button>
@@ -716,36 +700,24 @@ const LibraryPage = {
   _backFromPdf() { if (this._pdfFrom === 'shelf') this._openShelfAll(); else this._openTopic(this._topic === undefined ? null : this._topic); },
   _dlPdfById(id, btn, lang) { const b = this._findIh(id) || {}; if (lang) b.lang = lang; this._dlPdf(b, btn); },
   async _dlPdf(b, btn) {
-    if (!b || !b.pdf) { if (typeof showToast === 'function') showToast('\u26a0\ufe0f ' + this.L('libPdfFail')); return; }
-    const lang = b.lang || this._lang;
-    const key = LibraryService.pdfKey(lang, b.id);
+    if (!b || !b.pdf) { if (typeof showToast === 'function') showToast('⚠️ ' + this.L('libPdfFail')); return; }
+    const lang = b.lang || this._lang; const nid = Number(b.id); const key = this._dlKey('ih', nid);
+    const st = this._dlState[key];
+    if (st && st.state === 'run') return;
     const safe = String(b.name || 'book').replace(/[^A-Za-z0-9\u0600-\u06FF\u00C0-\u024F ]+/g, '_').slice(0, 60) + '.pdf';
-    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-sync"></i>'; }
-    const overlay = document.createElement('div');
-    overlay.className = 'lib-sheet-overlay';
-    overlay.innerHTML = `<div class="lib-sheet"><div class="lib-sheet-title">${esc(this.L('libPdfDownloading'))}</div>
-      <div style="font-size:12.5px;color:var(--text-secondary);margin-bottom:12px;">${esc(b.name || '')}</div>
-      <div class="lib-bar"><div id="lib-pdfbar"></div></div><div class="lib-bar-txt" id="lib-pdftxt">0%</div></div>`;
-    document.body.appendChild(overlay);
+    this._setDl(key, 0, 'run');
+    if (btn) { const i = btn.querySelector('i'); if (i) i.className = 'fas fa-sync'; }
     try {
-      await LibraryService.downloadPdf(b.pdf, key, safe, (got, total) => {
-        const el = overlay.querySelector('#lib-pdfbar'); const tx = overlay.querySelector('#lib-pdftxt');
-        if (total) { const p = Math.min(100, Math.round(got / total * 100)); if (el) el.style.width = p + '%'; if (tx) tx.textContent = p + '%'; }
-        else if (tx) tx.textContent = (Math.round(got / 1048576 * 10) / 10) + ' MB';
-      });
-      try { overlay.remove(); } catch (e) { /* تجاهل */ }
-      if (btn) { btn.disabled = false; btn.classList.add('done'); btn.innerHTML = '<i class="fas fa-check"></i>'; }
-      if (typeof showToast === 'function') showToast('\u2705 ' + this.L('libPdfDone'));
+      await LibraryService.downloadPdf(b.pdf, LibraryService.pdfKey(lang, nid), safe, (got, total) => { this._setDl(key, total ? got / total * 100 : 50, 'run'); });
+      this._setDl(key, 100, 'done');
+      this._markShelfUi('ih', nid);
+      if (typeof showToast === 'function') showToast('✅ ' + this.L('libPdfDone'));
     } catch (e) {
-      try { overlay.remove(); } catch (_) { /* تجاهل */ }
-      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-download"></i>'; }
-      if (typeof showToast === 'function') showToast('\u26a0\ufe0f ' + this.L('libPdfFail'));
+      this._setDl(key, 0, 'err');
+      if (typeof showToast === 'function') showToast('⚠️ ' + this.L('libPdfFail'));
     }
+    if (btn) { const i = btn.querySelector('i'); if (i) i.className = 'fas fa-download'; }
   },
-
-  // ============================================================
-  // ============ غلاف الكتاب ==================================
-  // ============================================================
   _cover(b, cls, kind) {
     b = b || {};
     const cat = (b.catId != null ? LibraryData.cat(Number(b.catId)) : null) || (b.cat ? LibraryData.catById(b.cat) : null);
@@ -775,78 +747,64 @@ const LibraryPage = {
     const key = this._favKeyFor('t', bid);
     const on = LibraryService.isFav(key);
     const nm = escapeAttr(b.name || ''), au = escapeAttr(b.author || '');
-    const dl = onShelf
-      ? `<button class="lib-mini done" onclick="LibraryPage._openBook(${bid})" title="${escapeAttr(this.L('libReadInside'))}"><i class="fas fa-book-open"></i></button>`
-      : `<button class="lib-mini dl" onclick="LibraryPage._quickDownload(${bid}, this)" title="${escapeAttr(this.L('libDownload'))}"><i class="fas fa-download"></i></button>`;
+    const prog = LibraryService.progress(bid);
+    const dlk = this._dlKey('t', bid);
     return `<div class="lib-book-card">
       ${this._cover(b)}
       <div class="lib-bc-info" onclick="LibraryPage._openBook(${bid})">
         <div class="lib-bc-title">${esc(b.name || '')}</div>
         <div class="lib-bc-meta">${esc(b.author || '')}</div>
         <div class="lib-bc-src"><i class="fas fa-certificate"></i> ${esc(this.L('libSource'))}</div>
+        <div class="lib-card-slot" data-dlb="${dlk}">${this._dlBar(dlk)}</div>
       </div>
       <div class="lib-actions-col">
         <button class="lib-mini fav ${on ? 'on' : ''}" data-fk="${key}" data-nm="${nm}" data-au="${au}" title="${escapeAttr(this.L(on ? 'libFavRemove' : 'libFavAdd'))}" onclick="LibraryPage._toggleFav(event,'${key}','t',${bid})"><i class="fa${on ? 's' : 'r'} fa-heart"></i></button>
         <button class="lib-mini add ${onShelf ? 'on' : ''}" data-ak="t_${bid}" title="${escapeAttr(this.L(onShelf ? 'libOnShelfShort' : 'libAddToShelf'))}" onclick="LibraryPage._addToShelf(event,'t',${bid})"><i class="fas ${onShelf ? 'fa-check' : 'fa-plus'}"></i></button>
-        ${dl}
+        <button class="lib-mini read" title="${escapeAttr(this.L('libReadInside'))}" onclick="LibraryPage._openReader(${bid},${(prog && prog.page) || 1})"><i class="fas fa-book-open-reader"></i></button>
+        <button class="lib-mini dl" title="${escapeAttr(this.L('libDownload'))}" onclick="LibraryPage._quickDownload(${bid},this)"><i class="fas fa-download"></i></button>
       </div></div>`;
   },
-
-  // كتب IslamHouse (PDF): مفضّلة + إضافة إلى الرفّ + تنزيل PDF/فتح
   _externalCard(b, gid) {
     const nid = Number(b.id);
-    const url = LibrarySources.itemUrl(this._lang, nid);
     const key = this._favKeyFor('ih', nid);
     const on = LibraryService.isFav(key);
     const onShelf = LibraryService.isOnShelfKind(nid, 'ih');
     const nm = escapeAttr(b.name || ''), au = escapeAttr(b.author || '');
-    const open = b.pdf ? `LibraryPage._openPdfById(${nid},'topic')` : `window.open('${url}','_blank')`;
-    const last = b.pdf
-      ? `<button class="lib-mini dl" title="${escapeAttr(this.L('libDownloadPdf'))}" onclick="LibraryPage._dlPdfById(${nid},this,'${this._lang}')"><i class="fas fa-download"></i></button>`
-      : `<button class="lib-mini ext" title="${escapeAttr(this.L('libOpenWeb'))}" onclick="window.open('${url}','_blank')"><i class="fas fa-up-right-from-square"></i></button>`;
+    const dlk = this._dlKey('ih', nid);
+    const readFn = `LibraryPage._openPdfById(${nid},'topic')`;
     return `<div class="lib-book-card">
       ${this._cover(b, '', 'ih')}
-      <div class="lib-bc-info" onclick="${open}">
+      <div class="lib-bc-info" onclick="${readFn}">
         <div class="lib-bc-title">${esc(b.name || '')}</div>
         ${b.author ? `<div class="lib-bc-meta">${esc(b.author)}</div>` : ''}
-        <div class="lib-bc-src"><i class="fas fa-certificate"></i> ${esc(this.L('libSourceIslamhouse'))}${b.pdf ? '' : ' · ' + esc(this.L('libOpenWeb'))}</div>
+        <div class="lib-bc-src"><i class="fas fa-certificate"></i> ${esc(this.L('libSourceIslamhouse'))}</div>
+        <div class="lib-card-slot" data-dlb="${dlk}">${this._dlBar(dlk)}</div>
       </div>
       <div class="lib-actions-col">
         <button class="lib-mini fav ${on ? 'on' : ''}" data-fk="${key}" data-nm="${nm}" data-au="${au}" title="${escapeAttr(this.L(on ? 'libFavRemove' : 'libFavAdd'))}" onclick="LibraryPage._toggleFav(event,'${key}','ih',${nid})"><i class="fa${on ? 's' : 'r'} fa-heart"></i></button>
         <button class="lib-mini add ${onShelf ? 'on' : ''}" data-ak="ih_${nid}" title="${escapeAttr(this.L(onShelf ? 'libOnShelfShort' : 'libAddToShelf'))}" onclick="LibraryPage._addToShelf(event,'ih',${nid},'${escapeAttr(gid || '')}')"><i class="fas ${onShelf ? 'fa-check' : 'fa-plus'}"></i></button>
-        ${last}
+        <button class="lib-mini read" title="${escapeAttr(this.L('libReadInside'))}" onclick="${readFn}"><i class="fas fa-book-open-reader"></i></button>
+        <button class="lib-mini dl" title="${escapeAttr(this.L('libPdfSave'))}" onclick="LibraryPage._dlPdfById(${nid},this)"><i class="fas fa-download"></i></button>
       </div></div>`;
   },
-
-  // إضافة إلى الرفّ مباشرة من الواجهة العامة
   _addToShelf(ev, kind, id, gid) {
     if (ev) { ev.stopPropagation(); ev.preventDefault(); }
     const bid = Number(id);
-    if (LibraryService.isOnShelfKind(bid, kind)) {
-      if (kind === 'ih') this._openPdfById(bid); else this._openBook(bid);
-      return;
-    }
+    if (LibraryService.isOnShelfKind(bid, kind)) { if (kind === 'ih') this._openPdfById(bid); else this._openReader(bid, 1); return; }
     try {
       if (kind === 'ih') {
         const meta = this._favMeta('ih', bid) || {};
         LibraryService.saveStub({ id: bid, name: meta.name || '', author: meta.author || '', catId: null, kind: 'ih', lang: this._lang, pdf: meta.pdf || '', group: gid || meta.group || '' });
       } else {
-        const f = LibraryData.featuredById(bid) || {};
+        const c = this._curatedById(bid) || {};
         const found = (this._results || []).find(x => Number(x.id) === bid) || {};
-        LibraryService.saveStub({ id: bid, name: f.name || found.name || '', author: f.author || found.author || '', catId: found.catId || null, kind: 't' });
+        const def = c.topic ? LibraryData.TOPIC_DEFS[c.topic] : null;
+        LibraryService.saveStub({ id: bid, name: c.name || found.name || '', author: c.author || found.author || '', catId: (def && def.cat) || found.catId || null, kind: 't', volumes: c.volumes || 0 });
       }
     } catch (e) { /* تجاهل */ }
-    document.querySelectorAll('[data-ak="' + kind + '_' + bid + '"]').forEach(btn => {
-      btn.classList.add('on');
-      const i = btn.querySelector('i'); if (i) i.className = 'fas fa-check';
-      btn.setAttribute('title', this.L('libOnShelfShort'));
-    });
+    this._markShelfUi(kind, bid);
     if (typeof showToast === 'function') showToast('✅ ' + this.L('libAddedShelf'));
   },
-
-  // ============================================================
-  // ============ قارئ الأحاديث المترجمة (HadeethEnc) ==========
-  // ============================================================
   _openHadith() {
     this._view = 'hadith';
     this._hcat = null; this._hlist = null;
@@ -990,7 +948,9 @@ const LibraryPage = {
       const pl = document.getElementById('lib-pline'); if (pl && total) pl.style.width = Math.min(100, Math.round(this._rpage / total * 100)) + '%';
       const pi = document.getElementById('lib-pageinfo'); if (pi) pi.textContent = this.L('libPage') + ' ' + this._rpage + (total ? ' / ' + total : '');
     } catch (e) {
-      const t = document.getElementById('lib-rtext'); if (t) t.innerHTML = `<div style="text-align:center;color:var(--error);padding:30px 0;">${esc(this.L('libDownloadFail'))}</div>`;
+      const t = document.getElementById('lib-rtext');
+      if (t) t.innerHTML = `<div style="text-align:center;color:var(--text-secondary);padding:26px 14px;line-height:1.7;">${esc(this.L('libReaderNoNet'))}</div>
+        <div style="text-align:center;padding:6px 14px 20px;"><button class="lib-btn ghost" onclick="LibraryPage._srcSettings()"><i class="fas fa-plug"></i> ${esc(this.L('libSourceSettings'))}</button></div>`;
     }
   },
   _sanitize(text) {
@@ -1011,54 +971,206 @@ const LibraryPage = {
 
   // ============ التنزيل ============
   async _quickDownload(id, btn) {
-    if (btn) { btn.classList.add('loading'); btn.innerHTML = '<i class="fas fa-sync"></i>'; }
+    const bid = Number(id); const key = this._dlKey('t', bid);
+    const st = this._dlState[key];
+    if (st && st.state === 'run') return;
+    this._setDl(key, 0, 'run');
+    const c = this._curatedById(bid) || {};
+    const found = (this._results || []).find(x => Number(x.id) === bid) || {};
+    if (btn) { const i = btn.querySelector('i'); if (i) i.className = 'fas fa-sync'; }
     try {
-      const info = await LibraryService.bookInfo(id);
-      await this._runDownload(id, info);
-      if (btn) { btn.classList.remove('loading'); btn.classList.add('done'); btn.innerHTML = '<i class="fas fa-check"></i>'; }
-      document.querySelectorAll('[data-ak="t_' + Number(id) + '"]').forEach(b => { b.classList.add('on'); const i = b.querySelector('i'); if (i) i.className = 'fas fa-check'; });
+      const info = await LibraryService.bookInfo(bid);
+      if (!info.name) info.name = c.name || found.name || '';
+      if (!info.author) info.author = c.author || found.author || '';
+      await LibraryService.downloadBook(bid, info, (done, total) => { this._setDl(key, done / Math.max(1, total) * 100, 'run'); });
+      this._setDl(key, 100, 'done');
+      this._markShelfUi('t', bid);
       if (typeof showToast === 'function') showToast('✅ ' + this.L('libAddedToast'));
     } catch (e) {
-      if (btn) { btn.classList.remove('loading'); btn.innerHTML = '<i class="fas fa-download"></i>'; }
-      if (typeof showToast === 'function') showToast('⚠️ ' + this.L('libDownloadFail'));
+      this._setDl(key, 0, 'err');
+      if (typeof showToast === 'function') showToast('⚠️ ' + this.L('libDownloadFail') + ' — ' + this.L('libProxyHint'));
     }
+    if (btn) { const i = btn.querySelector('i'); if (i) i.className = 'fas fa-download'; }
   },
   async _downloadFromDetail(id, btn) {
-    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-sync"></i> ' + esc(this.L('libDownloading')); }
-    try {
-      const info = this._info || await LibraryService.bookInfo(id);
-      await this._runDownload(id, info); this._info = info; this._paintDetail();
-      if (typeof showToast === 'function') showToast('✅ ' + this.L('libAddedToast'));
-    } catch (e) {
-      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-download"></i> ' + esc(this.L('libDownload')); }
-      if (typeof showToast === 'function') showToast('⚠️ ' + this.L('libDownloadFail'));
-    }
+    await this._quickDownload(id, btn);
+    try { this._info = await LibraryService.bookInfo(Number(id)); } catch (e) { /* تجاهل */ }
+    this._paintDetail();
   },
-  _runDownload(id, info) {
-    return new Promise((resolve, reject) => {
-      const overlay = document.createElement('div');
-      overlay.className = 'lib-sheet-overlay';
-      overlay.innerHTML = `<div class="lib-sheet">
-        <div class="lib-sheet-title">${esc(this.L('libDownloadingFull'))}</div>
-        <div style="font-size:12.5px;color:var(--text-secondary);margin-bottom:12px;">${esc((info && info.name) || '')}</div>
-        <div class="lib-bar"><div id="lib-bar"></div></div><div class="lib-bar-txt" id="lib-bartxt">0%</div>
-        <div class="lib-actions"><button class="lib-btn ghost" id="lib-cancel">${esc(this.L('libBack'))}</button></div></div>`;
-      document.body.appendChild(overlay);
-      const stop = { v: false }; this._dlStop = stop;
-      overlay.querySelector('#lib-cancel').onclick = () => { stop.v = true; };
-      const close = () => { try { overlay.remove(); } catch (e) { /* تجاهل */ } this._dlStop = null; };
-      LibraryService.downloadBook(id, info, (done, total) => {
-        const pct = Math.min(100, Math.round(done / total * 100));
-        const bar = overlay.querySelector('#lib-bar'); if (bar) bar.style.width = pct + '%';
-        const txt = overlay.querySelector('#lib-bartxt'); if (txt) txt.textContent = pct + '% (' + done + '/' + total + ')';
-      }, () => stop.v).then(res => { close(); resolve(res); }).catch(err => { close(); reject(err); });
+  _runDownload() { return Promise.resolve(null); },
+  cleanup() {
+    if (this._timer) { clearTimeout(this._timer); this._timer = null; }
+    document.querySelectorAll('.lib-sheet-overlay').forEach(o => { try { o.remove(); } catch (e) { /* تجاهل */ } });
+  },
+
+  // ============================================================
+  // v1.0.84 — لغة الأقسام (تشمل الإنجليزية عند وجود كتب)
+  // ============================================================
+  _sectionLangs(section) {
+    const out = [];
+    if (section === 'kids') { if ((LibraryData.KIDS_CHILDREN_AR || []).length || (LibraryData.KIDS_PARENTS_AR || []).length) out.push('ar'); }
+    else if (section === 'newmuslims') { if ((LibraryData.NEW_MUSLIMS || []).length) out.push('ar'); }
+    else out.push('ar');
+    const gs = section === 'kids' ? ['kids', 'family'] : (section === 'newmuslims' ? ['nm', 'basics'] : LibraryData.ESEN_TOPICS);
+    ['es', 'en'].forEach(l => { if (gs.some(g => LibraryData.ihGroupBooks(l, g).length)) out.push(l); });
+    return out.length ? out : ['ar'];
+  },
+  _sectionLangBar(section) {
+    const ls = this._sectionLangs(section);
+    if (ls.length < 2) return '';
+    return `<div class="lib-langbar">${LibraryData.LANGS.filter(x => ls.indexOf(x.id) !== -1).map(x =>
+      `<button class="lib-lang ${x.id === this._lang ? 'on' : ''}" onclick="LibraryPage._setSectionLang('${section}','${x.id}')">${esc(this.L(x.key))}</button>`).join('')}</div>`;
+  },
+  _setSectionLang(section, l) {
+    if (!l || l === this._lang) return;
+    this._lang = l;
+    if (typeof Storage !== 'undefined') Storage.set('library_lang', l);
+    if (section === 'kids') this._openKids(); else this._openNewMuslims();
+  },
+
+  // ============================================================
+  // v1.0.84 — كتب الأطفال لكل باب على حدة (لا تتكرّر نفس القائمة)
+  // ============================================================
+  _topicKids() {
+    const t = this._topic ? this._topicDef(this._topic) : null;
+    if (!t) return [];
+    const def = LibraryData.TOPIC_DEFS[t.topic];
+    if (this._lang === 'ar') return (LibraryData.KIDS_TOPIC[t.topic] || []).map(b => ({ id: b.id, name: b.name, author: b.author || '', catId: def ? def.cat : null, volumes: b.volumes || 0 }));
+    return LibraryData.ihTopicBooks(this._lang, t.topic).filter(b => b.kids);
+  },
+  _curatedById(id) {
+    const bid = Number(id);
+    const maps = [LibraryData.CAT_BOOKS || {}, LibraryData.KIDS_TOPIC || {}];
+    for (const m of maps) {
+      for (const k of Object.keys(m)) {
+        const b = (m[k] || []).find(x => Number(x.id) === bid);
+        if (b) return { id: b.id, name: b.name, author: b.author || '', volumes: b.volumes || 0, topic: k };
+      }
+    }
+    const f = LibraryData.featuredById(bid);
+    return f ? { id: f.id, name: f.name, author: f.author || '', volumes: f.volumes || 0, topic: f.cat } : null;
+  },
+
+  // ============================================================
+  // v1.0.84 — تنزيل غير حاجب: الشريط داخل بطاقة الكتاب
+  // ============================================================
+  _dlKey(kind, id) { return kind + ':' + Number(id); },
+  _dlBar(key) {
+    const st = this._dlState && this._dlState[key];
+    if (!st) return '';
+    if (st.state === 'done') return `<div class="lib-card-bar done"><i class="fas fa-check"></i></div>`;
+    if (st.state === 'err') return `<div class="lib-card-bar err"><i class="fas fa-triangle-exclamation"></i></div>`;
+    return `<div class="lib-card-bar"><i style="width:${st.pct}%"></i><b>${st.pct}%</b></div>`;
+  },
+  _paintDl(key) {
+    if (typeof document === 'undefined') return;
+    document.querySelectorAll('[data-dlb="' + key + '"]').forEach(el => { el.innerHTML = this._dlBar(key); });
+  },
+  _setDl(key, pct, state) {
+    this._dlState[key] = { pct: Math.max(0, Math.min(100, Math.round(pct || 0))), state: state || 'run' };
+    this._paintDl(key);
+  },
+  _markShelfUi(kind, id) {
+    document.querySelectorAll('[data-ak="' + kind + '_' + Number(id) + '"]').forEach(b => {
+      b.classList.add('on'); const i = b.querySelector('i'); if (i) i.className = 'fas fa-check'; b.setAttribute('title', this.L('libOnShelfShort'));
     });
   },
 
-  cleanup() {
-    if (this._timer) { clearTimeout(this._timer); this._timer = null; }
-    if (this._dlStop) { this._dlStop.v = true; this._dlStop = null; }
-    document.querySelectorAll('.lib-sheet-overlay').forEach(o => { try { o.remove(); } catch (e) { /* تجاهل */ } });
+  // ============================================================
+  // v1.0.84 — إعداد مصدر البحث (وسيط) ليعمل البحث والتنزيل داخل التطبيق
+  // ============================================================
+  _srcSettings() {
+    let cur = '';
+    try { cur = (Storage.get('library_proxy') || ''); } catch (e) { cur = ''; }
+    const v = window.prompt(this.L('libProxyPrompt'), cur || 'https://quba-proxy.<account>.workers.dev');
+    if (v === null) return;
+    const val = String(v).trim();
+    if (!val || val.indexOf('workers.dev') === -1 && val.indexOf('http') !== 0) { try { Storage.remove('library_proxy'); } catch (e) { /* تجاهل */ } }
+    else { try { Storage.set('library_proxy', val); } catch (e) { /* تجاهل */ } }
+    if (typeof showToast === 'function') showToast('✅ ' + this.L('libProxySaved'));
+    if (this._view === 'home') this._home();
+  },
+
+  // ============================================================
+  // v1.0.84 — الجامع: كل الكتب في شبكة + شريط تصنيفات رفيع
+  // ============================================================
+  _jamiChips() {
+    const ts = LibraryData.topicsFor(this._lang);
+    const all = `<button class="lib-cat-chip ${!this._jcat ? 'on' : ''}" onclick="LibraryPage._setJcat(null)"><i class="fas fa-layer-group"></i> ${esc(this.L('libAll'))}</button>`;
+    return all + ts.map(t => `<button class="lib-cat-chip ${this._jcat === t.id ? 'on' : ''}" onclick="LibraryPage._setJcat('${t.id}')"><i class="fas ${t.icon}"></i> ${esc(t.key ? this.L(t.key) : t.label)}</button>`).join('');
+  },
+  _paintJami() {
+    const c = document.getElementById('lib-cats'); if (c) c.innerHTML = this._jamiChips();
+    const b = document.getElementById('lib-books'); if (b) b.innerHTML = this._jamiHtml();
+  },
+  _setJcat(id) {
+    this._jcat = id; this._q = ''; this._results = null; this._jlimit = 120;
+    const i = document.getElementById('lib-q'); if (i) i.value = '';
+    this._paintJami();
+  },
+  _moreJami() { this._jlimit += 120; this._paintJami(); },
+  _jamiHtml() {
+    if (this._loading) return `<div class="lib-empty-list">${esc(this.L('libLoading'))}</div>`;
+    if (this._q) {
+      if (this._lang === 'ar') {
+        if (!this._results || !this._results.length) return `<div class="lib-empty-list"><i class="fas fa-magnifying-glass"></i> ${esc(this.L('libNoResults'))}</div>`;
+        return this._gridHtml(this._results.map(b => ({ b: b, kind: 't' })));
+      }
+      const found = this._ihSearch(this._q);
+      if (!found.length) return `<div class="lib-empty-list"><i class="fas fa-magnifying-glass"></i> ${esc(this.L('libNoResults'))}</div>`;
+      return this._gridHtml(found.map(x => ({ b: x.b, kind: 'ih', g: x.g })));
+    }
+    const list = this._jamiBooks();
+    if (!list.length) return `<div class="lib-empty-list">${esc(this.L('libNoCatBooks'))}</div>`;
+    return this._gridHtml(list.slice(0, this._jlimit).map(b => ({ b: b, kind: b.pdf ? 'ih' : 't', g: b.group || '' })));
+  },
+  _jamiBooks() {
+    const cat = this._jcat;
+    if (this._lang === 'ar') {
+      if (!cat) {
+        let all = [];
+        Object.keys(LibraryData.CAT_BOOKS).forEach(k => {
+          const def = LibraryData.TOPIC_DEFS[k];
+          (LibraryData.CAT_BOOKS[k] || []).forEach(b => all.push({ id: b.id, name: b.name, author: b.author || '', catId: def ? def.cat : null, volumes: b.volumes || 0 }));
+        });
+        return all;
+      }
+      const def = LibraryData.TOPIC_DEFS[cat];
+      return (LibraryData.CAT_BOOKS[cat] || []).map(b => ({ id: b.id, name: b.name, author: b.author || '', catId: def ? def.cat : null, volumes: b.volumes || 0 }));
+    }
+    if (!cat) return LibraryData.ihAllBooks(this._lang);
+    const g = LibraryData.ESEN_MAP[cat] || cat;
+    const seen = {}, out = [];
+    LibraryData.ihTopicBooks(this._lang, cat).concat(LibraryData.ihGroupBooks(this._lang, g)).forEach(b => {
+      const id = Number(b.id); if (!id || seen[id]) return; seen[id] = 1; out.push(b);
+    });
+    return out;
+  },
+  _gridHtml(items) {
+    return `<div class="lib-grid">${items.map(it => this._gridCard(it.b, it.g || '')).join('')}</div>`;
+  },
+  _gridCard(b, gid) {
+    const kind = b.pdf ? 'ih' : 't';
+    const nid = Number(b.id);
+    const key = this._favKeyFor(kind, nid);
+    const dlk = this._dlKey(kind, nid);
+    const on = LibraryService.isFav(key);
+    const onShelf = LibraryService.isOnShelfKind(nid, kind);
+    const nm = escapeAttr(b.name || ''), au = escapeAttr(b.author || '');
+    const readFn = kind === 'ih' ? `LibraryPage._openPdfById(${nid},'jami')` : `LibraryPage._openBook(${nid})`;
+    const dlFn = kind === 'ih' ? `LibraryPage._dlPdfById(${nid},this)` : `LibraryPage._quickDownload(${nid},this)`;
+    return `<div class="lib-gcard">
+      <button class="lib-gcard-cover" onclick="${readFn}" aria-label="${escapeAttr(b.name || '')}">${this._cover(b, '', kind)}</button>
+      <div class="lib-gcard-t" onclick="${readFn}">${esc(b.name || '')}</div>
+      <div class="lib-gcard-a">${esc(b.author || '')}</div>
+      <div class="lib-gcard-acts">
+        <button class="lib-mini fav ${on ? 'on' : ''}" data-fk="${key}" data-nm="${nm}" data-au="${au}" title="${escapeAttr(this.L(on ? 'libFavRemove' : 'libFavAdd'))}" onclick="LibraryPage._toggleFav(event,'${key}','${kind}',${nid})"><i class="fa${on ? 's' : 'r'} fa-heart"></i></button>
+        <button class="lib-mini add ${onShelf ? 'on' : ''}" data-ak="${kind}_${nid}" title="${escapeAttr(this.L(onShelf ? 'libOnShelfShort' : 'libAddToShelf'))}" onclick="LibraryPage._addToShelf(event,'${kind}',${nid},'${escapeAttr(gid || '')}')"><i class="fas ${onShelf ? 'fa-check' : 'fa-plus'}"></i></button>
+        <button class="lib-mini read" title="${escapeAttr(this.L('libReadInside'))}" onclick="${readFn}"><i class="fas fa-book-open-reader"></i></button>
+        <button class="lib-mini dl" title="${escapeAttr(this.L(kind === 'ih' ? 'libDownloadPdf' : 'libDownload'))}" onclick="${dlFn}"><i class="fas fa-download"></i></button>
+      </div>
+      <div class="lib-card-slot" data-dlb="${dlk}">${this._dlBar(dlk)}</div>
+    </div>`;
   },
 };
 // ضمان الوصول من معالِجات onclick المُضمَّنة في القوالب
