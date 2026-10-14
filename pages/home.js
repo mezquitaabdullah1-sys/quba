@@ -1,4 +1,6 @@
 // 🏠 Pantalla de Inicio
+// v94: الرئيسية المبسّطة — رأس واحد ثابت (تحية/تاريخ/صلاة قادمة/أيقونات)، بطاقة صلوات مضغوطة،
+//      شريط «اليوم» بالسحب، وقسم وسائط واحد بثلاثة تبويبات (راديو/مقتطفات/مكتبة).
 const HomePage = {
   countdownInterval: null,
 
@@ -125,32 +127,42 @@ const HomePage = {
     // v26: progreso del check-in diario de oraciones (se reinicia cada día)
     const doneCount = (typeof PrayerTracker !== 'undefined') ? PrayerTracker.doneCount() : 0;
     const totalCount = (typeof PrayerTracker !== 'undefined') ? PrayerTracker.totalCount() : 5;
+    // v94: الرئيسية المبسّطة — معلومة واحدة في مكان واحد، سقف ارتفاع للبطاقات،
+    //      شريط «اليوم» بالسحب، وقسم وسائط واحد بثلاثة تبويبات.
+    const isAr = document.documentElement.dir === 'rtl';
+    const chev = 'fa-chevron-' + (isAr ? 'left' : 'right');
+    const loc0 = (typeof currentLocale !== 'undefined' && ['es', 'ar', 'en'].includes(currentLocale)) ? currentLocale : 'es';
+    const cityLine = [loc.city, loc.country].filter(Boolean).join(', ');
+    const now0 = new Date();
+    const gLine = String(now0.getDate()).padStart(2, '0') + '/' + String(now0.getMonth() + 1).padStart(2, '0') + '/' + now0.getFullYear();
+    const hLine = hijri ? (hijri.day + '/' + (hijri.month?.number || '') + '/' + hijri.year + ' ' + (loc0 === 'ar' ? 'هـ' : 'AH')) : '';
 
     container.innerHTML = `
-      <div class="home-header">
-        <div class="home-top">
-          <div>
+      <!-- v94: الرأس كتلة واحدة — تحية + سطر معلومة واحد + الصلاة القادمة + شريط الأيقونات (يثبت عند النزول) -->
+      <div class="home-header home-hero">
+        <div class="hh-top">
+          <div class="hh-title">
             <div class="home-greeting">${getGreetingByHour()}</div>
-            <div class="home-location"><i class="fas fa-location-dot"></i> ${escapeHtml(loc.city || '')}${loc.country ? ', ' + escapeHtml(loc.country) : ''}</div>
-            ${hijri ? `<div class="home-hijri">${hijri.day} ${hijri.month?.en} ${hijri.year} هـ</div>` : ''}
+            <div class="hh-meta">
+              <span class="hh-city"><i class="fas fa-location-dot"></i> ${escapeHtml(cityLine)}</span>
+              ${hLine ? `<span class="hh-dot">·</span><span class="hh-date"><i class="fas fa-moon"></i> ${hLine}<span class="hh-sep">/</span><i class="fas fa-calendar-day"></i> ${gLine}</span>` : ''}
+            </div>
           </div>
-          <button class="home-profile-btn" onclick="Router.go('profile')">
+          <button class="home-profile-btn" onclick="Router.go('profile')" aria-label="Profile">
             <i class="fas fa-user-circle"></i>
           </button>
         </div>
 
         ${nextPrayer ? `
-          <div class="next-prayer-card">
-            <div class="next-prayer-label">${t('nextPrayer')}</div>
-            <div class="next-prayer-name" id="next-prayer-name">${t('prayers.' + nextPrayer.name)}</div>
-            <div class="next-prayer-countdown" id="countdown">${formatCountdown(nextPrayer.diffMs)}</div>
-            <div class="next-prayer-time" id="next-prayer-time">${formatTime12h(nextPrayer.time)}</div>
-            ${isEstimated ? `<div class="estimated-badge"><i class="fas fa-wifi-slash"></i> ${t('estimatedTimes')}</div>` : ''}
+          <div class="hh-next">
+            <span class="hh-next-label">${t('nextPrayer')}</span>
+            <span class="hh-next-name" id="next-prayer-name">${t('prayers.' + nextPrayer.name)}</span>
+            <span class="hh-next-cd" id="countdown">${formatCountdown(nextPrayer.diffMs)}</span>
+            <span class="hh-next-time" id="next-prayer-time">${formatTime12h(nextPrayer.time)}</span>
+            ${isEstimated ? `<span class="estimated-badge"><i class="fas fa-wifi-slash"></i> ${t('estimatedTimes')}</span>` : ''}
           </div>
         ` : ''}
 
-        <!-- v27/v34: Accesos rápidos con iconos realistas a mitad de tamaño
-             (Corán, Du'as, Tasbih, Qibla con imagen propia, Cursos) -->
         <div class="home-quick-grid">
         <button class="quick-access-btn" onclick="Router.go('quran')" aria-label="${t('tabQuran')}">
           <span class="quick-access-icon"><img src="assets/quick/quran.png" alt="" loading="lazy" draggable="false"></span>
@@ -172,204 +184,173 @@ const HomePage = {
           <span class="quick-access-icon"><img src="assets/quick/courses.png" alt="" loading="lazy" draggable="false"></span>
           <span class="quick-access-label">${t('coursesTitle')}</span>
         </button>
+        <button class="quick-access-btn" onclick="Router.go('videos')" aria-label="${ClipsData.L('clipsTitle')}">
+          <span class="quick-access-icon"><img src="assets/quick/clips.png" alt="" loading="lazy" draggable="false"></span>
+          <span class="quick-access-label">${ClipsData.L('clipsTitle')}</span>
+        </button>
+        <button class="quick-access-btn" onclick="Router.go('radio')" aria-label="${RadioData.L('radioTitle')}">
+          <span class="quick-access-icon"><img src="assets/quick/radio.png" alt="" loading="lazy" draggable="false"></span>
+          <span class="quick-access-label">${RadioData.L('radioTitle')}</span>
+        </button>
+        <button class="quick-access-btn" onclick="Router.go('wisdom/library')" aria-label="${LibraryData.L('libTitle')}">
+          <span class="quick-access-icon"><img src="assets/quick/library.png" alt="" loading="lazy" draggable="false"></span>
+          <span class="quick-access-label">${LibraryData.L('libTitle')}</span>
+        </button>
         </div>
       </div>
 
-      <!-- Two prominent CTA buttons: Hijri Calendar + Prayer Table -->
-      <div class="home-cta-row">
-        <button class="hijri-cta-btn" onclick="Router.go('calendar')">
-          <div class="hijri-cta-icon"><i class="fas fa-moon"></i></div>
-          <div class="hijri-cta-content">
-            <div class="hijri-cta-title">${t('hijriCalendar')}</div>
-            <div class="hijri-cta-date">${hijri ? `${hijri.day} ${hijri.month?.ar || hijri.month?.en} ${hijri.year} هـ` : ''}</div>
+      <div class="hm-wrap">
+        <!-- بطاقة واحدة للصلوات: حبّات أفقية (اسم + وقت + إتمام + جرس) وزر الجدول الشهري -->
+        <section class="hm-card hm-prayers">
+          <div class="hm-card-head">
+            <h2 class="hm-title">${t('todayPrayers')}
+              <span class="prayer-checkin-progress">${doneCount}/${totalCount} ✔</span>
+            </h2>
+            <button class="hm-mini-btn" onclick="Router.go('prayer',{tab:'monthly'})">
+              <i class="fas fa-table-columns"></i> ${t('prayerTable') || ''}
+            </button>
           </div>
-        </button>
-
-        <button class="prayer-table-cta-btn" onclick="Router.go('prayer',{tab:'monthly'})">
-          <div class="hijri-cta-icon"><i class="fas fa-chart-column"></i></div>
-          <div class="hijri-cta-content">
-            <div class="hijri-cta-title">${t('prayerTable') || 'Tabla de oraciones'}</div>
-            <div class="hijri-cta-date">${t('viewMonth') || 'Vista mensual'}</div>
+          <div class="hm-strip hm-prayer-strip" id="hm-prayer-strip">
+            ${dailyPrayers.map(p => {
+              const canCheck = (typeof PrayerTracker !== 'undefined') && PrayerTracker.PRAYERS.includes(p.name);
+              const isDone = canCheck && PrayerTracker.isDone(p.name);
+              const passed = canCheck && this.isAdhanPassed(p.name);
+              const isNext = nextPrayer && nextPrayer.name === p.name;
+              return `
+              <div class="prayer-row hm-chip ${isNext ? 'next' : ''} ${isDone ? 'prayer-done' : ''}">
+                <span class="hm-chip-nm">${t('prayers.' + p.name)}</span>
+                <span class="prayer-time-block">
+                  <span class="prayer-time">${formatTime12h(p.time)}</span>
+                  ${isNext ? `<span class="prayer-remaining" data-prayer-remaining="${p.name}"><span class="prayer-remaining-text">${formatCountdown(nextPrayer.diffMs)}</span></span>` : ''}
+                </span>
+                <span class="hm-chip-tools">
+                  ${canCheck ? `
+                    <button class="hm-check ${isDone ? 'checked' : ''} ${passed ? '' : 'locked'}"
+                            aria-pressed="${isDone}"
+                            title="${escapeAttr(passed ? (t('prayerCheckinTitle') || '') : (t('prayerNotYetToast') || ''))}"
+                            onclick="HomePage.toggleCheckin('${p.name}', this)">
+                      <i class="fas ${passed ? 'fa-check' : 'fa-lock'}"></i>
+                    </button>`
+                  : '<span class="hm-check-spacer" aria-hidden="true"></span>'}
+                  ${this._prayerBellHtml(p.name) || '<span class="hm-check-spacer" aria-hidden="true"></span>'}
+                </span>
+              </div>`;
+            }).join('')}
           </div>
-        </button>
-      </div>
+          ${typeof DualTiming !== 'undefined' ? `<div class="hm-dual">${DualTiming.render()}</div>` : ''}
+        </section>
 
-      <!-- v63: أعلى الصفحة — شريط «أكمل القراءة» فقط (يظهر إن وُجدت آخر قراءة) -->
-      ${(() => { const rs = this._resumeStripHtml(); return rs ? `<div class="home-info-cards">${rs}</div>` : ''; })()}
+        <!-- «أكمل القراءة» — سطر واحد إن وُجد -->
+        ${(() => { const rs = this._resumeStripHtml(); return rs ? `<div class="hm-resume">${rs}</div>` : ''; })()}
 
-      <div style="padding: var(--sp-md);">
-        <!-- Oraciones del día + ubicación y fechas (hijri / gregoriana) -->
-        <div class="prayers-header">
-          <h2 class="section-title">${t('todayPrayers')}
-            <span class="prayer-checkin-progress" title="${t('prayerCheckinTitle')}">${doneCount}/${totalCount} ✔</span>
-          </h2>
-          <button class="prayers-location" onclick="ProfilePage.pickCity()" title="${escapeAttr(t('changeCity') || '')}" aria-label="${escapeAttr(t('changeCity') || 'Cambiar ciudad')}">
-            <i class="fas fa-location-dot"></i>
-            <span>${escapeHtml([loc.city, loc.country].filter(Boolean).join(', ') || (t('chooseCityOrLocation') || 'Elige una ciudad'))}</span>
-            <i class="fas fa-pen prayers-location-edit"></i>
-          </button>
-          ${hijri ? (() => {
-            const now = new Date();
-            const g = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
-            // v40: una sola línea, solo números, ambos separados por «/»
-            return `<div class="prayers-dates"><span class="prayers-date compact"><i class="fas fa-moon"></i> ${hijri.day}/${hijri.month?.number || ''}/${hijri.year} <span class="prayers-date-sep">/</span> <i class="fas fa-calendar-day"></i> ${g}</span></div>`;
-          })() : ''}
-        </div>
-        <div class="card prayers-card">
-          ${dailyPrayers.map(p => {
-            const canCheck = (typeof PrayerTracker !== 'undefined') && PrayerTracker.PRAYERS.includes(p.name);
-            const isDone = canCheck && PrayerTracker.isDone(p.name);
-            // v35: la casilla solo se puede marcar a partir de la hora del adhan;
-            // antes aparece bloqueada (gris) y muestra un aviso al tocarla.
-            const passed = canCheck && this.isAdhanPassed(p.name);
-            return `
-            <div class="prayer-row ${nextPrayer?.name === p.name ? 'next' : ''} ${isDone ? 'prayer-done' : ''}">
-              <span class="prayer-emoji">${getPrayerEmoji(p.name)}</span>
-              <div class="prayer-name-block">
-                <div class="prayer-name">${t('prayers.' + p.name)}</div>
-              </div>
-              <div class="prayer-time-block">
-                <div class="prayer-time">${formatTime12h(p.time)}</div>
-                ${nextPrayer?.name === p.name ? `<div class="prayer-remaining" data-prayer-remaining="${p.name}"><i class="fas fa-hourglass-half"></i> <span class="prayer-remaining-text">${formatCountdown(nextPrayer.diffMs)}</span></div>` : ''}
-              </div>
-              ${this._prayerBellHtml(p.name) || '<span class="prayer-bell-spacer" aria-hidden="true"></span>'}
-              ${canCheck ? `
-                <button class="prayer-check ${isDone ? 'checked' : ''} ${passed ? '' : 'locked'}"
-                        aria-label="${t('prayerCheckinTitle')}"
-                        aria-pressed="${isDone}"
-                        title="${passed ? t('prayerCheckinTitle') : (t('prayerNotYetToast') || '')}"
-                        onclick="HomePage.toggleCheckin('${p.name}', this)">
-                  <i class="fas ${passed ? 'fa-check' : 'fa-lock'}"></i>
-                </button>`
-                // v35: Shuruk no tiene casilla — espaciador del mismo ancho
-                // para que su hora quede alineada con las demás oraciones.
-                : '<span class="prayer-check-spacer" aria-hidden="true"></span>'}
-            </div>`;
-          }).join('')}
-        </div>
+        <!-- شريط «اليوم»: آية · دعاء · حديث · مناسبة — يسحب يمينًا/يسارًا، كل بطاقة بسقف ارتفاع -->
+        <section class="hm-today">
+          <div class="hm-today-strip">
+            ${verse ? `
+              <article class="hm-today-card hm-c-verse">
+                <div class="hm-today-h"><i class="fas fa-book-open-reader"></i> ${t('verseOfDay')}</div>
+                <div class="hm-today-ar" dir="rtl">${escapeHtml(verse.arabic)}</div>
+                <div class="hm-today-tr">"${escapeHtml(verse['translation_' + loc0] || verse.translation_es)}"</div>
+                <div class="hm-today-src">— ${escapeHtml(verse.surahName)} ${verse.surahNumber}:${verse.ayahNumber}</div>
+                <button class="hm-icon-btn" onclick="ShareCard.open('verse')" aria-label="${escapeAttr(t('shareCardBtn') || '')}"><i class="fas fa-share-nodes"></i></button>
+              </article>` : ''}
+            ${dua ? `
+              <article class="hm-today-card hm-c-dua">
+                <div class="hm-today-h"><i class="fas fa-hands-praying"></i> ${t('duaOfDay')}</div>
+                <div class="hm-today-t">${escapeHtml(dua['title_' + loc0] || dua.title || '')}</div>
+                <div class="hm-today-ar" dir="rtl">${escapeHtml(dua.arabic || '')}</div>
+                <div class="hm-today-tr">"${escapeHtml(dua['translation_' + loc0] || dua.translation_es || dua.translation || '')}"</div>
+                <button class="hm-icon-btn" onclick="ShareCard.open('dua')" aria-label="${escapeAttr(t('shareCardBtn') || '')}"><i class="fas fa-share-nodes"></i></button>
+              </article>` : ''}
+            ${hadith ? `
+              <article class="hm-today-card hm-c-hadith">
+                <div class="hm-today-h"><i class="fas fa-scroll"></i> ${t('hadithOfDay')}</div>
+                <div class="hm-today-ar" dir="rtl">${escapeHtml(hadith.arabic || '')}</div>
+                <div class="hm-today-tr">"${escapeHtml(hadith['translation_' + loc0] || hadith.translation_es || '')}"</div>
+                <div class="hm-today-src">— ${escapeHtml(hadith['source_' + loc0] || hadith.source_es || '')}</div>
+              </article>` : ''}
+            ${virtue ? `
+              <article class="hm-today-card hm-c-virtue">
+                <div class="hm-today-h"><i class="fas fa-sparkles"></i> ${escapeHtml(virtue.title || '')}</div>
+                <div class="hm-today-tr">${escapeHtml(virtue.verse || '')}</div>
+                <div class="hm-today-src">— ${escapeHtml(virtue.source || '')}</div>
+              </article>` : ''}
+          </div>
+        </section>
 
-        <!-- v34: franja de horario secundario (otra ciudad) — debajo de la tabla principal -->
-        ${typeof DualTiming !== 'undefined' ? DualTiming.render() : ''}
-
-        <!-- Famous Verse of the Day with Wisdom -->
-        ${verse ? `
-          <h2 class="section-title"><i class="fas fa-book-open-reader"></i> ${t('verseOfDay')}</h2>
-          <div class="card-gradient">
-            <div class="verse-arabic">${escapeHtml(verse.arabic)}</div>
-            <div class="verse-translit">${escapeHtml(verse.transliteration)}</div>
-            <div class="verse-divider"></div>
-            <div class="verse-translation">"${escapeHtml(verse['translation_' + (AppState.settings.locale || 'es')] || verse.translation_es)}"</div>
-            <div class="verse-source">— ${escapeHtml(verse.surahName)} ${verse.surahNumber}:${verse.ayahNumber}</div>
-            <div class="verse-wisdom">
-              <i class="fas fa-lightbulb"></i>
-              <span>${escapeHtml(verse['wisdom_' + (AppState.settings.locale || 'es')] || verse.wisdom_es)}</span>
+        <!-- قسم واحد للوسائط: راديو · مقتطفات · مكتبة -->
+        <section class="hm-media">
+          <div class="hm-media-head">
+            <div class="hm-tabs" role="tablist">
+              <button class="hm-tab active" data-pane="radio" onclick="HomePage.mediaTab('radio')"><i class="fas fa-radio"></i> ${RadioData.L('radioTitle')}</button>
+              <button class="hm-tab" data-pane="clips" onclick="HomePage.mediaTab('clips')"><i class="fas fa-circle-play"></i> ${ClipsData.L('clipsTitle')}</button>
+              <button class="hm-tab" data-pane="library" onclick="HomePage.mediaTab('library')"><i class="fas fa-book"></i> ${LibraryData.L('libTitle')}</button>
             </div>
-            <button class="share-card-btn" onclick="ShareCard.open('verse')">
-              <i class="fas fa-share-nodes"></i> ${t('shareCardBtn')}
-            </button>
+            <button class="hm-mini-btn" id="hm-media-more" onclick="HomePage.mediaMore()">${ClipsData.L('clipsSeeAll')} <i class="fas ${chev}"></i></button>
           </div>
-        ` : ''}
 
-        <!-- Du'a del día -->
-        <h2 class="section-title"><i class="fas fa-hands-praying"></i> ${t('duaOfDay')}</h2>
-        <div class="card dua-day-card">
-          <div class="dua-title">${escapeHtml(dua['title_' + (AppState.settings.locale || 'es')] || dua.title)}</div>
-          <div class="dua-arabic">${dua.arabic}</div>
-          <div class="dua-transliteration">${dua.transliteration}</div>
-          <div class="dua-translation">"${escapeHtml(dua['translation_' + (AppState.settings.locale || 'es')] || dua.translation_es || dua.translation)}"</div>
-          <div class="dua-source">— ${dua.source}</div>
-          <button class="share-card-btn" onclick="ShareCard.open('dua')">
-            <i class="fas fa-share-nodes"></i> ${t('shareCardBtn')}
-          </button>
-        </div>
-
-        <!-- v57: الراديو الإسلامي — أسفل دعاء اليوم بألوان التطبيق -->
-        <h2 class="section-title"><i class="fas fa-radio"></i> ${RadioData.L('radioTitle')}</h2>
-        <div class="radio-hub-grid">
-          <button class="radio-hub-btn rh-quran" onclick="Router.go('radio')" aria-label="${RadioData.L('homeQuranRadio')}">
-            <i class="fas fa-tower-broadcast"></i><span>${RadioData.L('homeQuranRadio')}</span>
-          </button>
-          <button class="radio-hub-btn rh-translated" onclick="Router.go('radio',{tab:'translated'})" aria-label="${RadioData.L('homeQuranTranslated')}">
-            <i class="fas fa-language"></i><span>${RadioData.L('homeQuranTranslated')}</span>
-          </button>
-          <button class="radio-hub-btn rh-adhkar" onclick="Router.go('radio',{tab:'extra'})" aria-label="${RadioData.L('homeAdhkarAudio')}">
-            <i class="fas fa-moon"></i><span>${RadioData.L('homeAdhkarAudio')}</span>
-          </button>
-        </div>
-
-        <!-- v57: مقتطفات دينية — تحت الراديو مباشرة، بطاقتان أسبوعيتان + زر «الكل» -->
-        <div class="clips-home-head">
-          <h2 class="section-title"><i class="fas fa-circle-play"></i> ${ClipsData.L('clipsTitle')}</h2>
-          <button class="clips-home-all" onclick="Router.go('videos')">${ClipsData.L('clipsAll')} <i class="fas fa-chevron-${document.documentElement.dir === 'rtl' ? 'left' : 'right'}"></i></button>
-        </div>
-        <div class="clips-home-row">
-          ${ClipsData.VIDEOS.slice(0, 10).map(v => `
-            <button class="clip-home-card" onclick="Router.go('videos',{play:'${v.id}'})" aria-label="${escapeAttr(v.title)}">
-              <span class="clip-home-thumb">
-                <img src="${ClipsData.thumb(v.id)}" alt="" loading="lazy" draggable="false" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/mqdefault.jpg';">
-                <span class="clip-play"><i class="fas fa-play"></i></span>
-              </span>
-              <span class="clip-home-title">${escapeHtml(v.title)}</span>
-              <span class="clip-home-watch"><i class="fas fa-circle-play"></i> ${ClipsData.L('clipsWatch')}</span>
-            </button>
-          `).join('')}
-        </div>
-
-        <!-- v83: المكتبة الإسلامية — كتب رفّك أولًا، ثم بطاقات تصفّح المكتبة -->
-        <div class="clips-home-head">
-          <h2 class="section-title"><i class="fas fa-book-bookmark"></i> ${LibraryData.L('libHomeShelfTitle')}</h2>
-          <button class="clips-home-all" onclick="Router.go('wisdom/library',{shelf:true})">${LibraryData.L('libSeeAll')} <i class="fas fa-chevron-${document.documentElement.dir === 'rtl' ? 'left' : 'right'}"></i></button>
-        </div>
-        ${(() => {
-          const sl = (typeof LibraryService !== 'undefined' && LibraryService.shelf()) || [];
-          if (!sl.length) return `<button class="lib-empty-home" onclick="Router.go('wisdom/library')">
-              <span class="lib-empty-ic"><i class="fas fa-plus"></i></span>
-              <span class="lib-empty-t">${LibraryData.L('libShelfHomeEmptyTitle')}</span>
-              <span class="lib-empty-d">${LibraryData.L('libShelfHomeEmptyDesc')}</span>
-            </button>`;
-          return `<div class="clips-home-row lib-home-row">${sl.slice(0, 12).map(b => {
-            const k = b.kind || 't';
-            const go = k === 'ih' ? ('Router.go(\'wisdom/library\',{ihbook:' + b.id + '})') : ('Router.go(\'wisdom/library\',{book:' + b.id + '})');
-            return `<button class="lib-home-card" onclick="${go}" aria-label="${escapeAttr(b.name || '')}">
-                ${LibraryPage._cover(b, '', k)}
-                <span class="clip-home-title">${escapeHtml(b.name || '')}</span>
-                <span class="lib-home-author">${escapeHtml(b.author || '')}</span>
-              </button>`;
-          }).join('')}</div>`;
-        })()}
-
-        <div class="clips-home-head">
-          <h2 class="section-title"><i class="fas fa-book-open"></i> ${LibraryData.L('libExploreLibrary')}</h2>
-          <button class="clips-home-all" onclick="Router.go('wisdom/library')">${LibraryData.L('libMore')} <i class="fas fa-chevron-${document.documentElement.dir === 'rtl' ? 'left' : 'right'}"></i></button>
-        </div>
-        <div class="lib-hub-grid">
-          <button class="lib-hub-btn lh-nm" onclick="Router.go('wisdom/library',{newmuslims:true})"><i class="fas fa-seedling"></i><span>${LibraryData.L('libCardNewMuslims')}</span></button>
-          <button class="lib-hub-btn lh-kids" onclick="Router.go('wisdom/library',{kids:true})"><i class="fas fa-child-reaching"></i><span>${LibraryData.L('libCardKids')}</span></button>
-          <button class="lib-hub-btn lh-qisas" onclick="Router.go('wisdom/library',{topic:'qisas'})"><i class="fas fa-feather"></i><span>${LibraryData.L('libSecQisas')}</span></button>
-          <button class="lib-hub-btn lh-seerah" onclick="Router.go('wisdom/library',{topic:'seerah'})"><i class="fas fa-book"></i><span>${LibraryData.L('libSecSeerah')}</span></button>
-          <button class="lib-hub-btn lh-hadith" onclick="Router.go('wisdom/library',{topic:'hadith'})"><i class="fas fa-quote-right"></i><span>${LibraryData.L('libSecHadith')}</span></button>
-          <button class="lib-hub-btn lh-fiqh" onclick="Router.go('wisdom/library',{topic:'fiqh'})"><i class="fas fa-scale-balanced"></i><span>${LibraryData.L('libSecFiqh')}</span></button>
-        </div>
-
-        <!-- v63: حديث اليوم — أسفل مقتطفات دينية، ببطاقة على نمط دعاء اليوم -->
-        ${this._hadithCardHtml(hadith)}
-
-        <!-- Virtud del día -->
-        ${virtue ? `
-          <h2 class="section-title"><i class="fas fa-sparkles"></i> ${virtue.title}</h2>
-          <div class="card virtue-card">
-            <div class="virtue-text">${virtue.verse}</div>
-            <div class="virtue-source">— ${virtue.source}</div>
+          <div class="hm-pane" id="hm-pane-radio">
+            <div class="radio-hub-grid">
+              <button class="radio-hub-btn rh-quran" onclick="Router.go('radio')" aria-label="${RadioData.L('homeQuranRadio')}">
+                <i class="fas fa-tower-broadcast"></i><span>${RadioData.L('homeQuranRadio')}</span>
+              </button>
+              <button class="radio-hub-btn rh-translated" onclick="Router.go('radio',{tab:'translated'})" aria-label="${RadioData.L('homeQuranTranslated')}">
+                <i class="fas fa-language"></i><span>${RadioData.L('homeQuranTranslated')}</span>
+              </button>
+              <button class="radio-hub-btn rh-adhkar" onclick="Router.go('radio',{tab:'extra'})" aria-label="${RadioData.L('homeAdhkarAudio')}">
+                <i class="fas fa-moon"></i><span>${RadioData.L('homeAdhkarAudio')}</span>
+              </button>
+            </div>
           </div>
-        ` : ''}
 
-        <!-- v63: أسفل الصفحة — العد التنازلي لرمضان فوق يوم الصيام القادم، ثم المناسبة القادمة -->
-        <div class="home-bottom-cards">
+          <div class="hm-pane" id="hm-pane-clips" hidden>
+            <div class="hm-strip clips-home-row hm-clips-row">
+              ${ClipsData.VIDEOS.slice(0, 10).map(v => `
+                <button class="clip-home-card" onclick="Router.go('videos',{play:'${v.id}'})" aria-label="${escapeAttr(v.title)}">
+                  <span class="clip-home-thumb">
+                    <img src="${ClipsData.thumb(v.id, true)}" alt="" loading="lazy" draggable="false" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/mqdefault.jpg';">
+                    <span class="clip-play"><i class="fas fa-play"></i></span>
+                  </span>
+                  <span class="clip-home-title">${escapeHtml(v.title)}</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="hm-pane" id="hm-pane-library" hidden>
+            ${(() => {
+              const sl = (typeof LibraryService !== 'undefined' && LibraryService.shelf()) || [];
+              if (!sl.length) return `<button class="lib-empty-home" onclick="Router.go('wisdom/library')">
+                  <span class="lib-empty-ic"><i class="fas fa-plus"></i></span>
+                  <span class="lib-empty-t">${LibraryData.L('libShelfHomeEmptyTitle')}</span>
+                  <span class="lib-empty-d">${LibraryData.L('libShelfHomeEmptyDesc')}</span>
+                </button>`;
+              return `<div class="hm-strip clips-home-row lib-home-row hm-lib-row">${sl.slice(0, 10).map(b => {
+                const k = b.kind || 't';
+                const go = k === 'ih' ? ('Router.go(\'wisdom/library\',{ihbook:' + b.id + '})') : ('Router.go(\'wisdom/library\',{book:' + b.id + '})');
+                return `<button class="lib-home-card" onclick="${go}" aria-label="${escapeAttr(b.name || '')}">
+                    ${LibraryPage._cover(b, '', k)}
+                    <span class="clip-home-title">${escapeHtml(b.name || '')}</span>
+                  </button>`;
+              }).join('')}</div>`;
+            })()}
+            <div class="hm-lib-chips">
+              <button class="hm-lib-chip" onclick="Router.go('wisdom/library',{newmuslims:true})"><i class="fas fa-seedling"></i> ${LibraryData.L('libCardNewMuslims')}</button>
+              <button class="hm-lib-chip" onclick="Router.go('wisdom/library',{kids:true})"><i class="fas fa-child-reaching"></i> ${LibraryData.L('libCardKids')}</button>
+              <button class="hm-lib-chip" onclick="Router.go('wisdom/library',{topic:'qisas'})"><i class="fas fa-feather"></i> ${LibraryData.L('libSecQisas')}</button>
+              <button class="hm-lib-chip" onclick="Router.go('wisdom/library',{topic:'seerah'})"><i class="fas fa-book"></i> ${LibraryData.L('libSecSeerah')}</button>
+              <button class="hm-lib-chip" onclick="Router.go('wisdom/library',{topic:'hadith'})"><i class="fas fa-quote-right"></i> ${LibraryData.L('libSecHadith')}</button>
+              <button class="hm-lib-chip" onclick="Router.go('wisdom/library',{topic:'fiqh'})"><i class="fas fa-scale-balanced"></i> ${LibraryData.L('libSecFiqh')}</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- سطر الذيل الموحّد: رمضان · الصيام · المناسبة -->
+        <div class="hm-footer-strip">
           ${this._ramadanCountdownHtml()}
           ${this._nextFastHtml()}
           ${this._nextEventHtml()}
         </div>
-
       </div>
     `;
   },
@@ -728,6 +709,27 @@ const HomePage = {
           `<div class="prayer-remaining" data-prayer-remaining="${np.name}"><i class="fas fa-hourglass-half"></i> <span class="prayer-remaining-text">${formatCountdown(np.diffMs)}</span></div>`);
       }
     }
+  },
+
+  // ============ v94: تبويبات قسم الوسائط (راديو · مقتطفات · مكتبة) ============
+  _mPane: 'radio',
+
+  mediaTab(pane) {
+    if (['radio', 'clips', 'library'].indexOf(pane) === -1) pane = 'radio';
+    this._mPane = pane;
+    ['radio', 'clips', 'library'].forEach(k => {
+      const el = document.getElementById('hm-pane-' + k);
+      if (el) el.hidden = (k !== pane);
+    });
+    const root = document.getElementById('main-content') || document;
+    root.querySelectorAll('.hm-tab').forEach(b => b.classList.toggle('active', b.dataset.pane === pane));
+  },
+
+  mediaMore() {
+    const p = this._mPane || 'radio';
+    if (p === 'clips') Router.go('videos');
+    else if (p === 'library') Router.go('wisdom/library');
+    else Router.go('radio');
   },
 
   cleanup() {

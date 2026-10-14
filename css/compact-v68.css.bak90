@@ -1,0 +1,204 @@
+/* ============================================================================
+   v68 — شاشات مضغوطة: ماسكوتا أصغر + صفحات الدروس والأسئلة تتّسع للشاشة بلا تمرير
+   يُحمَّل أخيراً ليغلب على courses.css و courses-v2.css (نفس الأسلوب: أحجام نسبية لارتفاع الشاشة)
+   ============================================================================ */
+:root { --cx-vh: 100vh; --cx-dock: calc(84px + env(safe-area-inset-bottom, 0px)); }
+@supports (height: 100dvh) { :root { --cx-vh: 100dvh; } }
+
+/* ── الماسكوتا ─────────────────────────────────────────────── */
+.mascot-small  { height: 40px; }
+.mascot-medium { height: 80px; }
+.mascot-large  { height: 104px; }
+.mascot-xl     { height: 128px; }
+.lesson-screen .mascot-medium,
+.lesson-screen .lesson-mascot   { height: clamp(40px, calc(var(--cx-vh) * .075), 60px); margin: 0 auto 4px; }
+.lesson-screen .mascot-xl,
+.station-complete .mascot-xl    { height: clamp(96px, calc(var(--cx-vh) * .17), 130px); }
+.quiz-feedback .mascot-small    { height: 34px; }
+.mascot-speech-bubble           { font-size: 13px; padding: 8px 12px; }
+
+/* ── إطار شاشة الدرس ──────────────────────────────────────── */
+.main-content:has(.lesson-screen) { padding-bottom: var(--cx-dock); }
+.lesson-screen  { min-height: 0; }
+.lesson-topbar  { padding: 8px 12px; gap: 10px; }
+.lesson-close   { width: 30px; height: 30px; font-size: 13px; }
+.lesson-progress-track { height: 8px; }
+.lesson-counter { font-size: 12px; min-width: 34px; }
+.lesson-content { padding: 6px 12px 8px; }
+
+/* ── بطاقات المحتوى ───────────────────────────────────────── */
+.lesson-screen .lesson-card { padding: 12px 12px 14px; border-radius: 18px; }
+.lesson-card-title { font-size: 17px; margin: 2px 0 8px; }
+.lesson-card-content { font-size: 13.5px; line-height: 1.55; }
+.lesson-continue-btn { margin-top: 10px; padding: 11px 28px; font-size: 14px; }
+.station-intro-content { padding: 10px 16px; }
+.station-intro-title { font-size: 18px; margin: 8px 0 4px; }
+.station-intro-meta { margin-bottom: 12px; }
+.station-start-btn { padding: 11px 30px; }
+
+/* ── الأسئلة (اختيار من متعدد) ───────────────────────────── */
+.lesson-quiz-q { font-size: 19px; font-weight: 800; margin: 4px 0 10px; line-height: 1.35; }
+.cx-q-big { font-size: clamp(40px, calc(var(--cx-vh) * .07), 54px); margin: 0; line-height: 1.15; }
+.cx-audio-btn { width: 40px; height: 40px; font-size: 16px; margin: 4px auto; }
+.lesson-quiz-options { gap: 9px; }
+.lq-option { padding: clamp(9px, calc(var(--cx-vh) * .015), 14px) 14px; gap: 12px; font-size: 16.5px; font-weight: 600; border-radius: 14px; }
+.lq-option:hover { transform: none; }
+.lq-letter { width: 30px; height: 30px; font-size: 13.5px; }
+.lq-big .lq-text { font-size: 25px; line-height: 1.2; }
+
+/* ── الصور: حجم موحّد (مربّع) في كل مكان ─────────────────── */
+.cx-pic { position: relative; overflow: hidden; border-radius: 14px; flex-shrink: 0; }
+.cx-pic-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; background: var(--surface-alt, #f4efe6); }
+.cx-pic.cx-q-pic {
+  display: flex; width: clamp(92px, calc(var(--cx-vh) * .19), 148px); aspect-ratio: 1 / 1; height: auto;
+  margin: 4px auto; border-radius: 16px; box-shadow: 0 3px 10px rgba(0,0,0,.12);
+}
+.cx-q-pic .cx-pic-emoji { font-size: clamp(44px, calc(var(--cx-vh) * .09), 68px); line-height: 1; }
+.cx-pic.cx-letter-ex-pic { width: 52px; height: 52px; }
+.cx-letter-ex-pic .cx-pic-emoji { font-size: 28px; }
+
+/* ── المفردات: بطاقات أفقية صغيرة ─────────────────────────── */
+.cx-vocab.lesson-card { padding: 10px 10px 12px; }
+.cx-vocab .lesson-card-title { font-size: 16px; margin: 0 0 6px; }
+.cx-vocab .cx-info-intro { font-size: 12px; line-height: 1.4; margin-bottom: 6px; }
+.cx-vocab-grid { gap: 6px; }
+.cx-vocab-card {
+  display: grid; grid-template-columns: 44px 1fr; column-gap: 8px; align-items: center;
+  padding: 6px 8px; text-align: start; border-radius: 12px;
+}
+.cx-vocab-card .cx-pic { grid-row: 1 / span 3; width: 44px; height: 44px; border-radius: 10px; }
+.cx-vocab-card .cx-pic-emoji { font-size: 24px; }
+.cx-vocab-card .cx-vocab-ar { font-size: 18px; line-height: 1.25; }
+.cx-vocab-card .cx-vocab-tr { font-size: 10.5px; line-height: 1.2; }
+.cx-vocab-card .cx-vocab-meaning { font-size: 11.5px; line-height: 1.2; margin-top: 1px; }
+.cx-vocab .lesson-continue-btn { margin-top: 8px; padding: 10px 24px; }
+
+/* ── بطاقة الحرف ──────────────────────────────────────────── */
+.al-letter-hero { margin: 4px 0; gap: 10px; }
+.al-letter-glyph { font-size: clamp(52px, calc(var(--cx-vh) * .09), 66px); }
+.al-section { margin-bottom: 6px; }
+.cx-form-cell { padding: 5px 3px; }
+.cx-form-glyph { font-size: 20px; }
+.al-example-card { padding: 8px 10px; margin: 6px 0; }
+
+/* ── مطابقة / ترتيب / كتابة ───────────────────────────────── */
+.cx-mp-btn { padding: 9px 6px; }
+.cx-mp-col { gap: 6px; }
+.cx-wo-answer { min-height: 44px; padding: 7px; }
+.cx-wo-tile { padding: 6px 11px; }
+.cx-wt-canvas { max-width: min(320px, calc(var(--cx-vh) * .36)); }
+
+/* ── ملاحظة التصحيح: صغيرة وتحت الخيارات مباشرة ──────────── */
+.lesson-screen .quiz-feedback { margin-top: 8px; padding: 8px 10px; border-radius: 14px; }
+.lesson-screen .qf-row { gap: 8px; align-items: center; margin-bottom: 6px; }
+.lesson-screen .qf-status { font-size: 14px; margin-bottom: 1px; }
+.lesson-screen .qf-explanation { font-size: 12.5px; line-height: 1.4; }
+.lesson-screen .quiz-feedback .btn-primary { width: 100%; padding: 9px 16px; font-size: 14px; }
+
+/* ── شاشات قصيرة (هواتف صغيرة) ────────────────────────────── */
+@media (max-height: 700px) {
+  .lesson-screen .mascot-medium, .lesson-screen .lesson-mascot { height: 38px; }
+  .lesson-quiz-q { font-size: 17px; margin: 2px 0 6px; }
+  .cx-pic.cx-q-pic { width: 84px; }
+  .lq-option { padding: 7px 11px; font-size: 15.5px; }
+  .lq-big .lq-text { font-size: 23px; }
+  .cx-q-big { font-size: 38px; }
+  .cx-vocab-card { padding: 4px 6px; }
+  .cx-vocab-card .cx-pic { width: 38px; height: 38px; }
+  .cx-vocab-card { grid-template-columns: 38px 1fr; }
+}
+
+/* ── بطاقة الحرف (courses.css كانت تعطيها حشواً كبيراً) ───── */
+.arabic-letter-lesson .al-letter-hero { padding: 10px 14px 8px; margin: 0 0 8px; border-radius: 18px; border-width: 1.5px; }
+.arabic-letter-lesson .al-letter-glyph { margin-bottom: 0; text-shadow: 2px 2px 0 rgba(212,175,55,.25); }
+.arabic-letter-lesson .al-letter-name { font-size: 15px; margin: 0 0 6px; }
+.arabic-letter-lesson .al-speak-btn { padding: 8px 16px; font-size: 14px; }
+.arabic-letter-lesson .al-section { padding: 8px 12px; margin-bottom: 8px; border-radius: 12px; }
+.arabic-letter-lesson .al-section-label { font-size: 11px; margin-bottom: 5px; letter-spacing: .8px; }
+.arabic-letter-lesson .al-sound-desc { font-size: 13.5px; line-height: 1.45; }
+.arabic-letter-lesson .al-note { font-size: 12.5px; line-height: 1.45; }
+.arabic-letter-lesson .al-note-box { padding: 6px 10px; margin: 6px 0; }
+.arabic-letter-lesson .al-forms-grid { gap: 5px; }
+.arabic-letter-lesson .al-example-card { padding: 8px 10px; margin: 0 0 8px; }
+.arabic-letter-lesson .al-example-word { font-size: 22px; }
+.arabic-letter-lesson .cx-video-block { max-width: 72%; margin-left: auto; margin-right: auto; }
+.arabic-letter-lesson .lesson-continue-btn { margin-top: 6px; }
+
+@media (max-height: 700px) {
+  .cx-vocab-grid { gap: 4px; }
+  .cx-vocab-card { padding: 3px 6px; }
+  .cx-vocab-card .cx-vocab-ar { font-size: 16px; }
+  .cx-vocab .cx-info-intro { display: none; }
+  .cx-vocab .lesson-card-title { font-size: 15px; margin-bottom: 4px; }
+  .cx-vocab .lesson-continue-btn { margin-top: 6px; padding: 8px 22px; }
+}
+
+
+/* ============================================================================
+   v69 — فيديو التعريف بملء الشاشة (أول فتح للكورس) + زر «ابدأ» الذهبي
+   ============================================================================ */
+.cx-intro-overlay {
+  position: fixed; inset: 0; z-index: 6000; background: #0b2a20; display: flex;
+  align-items: center; justify-content: center; overflow: hidden;
+  animation: cxIntroIn .25s ease;
+}
+@keyframes cxIntroIn { from { opacity: 0; } to { opacity: 1; } }
+/* v70: خلفية ضبابية من صورة الغلاف تملأ جانبَي/أعلى وأسفل الشاشة، فلا تظهر أشرطة سوداء مهما كانت نسبة الشاشة */
+.cx-intro-overlay::before {
+  content: ''; position: absolute; inset: -40px; z-index: 0;
+  background: var(--cx-intro-bg, none) center / cover no-repeat;
+  filter: blur(26px) brightness(.5) saturate(1.1); transform: scale(1.1);
+}
+/* v70: الفيديو (9:16) يظهر كاملاً دائماً بلا أي قصّ (الترجمة والنصوص داخل الفيديو تبقى سليمة)
+   ويكبر حتى يلامس أقرب حافتين للشاشة؛ المساحة المتبقية تملؤها الخلفية الضبابية */
+.cx-intro-video {
+  position: relative; z-index: 1; display: block; background: transparent;
+  width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain;
+}
+
+.cx-intro-skip {
+  position: absolute; top: calc(env(safe-area-inset-top, 0px) + 12px); inset-inline-end: 14px;
+  width: 38px; height: 38px; border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(0,0,0,.38); color: #fff8ed; font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.cx-intro-play {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 78px; height: 78px; border-radius: 50%; border: none; cursor: pointer;
+  background: linear-gradient(180deg, #D9A93A, #A67C1A); color: #fff8ed; font-size: 30px;
+  box-shadow: 0 8px 26px rgba(0,0,0,.45); padding-inline-start: 5px;
+}
+.cx-intro-play[hidden], .cx-intro-end[hidden] { display: none; }
+.cx-intro-skip, .cx-intro-play, .cx-intro-end { z-index: 2; } /* v70: فوق الفيديو والخلفية الضبابية */
+
+.cx-intro-end {
+  position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: center;
+  padding: 72px 24px calc(env(safe-area-inset-bottom, 0px) + 44px);
+  background: linear-gradient(0deg, rgba(8,32,24,.82) 0%, rgba(8,32,24,.55) 55%, rgba(8,32,24,0) 100%);
+  opacity: 0; transform: translateY(14px); transition: opacity .45s ease, transform .45s ease;
+}
+.cx-intro-end.show { opacity: 1; transform: translateY(0); }
+.cx-intro-start {
+  min-width: 220px; max-width: 100%; padding: 15px 44px; border: none; border-radius: 999px; cursor: pointer;
+  font-family: inherit; font-size: 22px; font-weight: 800; letter-spacing: .2px; line-height: 1.2;
+  color: #FFF8ED; text-shadow: 0 1px 2px rgba(70, 45, 0, .55);
+  background: linear-gradient(180deg, #D4A03A 0%, #B07F1E 55%, #98701A 100%);
+  box-shadow: 0 0 0 2px rgba(255, 233, 170, .55) inset, 0 8px 22px rgba(0,0,0,.4), 0 0 28px rgba(212,160,58,.45);
+  animation: cxIntroPulse 1.8s ease-in-out .5s 2;
+}
+.cx-intro-start:active { transform: scale(.97); }
+.cx-intro-start:focus-visible, .cx-intro-skip:focus-visible, .cx-intro-play:focus-visible { outline: 3px solid #FFF8ED; outline-offset: 3px; }
+@keyframes cxIntroPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+@media (prefers-reduced-motion: reduce) { .cx-intro-start { animation: none; } .cx-intro-end { transition: none; } }
+
+/* الفيديو التعريفي داخل المرحلة: عمودي 9:16 ويتّسع للشاشة (v70: العرض يُحسب من الارتفاع المتاح فيبقى الإطار 9:16 بالضبط بلا تشويه) */
+.cx-video-el {
+  --cx-vid-h: clamp(240px, calc(var(--cx-vh) - 380px), 480px);
+  display: block; aspect-ratio: 9 / 16; height: auto; max-height: none;
+  width: min(100%, calc(var(--cx-vid-h) * 9 / 16)); margin: 0 auto;
+  object-fit: contain; background: #000;
+}
+.cx-video-lesson .cx-video-summary { font-size: 12.5px; line-height: 1.4; }
+.cx-video-lesson .cx-video-title { font-size: 14px; margin-top: 6px; }
+.cx-video-lesson .cx-video-stopnote { display: none; }

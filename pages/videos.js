@@ -2,11 +2,15 @@
 // v59: فئات اللغة + فتح فيديو مباشرة من الرئيسية (params.play)
 // v72: شريط تصنيفات (مختارات/أطفال/قرآن/بودكاست/أسئلة) تحت شريط اللغة، صفوف أفقية حسب التصنيف
 //      على طريقة يوتيوب في عرض «الكل»، وبحث في الأعلى. أزرار التقسيم بلا أيقونات وقابلة للتمرير.
+// v93: الشريط الأخضر يجمع: مبدّل لغة مصغّر (اختصار + علم + قائمة) + زر «ثلاث شحطات» يفتح كل التصنيفات
+//      (الأساسية + القديمة المُزالة + قوائم التشغيل). شريط واحد فقط للتصنيفات الأساسية فوق الفيديوهات.
+// v91: ٣ تصنيفات فقط (محاضرات/بودكاست/تلاوات قرآنية — والتلاوات تشمل القرآن المترجم) + تنبيه الإعلانات
 // v85: نبذة أسفل كل فيديو + زر «افتح في يوتيوب» أصغر + مفضلة (قلب أسفل الفيديو)
 //      محفوظة محليًا ويُعاد إليها من أيقونة القلب في الشريط العلوي.
 const ClipsPage = {
   _tab: 'es',        // es | ar | en | albums
-  _topic: 'all',     // all | featured | kids | quran | podcast | questions | lang | lectures | recitation
+  _lang: 'es',       // اللغة الحالية (تبقى محفوظة أثناء عرض قوائم التشغيل)
+  _topic: 'all',     // all | lectures | podcast | recitation | featured | quran | questions | kids | lang
   _search: false,    // شريط البحث مفتوح؟
   _fav: false,       // عرض المفضلة؟
   _q: '',            // نص البحث الحالي
@@ -15,7 +19,9 @@ const ClipsPage = {
 
   render(container, params = {}) {
     this._tab = (params && ['es', 'ar', 'en', 'albums'].includes(params.tab)) ? params.tab : 'es';
-    this._topic = (params && ClipsData.TOPICS.includes(params.topic)) ? params.topic : 'all';
+    if (ClipsData.LANGS.indexOf(this._tab) !== -1) this._lang = this._tab;
+    const _pt = params && params.topic;
+    this._topic = (_pt === 'all' || (_pt && ClipsData.ALL_TOPICS.indexOf(_pt) !== -1)) ? _pt : 'all';
     this._search = false;
     this._fav = false;
     this._q = '';
@@ -77,13 +83,15 @@ const ClipsPage = {
     const L = (k) => ClipsData.L(k);
     const fav = this.isFav(v.id);
     const d = ClipsData.desc(v);
+    const du = ClipsData.fmtDur(ClipsData.durOf(v.id));
     return `
       <div class="clip-card ${extraClass || ''}" role="button" tabindex="0"
            onclick="ClipsPage.openVideo('${v.id}')" aria-label="${escapeAttr(v.title)}">
         <span class="clip-thumb">
-          <img src="${ClipsData.thumb(v.id)}" alt="" loading="lazy" draggable="false"
-               onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/mqdefault.jpg';">
+          <img src="${ClipsData.thumb(v.id, true)}" alt="" loading="lazy" draggable="false"
+               onerror="this.onerror=()=>{this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/mqdefault.jpg';};this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg';">
           <span class="clip-play"><i class="fas fa-play"></i></span>
+          ${du ? `<span class="clip-dur">${du}</span>` : ''}
         </span>
         <span class="clip-info">
           <span class="clip-title" dir="auto">${escapeHtml(v.title)}</span>
@@ -118,6 +126,12 @@ const ClipsPage = {
       </button>`;
   },
 
+  // v90: تنبيه الإعلانات (أسفل القائمة وأسفل المشغّل)
+  _adsNote() {
+    if (this._tab === 'albums' && !this._fav && !this._search) return '';
+    return `<div class="clips-ads-note"><i class="fas fa-circle-info"></i> ${ClipsData.L('clipsAdsNote')}</div>`;
+  },
+
   // ============ محتوى الصفحة حسب الحالة ============
   _bodyHtml() {
     const L = (k) => ClipsData.L(k);
@@ -150,16 +164,19 @@ const ClipsPage = {
 
     // 4) تصنيف محدد → شبكة فيديوهاته
     if (this._topic !== 'all') {
-      const list = ClipsData.byLangTopic(this._tab, this._topic);
-      if (!list.length) {
+      const list = ClipsData.topicList(this._lang, this._topic);
+      // v91: «تلاوات قرآنية» (وتشمل القرآن المترجم) يبدأ بقوائم التشغيل ثم المقاطع
+      const albums = (!ClipsData.isLegacyTopic(this._topic) && this._topic === 'recitation' && this._lang === 'es')
+        ? ClipsData.PLAYLISTS.map(p => this._albumCard(p)).join('') : '';
+      if (!list.length && !albums) {
         return `<div class="clips-empty"><i class="fas fa-film"></i><div>${L('clipsEmptyTopic')}</div></div>`;
       }
-      return `<div class="clips-grid">${list.map(v => this._videoCard(v)).join('')}</div>`;
+      return `<div class="clips-grid">${albums}${list.map(v => this._videoCard(v)).join('')}</div>`;
     }
 
     // 5) «الكل» → صفوف أفقية لكل تصنيف (على طريقة يوتيوب)
-    const rows = ClipsData.TOPICS.map(t => {
-      const list = ClipsData.byLangTopic(this._tab, t);
+    const rows = ClipsData.CORE_TOPICS.map(t => {
+      const list = ClipsData.byLangTopic(this._lang, t);
       if (!list.length) return '';
       return `
         <section class="clips-row-sec">
@@ -179,23 +196,8 @@ const ClipsPage = {
     const L = (k) => ClipsData.L(k);
     const isAr = document.documentElement.dir === 'rtl';
     const backIcon = isAr ? 'fa-arrow-right' : 'fa-arrow-left';
-    const langKey = (c) => 'clipsLang' + c.charAt(0).toUpperCase() + c.slice(1);
     const favCount = this.favIds().length;
-
-    const langBtns = ['es', 'ar', 'en'].map(c => `
-      <button class="clips-tab ${this._tab === c ? 'active' : ''}" data-tab="${c}" onclick="ClipsPage.switchTab('${c}')">
-        ${L(langKey(c))}<span class="clips-tab-n">${ClipsData.byCat(c).length}</span>
-      </button>`).join('') + `
-      <button class="clips-tab ${this._tab === 'albums' ? 'active' : ''}" data-tab="albums" onclick="ClipsPage.switchTab('albums')">
-        ${L('clipsAlbumsTab')}<span class="clips-tab-n">${ClipsData.PLAYLISTS.length}</span>
-      </button>`;
-
-    // v85: تُعرض فقط التصنيفات التي فيها فيديوهات في اللغة الحالية (لا حبّات فارغة)
-    const avail = (this._tab === 'albums') ? ClipsData.TOPICS : ClipsData.topicsFor(this._tab);
-    const topicBtns = ['all'].concat(avail).map(t => `
-      <button class="clips-chip ${this._topic === t ? 'active' : ''}" data-topic="${t}" onclick="ClipsPage.switchTopic('${t}')">
-        ${t === 'all' ? L('clipsTopicAll') : L(ClipsData.topicKey(t))}
-      </button>`).join('');
+    const topicBtns = this._chipsHtml();
 
     container.innerHTML = `
       <div class="clips-page ${this._search ? 'is-searching' : ''} ${this._fav ? 'is-fav' : ''}" id="clips-page">
@@ -207,6 +209,7 @@ const ClipsPage = {
             <div class="clips-title">${this._fav ? L('clipsFavorites') : L('clipsTitle')}</div>
             <div class="clips-subtitle">${L('clipsSubtitle')}</div>
           </div>
+          ${this._langPillHtml()}
           <button class="clips-back clips-fav-btn ${this._fav ? 'active' : ''}" id="clips-fav-btn"
                   onclick="ClipsPage.toggleFavView()"
                   aria-label="${L(this._fav ? 'clipsFavClose' : 'clipsFavorites')}" title="${L('clipsFavorites')}">
@@ -217,6 +220,10 @@ const ClipsPage = {
                   aria-label="${L(this._search ? 'clipsSearchClose' : 'clipsSearch')}">
             <i class="fas ${this._search ? 'fa-xmark' : 'fa-magnifying-glass'}"></i>
           </button>
+          <button class="clips-back clips-all-btn" id="clips-all-btn" onclick="ClipsPage.openSheet()"
+                  aria-label="${escapeAttr(L('clipsAllTopics'))}" title="${escapeAttr(L('clipsAllTopics'))}">
+            <i class="fas fa-bars"></i>
+          </button>
         </div>
 
         <div class="clips-searchbar" id="clips-searchbar" ${this._search ? '' : 'hidden'}>
@@ -226,10 +233,10 @@ const ClipsPage = {
                  oninput="ClipsPage.onSearch(this.value)">
         </div>
 
-        <div class="clips-tabs" id="clips-tabs" role="tablist">${langBtns}</div>
         <div class="clips-chips" id="clips-chips" ${(this._tab === 'albums' || this._fav) ? 'hidden' : ''}>${topicBtns}</div>
 
-        <div class="clips-body" id="clips-body">${this._bodyHtml()}</div>
+        <div class="clips-body" id="clips-body">${this._bodyHtml() + this._adsNote()}</div>
+        ${this._sheetHtml()}
       </div>
     `;
     if (this._search) {
@@ -239,62 +246,169 @@ const ClipsPage = {
     this._revealActive();
   },
 
-  // يُبقي الزر النشط ظاهرًا داخل الشريط القابل للتمرير
+  // يُبقي الزر النشط ظاهرًا داخل شريط التصنيفات
   _revealActive() {
-    ['clips-tabs', 'clips-chips'].forEach(id => {
-      const bar = document.getElementById(id);
-      const act = bar && bar.querySelector('.active');
-      if (!act || bar.scrollWidth <= bar.clientWidth) return;
-      const ar = act.getBoundingClientRect(), br = bar.getBoundingClientRect();
-      // يعمل في الاتجاهين (RTL/LTR) لأن الإزاحة تُحسب من المواضع الفعلية
-      bar.scrollLeft += (ar.left + ar.width / 2) - (br.left + br.width / 2);
-    });
+    const bar = document.getElementById('clips-chips');
+    const act = bar && bar.querySelector('.active');
+    if (!act || bar.scrollWidth <= bar.clientWidth) return;
+    const ar = act.getBoundingClientRect(), br = bar.getBoundingClientRect();
+    // يعمل في الاتجاهين (RTL/LTR) لأن الإزاحة تُحسب من المواضع الفعلية
+    bar.scrollLeft += (ar.left + ar.width / 2) - (br.left + br.width / 2);
   },
 
   _refreshBody() {
     const body = document.getElementById('clips-body');
-    if (body) body.innerHTML = this._bodyHtml();
+    if (body) body.innerHTML = this._bodyHtml() + this._adsNote();
   },
 
-  // v85: بناء حبّات التصنيفات من جديد بعد تغيير اللغة/الوضع
-  _rebuildChips() {
-    const chips = document.getElementById('clips-chips');
-    if (!chips) return;
+  // v93: حبّات الشريط الواحد — «الكل» + الأقسام الأساسية فقط
+  _chipsHtml() {
     const L = (k) => ClipsData.L(k);
-    const avail = ClipsData.topicsFor(this._tab);
-    if (this._topic !== 'all' && avail.indexOf(this._topic) === -1) this._topic = 'all';
-    chips.innerHTML = ['all'].concat(avail).map(t => `
+    const lang = ClipsData.LANGS.indexOf(this._lang) !== -1 ? this._lang : 'es';
+    const avail = ClipsData.topicsFor(lang);
+    return ['all'].concat(avail).map(t => `
       <button class="clips-chip ${this._topic === t ? 'active' : ''}" data-topic="${t}" onclick="ClipsPage.switchTopic('${t}')">
         ${t === 'all' ? L('clipsTopicAll') : L(ClipsData.topicKey(t))}
       </button>`).join('');
   },
 
-  switchTab(tab) {
-    this._tab = tab;
-    this._fav = false;
-    const bar = document.getElementById('clips-tabs');
-    if (!bar) { const c = document.getElementById('main-content'); if (c) this._renderList(c); return; }
-    const page = document.getElementById('clips-page');
-    if (page) page.classList.remove('is-fav');
-    this._syncFavBtn();
-    bar.querySelectorAll('.clips-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  _rebuildChips() {
     const chips = document.getElementById('clips-chips');
-    if (chips) chips.hidden = (tab === 'albums');
-    this._rebuildChips();
-    this._refreshBody();
-    this._revealActive();
+    if (!chips) return;
+    const lang = ClipsData.LANGS.indexOf(this._lang) !== -1 ? this._lang : 'es';
+    if (this._topic !== 'all' && ClipsData.topicCount(lang, this._topic) === 0) this._topic = 'all';
+    chips.innerHTML = this._chipsHtml();
+  },
+
+  // ============ v93: مبدّل اللغة المصغّر في الشريط الأخضر ============
+  _langPillHtml() {
+    const L = (k) => ClipsData.L(k);
+    const cur = ClipsData.LANGS.indexOf(this._lang) !== -1 ? this._lang : 'es';
+    const items = ClipsData.LANGS.map(c => `
+      <button class="clips-lang-item ${cur === c ? 'active' : ''}" data-lang="${c}" onclick="ClipsPage.setLang('${c}')">
+        <span class="clips-lang-flag">${ClipsData.langFlag(c)}</span>
+        <span class="clips-lang-nm">${L('clipsLang' + c.charAt(0).toUpperCase() + c.slice(1))}</span>
+        <span class="clips-lang-ct">${ClipsData.byCat(c).length}</span>
+        ${cur === c ? '<i class="fas fa-check"></i>' : ''}
+      </button>`).join('');
+    return `
+      <div class="clips-lang" id="clips-lang">
+        <button class="clips-lang-btn" id="clips-lang-btn"
+                onclick="event.stopPropagation();ClipsPage.toggleLangMenu()"
+                aria-label="${escapeAttr(L('clipsLangSwitch'))}" title="${escapeAttr(L('clipsLangSwitch'))}">
+          <span class="clips-lang-flag">${ClipsData.langFlag(cur)}</span>
+          <span class="clips-lang-code">${ClipsData.langCode(cur)}</span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="clips-lang-menu" id="clips-lang-menu" role="menu" hidden>${items}</div>
+      </div>`;
+  },
+
+  toggleLangMenu() {
+    const m = document.getElementById('clips-lang-menu');
+    if (m) m.hidden = !m.hidden;
+  },
+
+  closeLangMenu() {
+    const m = document.getElementById('clips-lang-menu');
+    if (m) m.hidden = true;
+  },
+
+  setLang(lang) {
+    if (ClipsData.LANGS.indexOf(lang) === -1) return;
+    this._lang = lang;
+    this._tab = lang;
+    this._fav = false;
+    this._search = false;
+    this._q = '';
+    if (this._topic !== 'all' && ClipsData.topicCount(lang, this._topic) === 0) this._topic = 'all';
+    const c = document.getElementById('main-content');
+    if (!c) return;
+    this._renderList(c);   // إعادة بناء كاملة: الوسم + اللغة + القائمة
+    if (typeof showToast === 'function') {
+      showToast(ClipsData.L('clipsLang' + lang.charAt(0).toUpperCase() + lang.slice(1)));
+    }
+  },
+
+  // ============ v93: قائمة «جميع التصنيفات» (ثلاث شحطات) ============
+  openSheet() {
+    const s = document.getElementById('clips-sheet');
+    if (!s) return;
+    s.hidden = false;
+    if (s.classList) s.classList.add('is-open');
+  },
+
+  closeSheet() {
+    const s = document.getElementById('clips-sheet');
+    if (!s) return;
+    if (s.classList) s.classList.remove('is-open');
+    s.hidden = true;
+  },
+
+  sheetPick(key) {
+    this.closeSheet();
+    if (key === 'albums') { this.switchTab('albums'); return; }
+    this.switchTopic(key);
+  },
+
+  _sheetHtml() {
+    const L = (k) => ClipsData.L(k);
+    const lang = ClipsData.LANGS.indexOf(this._lang) !== -1 ? this._lang : 'es';
+    const row = (key, label, count, isActive) => `
+      <button class="clips-sheet-item ${isActive ? 'active' : ''}" data-topic="${key}"
+              onclick="ClipsPage.sheetPick('${key}')">
+        <span class="clips-sheet-nm">${label}</span>
+        <span class="clips-sheet-ct">${count}</span>
+        ${isActive ? '<i class="fas fa-check"></i>' : ''}
+      </button>`;
+    const coreRows = row('all', L('clipsTopicAll'), ClipsData.byCat(lang).length, this._topic === 'all')
+      + ClipsData.CORE_TOPICS.filter(t => ClipsData.topicCount(lang, t) > 0)
+          .map(t => row(t, L(ClipsData.topicKey(t)), ClipsData.topicCount(lang, t), this._topic === t)).join('');
+    const legacyRows = ClipsData.legacyTopicsFor(lang)
+      .map(t => row(t, L(ClipsData.topicKey(t)), ClipsData.topicCount(lang, t), this._topic === t)).join('')
+      + row('albums', L('clipsAlbumsTab'), ClipsData.PLAYLISTS.length, this._tab === 'albums');
+    return `
+      <div class="clips-sheet" id="clips-sheet" hidden>
+        <div class="clips-sheet-bg" onclick="ClipsPage.closeSheet()"></div>
+        <div class="clips-sheet-card" role="dialog" aria-modal="true">
+          <div class="clips-sheet-head">
+            <span class="clips-sheet-title">${L('clipsAllTopics')}</span>
+            <button class="clips-sheet-x" onclick="ClipsPage.closeSheet()"
+                    aria-label="${escapeAttr(L('clipsClose'))}"><i class="fas fa-xmark"></i></button>
+          </div>
+          <div class="clips-sheet-body">
+            <div class="clips-sheet-sec">${L('clipsSecCore')}</div>
+            ${coreRows}
+            ${legacyRows ? `<div class="clips-sheet-sec">${L('clipsSecMore')}</div>${legacyRows}` : ''}
+          </div>
+        </div>
+      </div>`;
+  },
+
+  switchTab(tab) {
+    if (tab === 'albums') {
+      this._tab = 'albums';
+      this._fav = false;
+      const c = document.getElementById('main-content');
+      if (c) this._renderList(c);
+      return;
+    }
+    this.setLang(ClipsData.LANGS.indexOf(tab) !== -1 ? tab : 'es');
   },
 
   switchTopic(topic) {
-    this._topic = (topic === 'all' || ClipsData.TOPICS.includes(topic)) ? topic : 'all';
+    this._topic = (topic === 'all' || ClipsData.ALL_TOPICS.indexOf(topic) !== -1) ? topic : 'all';
     this._fav = false;
     const page = document.getElementById('clips-page');
     if (page) page.classList.remove('is-fav');
     this._syncFavBtn();
     const bar = document.getElementById('clips-chips');
     if (!bar) { const c = document.getElementById('main-content'); if (c) this._renderList(c); return; }
-    bar.hidden = false;
+    bar.hidden = (this._tab === 'albums');
+    this._rebuildChips();
     bar.querySelectorAll('.clips-chip').forEach(b => b.classList.toggle('active', b.dataset.topic === this._topic));
+    const sheet = document.getElementById('clips-sheet');
+    if (sheet) sheet.outerHTML = this._sheetHtml();
     this._refreshBody();
     this._revealActive();
     if (page && page.scrollIntoView) page.scrollIntoView({ block: 'start' });
@@ -423,6 +537,7 @@ const ClipsPage = {
               <i class="fas fa-heart"></i>
             </button>` : ''}
           </div>
+          <div class="clip-ads-note clip-ads-note--player"><i class="fas fa-circle-info"></i> <span>${L('clipsAdsNote')}</span></div>
         </div>
       </div>
     `;

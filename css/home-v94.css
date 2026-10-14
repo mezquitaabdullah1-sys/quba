@@ -1,0 +1,336 @@
+/* ============ v94: الصفحة الرئيسية المبسّطة ============
+   قاعدة التصميم: معلومة واحدة في مكان واحد · سقف ارتفاع للبطاقات · إيقاع بصري واحد
+   (نفس الهامش 14px ونفس نصف القطر 16px ونفس حجم العنوان 15px في كل الكتل) */
+
+/* --- الرأس: كتلة واحدة ثابتة عند النزول --- */
+.home-header.home-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px 10px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+.home-hero .hh-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.home-hero .hh-title { min-width: 0; flex: 1; }
+.home-hero .home-greeting { font-size: 16px; font-weight: 700; line-height: 1.25; }
+.home-hero .hh-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 11px;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.home-hero .hh-meta i { font-size: 10px; opacity: 0.85; }
+.home-hero .hh-dot { opacity: 0.55; }
+.home-hero .hh-sep { opacity: 0.5; margin: 0 3px; }
+.home-hero .home-profile-btn { flex-shrink: 0; }
+
+/* الصلاة القادمة — سطر واحد بدل بطاقة كبيرة */
+.home-hero .hh-next {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+}
+.home-hero .hh-next-label { font-size: 10.5px; opacity: 0.82; flex-shrink: 0; }
+.home-hero .hh-next-name { font-size: 15px; font-weight: 700; flex-shrink: 0; }
+.home-hero .hh-next-cd {
+  margin-inline-start: auto;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
+}
+.home-hero .hh-next-time { font-size: 12px; opacity: 0.88; flex-shrink: 0; }
+.home-hero .estimated-badge { font-size: 10px; opacity: 0.9; }
+
+/* شريط الأيقونات داخل الرأس */
+.home-hero .home-quick-grid { margin-top: 2px; margin-bottom: 0; }
+
+/* --- إيقاع موحّد لكل الكتل --- */
+.hm-wrap { padding: 12px 0 26px; }
+.hm-card,
+.hm-media,
+.hm-today-card {
+  background: var(--card-bg, var(--surface, #fff));
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(15, 76, 58, 0.07);
+}
+.hm-card, .hm-media { margin: 0 14px 12px; padding: 12px; }
+.hm-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.hm-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary, #1a1a1a);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hm-title i { font-size: 13px; color: #0F766E; }
+.hm-mini-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.10);
+  color: #0F766E;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+.hm-mini-btn i { font-size: 10px; }
+.prayer-checkin-progress { font-size: 11px; font-weight: 700; color: #0F766E; opacity: 0.9; margin-inline-start: 4px; }
+
+/* --- شرائط أفقية قابلة للسحب --- */
+.hm-strip {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.hm-strip::-webkit-scrollbar { display: none; }
+
+/* حبّات الصلوات (٦ حبّات: الشروق + الخمس) — إعادة ضبط كاملة لصفوف الجدول القديم */
+.hm-prayer-strip { gap: 7px; }
+.hm-strip .prayer-row {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  grid-template-columns: none !important;
+  grid-template-rows: none !important;
+  flex: 0 0 auto;
+  min-width: 72px;
+  margin: 0 !important;
+  padding: 8px 7px !important;
+  border: none !important;
+  border-radius: 12px;
+  background: var(--color-bg-subtle, rgba(127, 127, 127, 0.08));
+  box-shadow: none !important;
+  min-height: 0 !important;
+  scroll-snap-align: start;
+}
+.hm-strip .prayer-row.next {
+  background: rgba(15, 118, 110, 0.13);
+  box-shadow: inset 0 0 0 1.5px rgba(15, 118, 110, 0.55) !important;
+}
+.hm-strip .prayer-row.prayer-done { opacity: 0.72; }
+.hm-chip-nm { font-size: 11.5px; font-weight: 700; color: var(--text-primary, #1a1a1a); white-space: nowrap; }
+.hm-strip .prayer-time-block { display: flex; flex-direction: column; align-items: center; gap: 0; }
+.hm-strip .prayer-time { font-size: 12.5px; font-weight: 700; color: var(--text-primary, #1a1a1a); font-variant-numeric: tabular-nums; }
+.hm-strip .prayer-remaining { display: block; font-size: 10px; color: #0F766E; font-variant-numeric: tabular-nums; }
+.hm-strip .prayer-remaining i { display: none; }
+.hm-chip-tools { display: flex; align-items: center; gap: 4px; margin-top: 3px; }
+.hm-check, .hm-strip .prayer-bell, .hm-check-spacer {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+  font-size: 9.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(127, 127, 127, 0.14);
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.hm-check.checked { background: #0F766E; color: #fff; }
+.hm-check.locked { opacity: 0.55; }
+.hm-check-spacer { background: none; pointer-events: none; }
+.hm-strip .prayer-bell.off { opacity: 0.5; }
+.hm-dual { margin-top: 8px; }
+.hm-dual .dual-strip { margin-top: 0; padding: 6px 9px; font-size: 11.5px; border-radius: 11px; }
+
+/* «أكمل القراءة» — سطر واحد */
+.hm-resume { margin: 0 14px 12px; }
+.hm-resume .resume-strip { width: 100%; margin: 0; }
+
+/* --- شريط «اليوم» (آية · دعاء · حديث · مناسبة) --- */
+.hm-today-strip {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  padding: 0 14px 4px;
+}
+.hm-today-strip::-webkit-scrollbar { display: none; }
+.hm-today-card {
+  position: relative;
+  flex: 0 0 80%;
+  max-width: 330px;
+  min-width: 240px;
+  scroll-snap-align: start;
+  max-height: 186px;      /* سقف الارتفاع: ما زاد لا يُعرض */
+  overflow: hidden;
+  padding: 12px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.hm-today-h {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #0F766E;
+}
+.hm-today-h i { font-size: 11px; }
+.hm-today-t { font-size: 12.5px; font-weight: 700; color: var(--text-primary, #1a1a1a); }
+.hm-today-ar {
+  font-size: 14.5px;
+  line-height: 1.75;
+  color: var(--text-primary, #1a1a1a);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.hm-today-tr {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-secondary, #666);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.hm-today-src {
+  font-size: 10.5px;
+  color: var(--text-secondary, #777);
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hm-icon-btn {
+  position: absolute;
+  inset-inline-end: 10px;
+  bottom: 10px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(15, 118, 110, 0.10);
+  color: #0F766E;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* --- قسم الوسائط الموحّد بثلاثة تبويبات --- */
+.hm-media-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.hm-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.hm-tabs::-webkit-scrollbar { display: none; }
+.hm-tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 11px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.10);
+  color: var(--text-secondary, #666);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.hm-tab i { font-size: 10.5px; }
+.hm-tab.active { background: #0F4C3A; color: #fff; }
+.hm-pane[hidden] { display: none; }
+.hm-media .radio-hub-grid { margin-bottom: 0; }
+.hm-media .radio-hub-btn { padding: 10px 8px; font-size: 11.5px; }
+.hm-clips-row .clip-home-card { flex: 0 0 42%; min-width: 140px; padding-bottom: 8px; }
+.hm-clips-row .clip-home-title { font-size: 12px; padding: 0 8px; min-height: 0; }
+.hm-lib-row .lib-home-card { flex: 0 0 32%; min-width: 112px; }
+.hm-lib-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.hm-lib-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.10);
+  color: var(--text-secondary, #666);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.hm-lib-chip i { font-size: 10px; color: #0F766E; }
+
+/* --- سطر الذيل الموحّد: رمضان · الصيام · المناسبة --- */
+.hm-footer-strip {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  padding: 2px 14px 4px;
+  font-size: 12px;
+}
+.hm-footer-strip::-webkit-scrollbar { display: none; }
+.hm-footer-strip > * {
+  flex: 0 0 76%;
+  max-width: 330px;
+  margin: 0 !important;
+  max-height: 112px;
+  overflow: hidden;
+  border-radius: 16px;
+  scroll-snap-align: start;
+}
+.hm-footer-strip .section-title { display: none; }
+.hm-footer-strip .home-mini-card { padding: 9px 11px; }

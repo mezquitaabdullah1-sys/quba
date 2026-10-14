@@ -125,7 +125,6 @@
 .clips-yt-badge { font-size: 26px; opacity: 0.9; }
 
 /* ---------- v72: أزرار التقسيم — أنحف وأطول (حبّات)، بلا أيقونات، تُمرَّر يمينًا/يسارًا ---------- */
-.clips-tabs,
 .clips-chips {
   display: flex;
   flex-wrap: nowrap;
@@ -580,3 +579,178 @@
 
 /* القلب داخل بطاقة صفّية أصغر قليلًا */
 .clip-card--row .clip-fav { width: 28px; height: 28px; font-size: 12px; }
+
+
+/* ============ v90: بطاقات أوسع وأقصر — مزيد من المقاطع في الشاشة ============ */
+.clip-thumb { aspect-ratio: 21 / 9; }          /* 16:9 → 21:9 (أنحف وأعرض) */
+.clip-thumb .clip-play { width: 34px; height: 34px; font-size: 13px; }
+.clip-card { padding: 0 0 8px; }
+.clip-info { padding: 6px 9px 0; gap: 3px; }
+.clip-title { font-size: 12.5px; line-height: 1.35; }
+.clip-channel { font-size: 10.5px; }
+.clip-desc { font-size: 11px; line-height: 1.45; -webkit-line-clamp: 2; margin-top: 1px; }
+.clip-watch { font-size: 11.5px; }
+.clips-grid { gap: 10px; padding: 12px; }
+.clips-row { gap: 10px; }
+.clip-card--row { flex: 0 0 58%; max-width: 300px; }
+.clip-home-thumb { aspect-ratio: 21 / 9; }
+
+/* v90: شارة المدّة على المصغّرة */
+.clip-dur {
+  position: absolute;
+  inset-inline-end: 6px;
+  bottom: 6px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.74);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  direction: ltr;
+}
+
+/* v90: تنبيه الإعلانات (يوتيوب) */
+.clips-ads-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 4px var(--sp-md, 16px) 18px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(15, 118, 110, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.22);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-secondary, #5b6b67);
+}
+.clips-ads-note i { color: #0F766E; font-size: 13px; margin-top: 2px; flex-shrink: 0; }
+.clip-ads-note--player { margin: 14px 0 0; }
+.clips-page.is-fav .clips-ads-note { display: flex; }
+
+
+/* ============ v93: كل أدوات العرض في الشريط الأخضر ============ */
+.clips-header { gap: 7px; padding: var(--sp-md, 14px) 14px; }
+.clips-back { width: 36px; height: 36px; border-radius: 11px; font-size: 15px; }
+.clips-title { font-size: 17px; }
+@media (max-width: 400px) { .clips-subtitle { display: none; } }
+
+/* v93: مبدّل اللغة (اختصار + علم + قائمة منسدلة) */
+.clips-lang { position: relative; flex-shrink: 0; }
+.clips-lang-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.clips-lang-btn i { font-size: 9px; opacity: 0.8; }
+.clips-lang-flag { font-size: 14px; line-height: 1; }
+.clips-lang-code { letter-spacing: 0.3px; }
+.clips-lang-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  inset-inline-end: 0;
+  min-width: 184px;
+  padding: 4px;
+  background: var(--card-bg, #fff);
+  border-radius: 13px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.24);
+  z-index: 40;
+}
+.clips-lang-menu[hidden] { display: none; }
+.clips-lang-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+  text-align: start;
+  cursor: pointer;
+}
+.clips-lang-item.active { color: #0F766E; background: rgba(15, 118, 110, 0.08); }
+.clips-lang-nm { flex: 1; min-width: 0; }
+.clips-lang-ct { font-size: 11.5px; color: var(--text-secondary, #888); font-variant-numeric: tabular-nums; }
+.clips-lang-item i { font-size: 12px; }
+
+/* v93: قائمة «جميع التصنيفات» — ورقة من أسفل الشاشة */
+.clips-sheet { position: fixed; inset: 0; z-index: 9998; display: flex; align-items: flex-end; }
+.clips-sheet[hidden] { display: none; }
+.clips-sheet-bg { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.42); }
+.clips-sheet-card {
+  position: relative;
+  width: 100%;
+  max-height: 76vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--card-bg, #fff);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 26px rgba(0, 0, 0, 0.2);
+  padding-bottom: 12px;
+}
+.clips-sheet.is-open .clips-sheet-card { animation: clipsSheetUp 0.22s ease; }
+@keyframes clipsSheetUp {
+  from { transform: translateY(16px); opacity: 0.55; }
+  to { transform: none; opacity: 1; }
+}
+.clips-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px 4px;
+}
+.clips-sheet-title { font-size: 15px; font-weight: 700; color: var(--text-primary, #1a1a1a); }
+.clips-sheet-x {
+  border: none;
+  background: rgba(127, 127, 127, 0.12);
+  color: var(--text-secondary, #666);
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.clips-sheet-sec {
+  padding: 12px 16px 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: var(--text-secondary, #777);
+}
+.clips-sheet-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+  text-align: start;
+  cursor: pointer;
+}
+.clips-sheet-item:active { background: rgba(127, 127, 127, 0.08); }
+.clips-sheet-item.active { color: #0F766E; }
+.clips-sheet-nm { flex: 1; min-width: 0; }
+.clips-sheet-ct { font-size: 12px; font-weight: 700; color: var(--text-secondary, #888); font-variant-numeric: tabular-nums; }
+.clips-sheet-item i { font-size: 12px; color: #0F766E; }

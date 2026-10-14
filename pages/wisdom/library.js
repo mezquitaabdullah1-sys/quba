@@ -3,7 +3,7 @@
 // كل باب يعرض كتب اللغة المختارة فقط، وله قسمان: للكبار وللأطفال.
 // أزرار: مفضّلة + إضافة إلى الرفّ + تنزيل/قراءة. وكل شيء يعمل بلا اعتماد على ترتيب السكربتات.
 const LibraryPage = {
-  _view: 'home', _lang: 'ar', _topic: null, _split: 'adults', _kidsTab: 'kids',
+  _view: 'home', _from: 'home', _lang: 'ar', _topic: null, _split: 'adults', _kidsTab: 'kids',
   _book: null, _info: null, _results: null, _catId: null, _q: '', _pdfFrom: 'topic',
   _loading: false, _timer: null, _dlStop: null, _fs: null, _token: 0,
   _rpage: 1, _hcats: null, _hlist: null, _hcat: null,
@@ -128,7 +128,8 @@ const LibraryPage = {
     const cols = ts.length <= 4 ? '' : (compact ? '' : '');
     return `<div class="lib-topics">${ts.map(t => {
       const label = t.key ? this.L(t.key) : t.label;
-      const sub = t.key ? this.L('libPartOfLib') : this.L('libBooksCount', { n: LibraryData.ihGroupBooks(this._lang, t.group).length });
+      const n = this._lang === 'ar' ? this._arGroupItems(t.group).length : LibraryData.ihGroupBooks(this._lang, t.group).length;
+      const sub = t.key ? this.L('libPartOfLib') : this.L('libBooksCount', { n: n });
       return `<button class="lib-topic" onclick="LibraryPage._openTopic('${t.id}')">
         <span class="lib-topic-ic" style="--tc:${t.color}"><i class="fas ${t.icon}"></i></span>
         <span class="lib-topic-b"><span class="lib-topic-t">${esc(label)}</span><span class="lib-topic-n">${esc(sub)}</span></span>
@@ -168,10 +169,10 @@ const LibraryPage = {
 
   // v1.0.83 — لغة الباب: مفاتيح اللغة التي فيها كتبٌ فعلًا داخل هذا الباب
   _topicLangs(topic) {
-    if (!topic) return ['ar', 'es', 'en'];
+    if (!topic) return ['ar'];
+    if (this._arGroupOf(topic)) return ['ar'];
     const out = [];
-    if (LibraryData.TOPIC_DEFS[topic]) out.push('ar');
-    ['es', 'en'].forEach(l => { if (LibraryData.ihTopicBooks(l, topic).length) out.push(l); });
+    ['es', 'en'].forEach(l => { if (LibraryData.ihGroupBooks(l, topic).length) out.push(l); });
     return out.length ? out : ['ar'];
   },
   _topicLangBar() {
@@ -193,44 +194,19 @@ const LibraryPage = {
   // v1.0.83 — الجامع: كل الأبواب + تصنيف اللغة العام (من زر «استكشاف وأضف»)
   _openJami() {
     this._view = 'jami'; this._topic = null; this._q = ''; this._results = null;
-    this._jcat = null; this._jlimit = 120; this._loading = false;
+    this._jcat = null; this._jlimit = 240; this._loading = false;
     const el = this._el(); if (!el) return;
     el.innerHTML = `
       <div class="lib-page lib-jami">
         ${this._header(this.L('libBrowseTitle'), this.L('libJamiDesc'), 'LibraryPage._home()')}
         ${this._langBar()}
         <div class="lib-cats" id="lib-cats">${this._jamiChips()}</div>
-        <div class="lib-search"><i class="fas fa-magnifying-glass"></i>
-          <input id="lib-q" type="search" dir="auto" autocomplete="off" enterkeyhint="search"
-            placeholder="${escapeAttr(this.L('libSearchPlaceholder'))}" value="" oninput="LibraryPage._onJamiInput(this.value)"></div>
         <div id="lib-books">${this._jamiHtml()}</div>
-        <div class="lib-jami-more"><button class="lib-btn ghost" onclick="LibraryPage._moreJami()"><i class="fas fa-plus"></i> ${esc(this.L('libMore'))}</button></div>
+        <div class="lib-jami-more" id="lib-jami-more"><button class="lib-btn ghost" onclick="LibraryPage._moreJami()"><i class="fas fa-plus"></i> ${esc(this.L('libMore'))}</button></div>
         ${this._attribution()}
       </div>`;
   },
   _jamiGrid() { return this._jamiHtml(); },
-  _onJamiInput(v) {
-    const q = String(v || '').trim();
-    this._q = q; this._results = null;
-    if (!q || this._lang !== 'ar') { this._loading = false; this._paintJami(); return; }
-    this._loading = true; this._paintJami();
-    this._jamiSearch(q);
-  },
-  async _jamiSearch(q) {
-    const token = ++this._token;
-    const def = this._jcat ? LibraryData.TOPIC_DEFS[this._jcat] : null;
-    let list = [], filterOk = true;
-    try {
-      const r = await LibraryService.search(q, def ? def.cat : null);
-      list = r.books || [];
-      if (def) filterOk = list.some(b => Number(b.catId) === def.cat);
-      if (def && filterOk) list = list.filter(b => Number(b.catId) === def.cat);
-    } catch (e) { list = []; }
-    if (token !== this._token) return;
-    this._results = list;
-    this._loading = false;
-    this._paintJami();
-  },
   _openTopic(topicId, q) {
     this._view = 'topic';
     if (topicId !== undefined && topicId !== null && topicId !== '') { this._topic = topicId; this._q = ''; }
@@ -242,11 +218,9 @@ const LibraryPage = {
     const _tl = this._topicLangs(this._topic);
     if (_tl.length && _tl.indexOf(this._lang) === -1) this._lang = _tl[0];
     const t = this._topic ? this._topicDef(this._topic) : null;
-    this._split = (t && (t.topic === 'kids' || t.topic === 'family')) ? 'kids' : 'adults';
-    this._results = null;
-    this._loading = this._lang === 'ar';
+    this._results = null; this._loading = false;
+    this._split = (t && (t.topic === 'kids' || t.topic === 'family') && this._topicKids().length) ? 'kids' : 'adults';
     this._paintTopic();
-    if (this._lang === 'ar') this._loadTopic(); else this._loading = false;
   },
 
   _setSplit(s) { if (s === this._split) return; this._split = s; this._paintTopicList(); },
@@ -267,10 +241,7 @@ const LibraryPage = {
       <div class="lib-page">
         ${this._header(title, sub, 'LibraryPage._home()')}
         ${this._topicLangBar()}
-        <div class="lib-search"><i class="fas fa-magnifying-glass"></i>
-          <input id="lib-q" type="search" dir="auto" autocomplete="off" enterkeyhint="search"
-            placeholder="${escapeAttr(this.L('libSearchPlaceholder'))}" value="${escapeAttr(this._q)}" oninput="LibraryPage._onInput(this.value)"></div>
-        ${this._splitBar()}
+        ${this._topicKids().length ? this._splitBar() : ''}
         <div id="lib-books">${this._topicListHtml()}</div>
         ${this._attribution()}
       </div>`;
@@ -280,35 +251,11 @@ const LibraryPage = {
 
   _topicListHtml() {
     if (this._loading) return `<div class="lib-empty-list">${esc(this.L('libLoading'))}</div>`;
-    if (this._q) {
-      const list = this._results;
-      if (this._lang === 'ar') {
-        if (list === null) return `<div class="lib-empty-list">${esc(this.L('libLoading'))}</div>`;
-        if (!list.length) return `<div class="lib-empty-list"><i class="fas fa-magnifying-glass"></i> ${esc(this.L('libNoResults'))}</div>`;
-        return `<div class="lib-books">${list.map(b => this._bookCard(b)).join('')}</div>`;
-      }
-      const found = this._ihSearch(this._q);
-      if (!found.length) return `<div class="lib-empty-list"><i class="fas fa-magnifying-glass"></i> ${esc(this.L('libNoResults'))}</div>`;
-      return `<div class="lib-books">${found.map(x => this._externalCard(x.b, x.g)).join('')}</div>`;
-    }
     if (this._split === 'kids') return this._kidsBlock();
     if (this._lang !== 'ar') return this._ihBlock();
-    const list = this._results;
-    if (list === null) return `<div class="lib-empty-list">${esc(this.L('libLoading'))}</div>`;
-    if (!list.length) return this._fallbackBlock();
-    return `<div class="lib-books">${list.map(b => this._bookCard(b)).join('')}</div>`;
-  },
-  _ihSearch(q) {
-    const qq = String(q || '').toLowerCase().trim();
-    if (!qq) return [];
-    const out = [], seen = {};
-    const t = this._topic ? this._topicDef(this._topic) : null;
-    const pool = t ? LibraryData.ihTopicBooks(this._lang, t.topic).concat(LibraryData.ihGroupBooks(this._lang, LibraryData.ESEN_MAP[t.topic] || t.group || '')) : LibraryData.ihAllBooks(this._lang);
-    pool.forEach(b => {
-      const id = Number(b.id); if (!id || seen[id]) return;
-      if (String(b.name || '').toLowerCase().indexOf(qq) !== -1 || String(b.author || '').toLowerCase().indexOf(qq) !== -1) { seen[id] = 1; out.push({ b: b, g: b.group || '' }); }
-    });
-    return out;
+    const items = this._arGroupItems(this._arGroupOf(this._topic));
+    if (!items.length) return `<div class="lib-empty-list">${esc(this.L('libNoCatBooks'))}</div>`;
+    return this._gridHtml(items.map(b => ({ b: b, kind: b.pdf ? 'ih' : 't', g: b.group || '' })));
   },
   _ihBlock() {
     const t = this._topic ? this._topicDef(this._topic) : null;
@@ -366,11 +313,7 @@ const LibraryPage = {
     };
     const curated = (def && t) ? (LibraryData.CURATED[t.topic] || []) : [];
     try {
-      if (this._q) {
-        const r = await LibraryService.search(this._q, def ? def.cat : null);
-        (r.books || []).forEach(b => { if (!def || Number(b.catId) === def.cat) push(b, def ? def.cat : b.catId); });
-        if (!list.length) curated.forEach(b => push(b, def.cat));
-      } else if (def) {
+      if (def) {
         curated.forEach(b => push(b, def.cat));
         for (const term of (def.q || [])) {
           try {
@@ -393,13 +336,6 @@ const LibraryPage = {
     this._results = list.slice(0, 60);
     this._loading = false;
     this._paintTopicList();
-  },
-  _onInput(v) {
-    this._q = String(v || '');
-    if (this._lang !== 'ar') { this._paintTopicList(); return; }
-    if (this._timer) clearTimeout(this._timer);
-    if (!this._q) { this._loadTopic(); return; }
-    this._timer = setTimeout(() => this._loadTopic(), 420);
   },
 
   // ============================================================
@@ -427,7 +363,7 @@ const LibraryPage = {
   _shelfBook(b) {
     const k = b.kind || 't';
     const open = k === 'ih'
-      ? (b.pdf ? `LibraryPage._openPdfById(${b.id})` : `window.open('${LibrarySources.itemUrl(b.lang || this._lang, b.id)}','_blank')`)
+      ? (b.pdf ? `LibraryPage._openPdfById(${b.id},'shelf')` : `window.open('${LibrarySources.itemUrl(b.lang || this._lang, b.id)}','_blank')`)
       : `LibraryPage._openBook(${b.id})`;
     return `<div class="lib-shelf-book" onclick="${open}">
       ${this._cover(b, '', k)}
@@ -439,7 +375,7 @@ const LibraryPage = {
     const k = b.kind || 't';
     const name = b.name || this.L('libBook');
     const url = LibrarySources.itemUrl(b.lang || this._lang, b.id);
-    const openFn = k === 'ih' ? (b.pdf ? `LibraryPage._openPdfById(${b.id})` : `window.open('${url}','_blank')`) : `LibraryPage._openBook(${b.id})`;
+    const openFn = k === 'ih' ? (b.pdf ? `LibraryPage._openPdfById(${b.id},'shelf')` : `window.open('${url}','_blank')`) : `LibraryPage._openBook(${b.id})`;
     const dl = k === 'ih'
       ? (b.pdf
           ? `<button class="lib-mini dl" title="${escapeAttr(this.L('libDownloadPdf'))}" onclick="LibraryPage._dlPdfById(${b.id},this)"><i class="fas fa-download"></i></button>`
@@ -527,7 +463,7 @@ const LibraryPage = {
           return `<div class="lib-sub-head"><span class="lib-sub-t">${esc(this.L(g.key))}</span><span class="lib-sub-d">${esc(this.L('libBooksCount', { n: list.length }))}</span></div><div class="lib-books">${list.map(b => this._bookCard(b)).join('')}</div>`;
         }).join('');
     } else {
-      const groups = LibraryData.ESEN_TOPICS.filter(g => g === 'nm' || g === 'basics');
+      const groups = LibraryData.ESEN_TOPICS.filter(g => g === 'nm');
       inner = `<div class="lib-note-inline"><i class="fas fa-seedling"></i><div>${esc(this.L('libNewMuslimsIntro'))}</div></div>` +
         groups.map(g => {
           const list = LibraryData.ihGroupBooks(this._lang, g);
@@ -661,7 +597,20 @@ const LibraryPage = {
   // ============================================================
   // ============ قارئ PDF داخل التطبيق + التنزيل على الهاتف ====
   // ============================================================
-  _findIh(id) {
+  _findIhAny(id) {
+    const n = Number(id); if (!n) return null;
+    const order = [this._lang || 'ar', 'ar', 'es', 'en'];
+    const seen = {};
+    for (const lg of order) {
+      if (seen[lg]) continue; seen[lg] = 1;
+      for (const g of (LibraryData.ihGroups(lg) || [])) {
+        const hit = (g.books || []).find(x => Number(x.id) === n);
+        if (hit) return hit;
+      }
+    }
+    return null;
+  },
+  _findIh(id) { const _ihAny = this._findIhAny(id); if (_ihAny) return _ihAny;
     const bid = Number(id);
     for (const g of LibraryData.ihGroups(this._lang)) { const b = g.books.find(x => Number(x.id) === bid); if (b) return b; }
     for (const l of ['ar', 'es', 'en']) {
@@ -678,26 +627,59 @@ const LibraryPage = {
     }
     return null;
   },
+  // v1.0.86 — يُفتح الكتاب دائمًا داخل التطبيق: يُجلب الملف ويُخزَّن محليًا ثم يُعرض من نسخة
+  // محلية (blob:) فلا يُحجب داخل iframe، ويُقرأ بعدها بلا إنترنت كأي كتاب منزَّل.
   async _openPdf(b, from) {
-    if (from) this._pdfFrom = from;
     if (!b || !b.pdf) { if (typeof showToast === 'function') showToast('\u26a0\ufe0f ' + this.L('libPdfFail')); return; }
+    if (from && ['shelf', 'favs', 'jami', 'topic', 'kids', 'newmuslims', 'hadith', 'home'].indexOf(from) !== -1) this._from = from;
+    else this._setOrigin();
     this._view = 'pdf';
     const el = this._el(); if (!el) return;
     const lang = b.lang || this._lang;
     const key = LibraryService.pdfKey(lang, b.id);
-    const blobUrl = await LibraryService.pdfObjectUrl(key);
-    const src = blobUrl || b.pdf;
+    const name = b.name || '';
+    let blobUrl = await LibraryService.pdfObjectUrl(key);
     el.innerHTML = `<div class="lib-page lib-pdf-page">
-      ${this._header(b.name || '', blobUrl ? this.L('libPdfOffline') : this.L('libPdfViewer'), 'LibraryPage._backFromPdf()')}
+      ${this._header(name, blobUrl ? this.L('libPdfOffline') : this.L('libPdfViewer'), 'LibraryPage._backFromPdf()')}
       <div class="lib-pdf-bar">
         <button class="lib-mini dl" title="${escapeAttr(this.L('libPdfSave'))}" onclick="LibraryPage._dlPdfById(${b.id},this,${JSON.stringify(lang)})"><i class="fas fa-download"></i></button>
-        <span class="lib-pdf-note">${esc(blobUrl ? this.L('libPdfOffline') : this.L('libDownloadPdf'))}</span>
+        <span class="lib-pdf-note" id="lib-pdf-note">${esc(blobUrl ? this.L('libPdfOffline') : this.L('libPdfDownloading'))}</span>
         <button class="lib-mini ext" title="${escapeAttr(this.L('libOpenWeb'))}" onclick="window.open('${escapeAttr(b.pdf)}','_blank')"><i class="fas fa-up-right-from-square"></i></button>
       </div>
-      <iframe class="lib-pdf-frame" src="${escapeAttr(src)}" title="${escapeAttr(b.name || '')}"></iframe></div>`;
+      <div id="lib-pdf-slot"></div></div>`;
+    const slot = document.getElementById('lib-pdf-slot');
+    if (!slot) return;
+    const frame = (src) => `<iframe class="lib-pdf-frame" src="${escapeAttr(src)}" title="${escapeAttr(name)}"></iframe>`;
+    if (blobUrl) { slot.innerHTML = frame(blobUrl); return; }
+    slot.innerHTML = `<div class="lib-pdf-loading"><i class="fas fa-spinner fa-spin"></i><span>${esc(this.L('libPdfDownloading'))}</span></div>`;
+    try {
+      await LibraryService.cachePdf(b.pdf, key, null);
+      blobUrl = await LibraryService.pdfObjectUrl(key);
+      const note = document.getElementById('lib-pdf-note');
+      if (note && blobUrl) note.textContent = this.L('libPdfOffline');
+      const s2 = document.getElementById('lib-pdf-slot');
+      if (s2) s2.innerHTML = frame(blobUrl || b.pdf);
+    } catch (e) {
+      const s2 = document.getElementById('lib-pdf-slot');
+      if (s2) s2.innerHTML = frame(b.pdf); // احتياط: عرض مباشر من الرابط
+    }
   },
   _openPdfById(id, from) { const b = this._findIh(id); if (b) this._openPdf(b, from); },
-  _backFromPdf() { if (this._pdfFrom === 'shelf') this._openShelfAll(); else this._openTopic(this._topic === undefined ? null : this._topic); },
+  // v1.0.86 — الرجوع يعود إلى الصفحة التي جاء منها القارئ (الجامع/الباب/الرفّ…) لا إلى صفحة عامة.
+  _setOrigin() { const v = this._view; if (v && v !== 'pdf' && v !== 'reader') this._from = v; },
+  _reopen(from) {
+    switch (from) {
+      case 'jami': this._openJami(); return;
+      case 'shelf': this._openShelfAll(); return;
+      case 'favs': this._openFavs(); return;
+      case 'kids': this._openKids(); return;
+      case 'newmuslims': this._openNewMuslims(); return;
+      case 'hadith': this._openHadith(); return;
+      case 'home': this._home(); return;
+      default: this._openTopic(this._topic === undefined ? null : this._topic);
+    }
+  },
+  _backFromPdf() { this._reopen(this._from || 'topic'); },
   _dlPdfById(id, btn, lang) { const b = this._findIh(id) || {}; if (lang) b.lang = lang; this._dlPdf(b, btn); },
   async _dlPdf(b, btn) {
     if (!b || !b.pdf) { if (typeof showToast === 'function') showToast('⚠️ ' + this.L('libPdfFail')); return; }
@@ -771,7 +753,7 @@ const LibraryPage = {
     const onShelf = LibraryService.isOnShelfKind(nid, 'ih');
     const nm = escapeAttr(b.name || ''), au = escapeAttr(b.author || '');
     const dlk = this._dlKey('ih', nid);
-    const readFn = `LibraryPage._openPdfById(${nid},'topic')`;
+    const readFn = `LibraryPage._openPdfById(${nid})`;
     return `<div class="lib-book-card">
       ${this._cover(b, '', 'ih')}
       <div class="lib-bc-info" onclick="${readFn}">
@@ -859,6 +841,7 @@ const LibraryPage = {
   // ============ تفاصيل الكتاب وقارئه (كتب الشاملة)  ==========
   // ============================================================
   async _openBook(id) {
+    this._setOrigin();
     this._view = 'detail';
     const bid = Number(id);
     this._book = { id: bid }; this._info = null;
@@ -966,7 +949,7 @@ const LibraryPage = {
   _setFont(v) { this._fs = Number(v) || 20; Storage.set('library_fontsize', this._fs); const t = document.getElementById('lib-rtext'); if (t) t.style.setProperty('--lib-fs', this._fs + 'px'); },
   _scrollIndex() { this._openBook(Number(this._book.id)); },
   _backHome() { Router.go('wisdom'); },
-  _backFromDetail() { this._openTopic(this._topic === undefined ? null : this._topic); },
+  _backFromDetail() { this._reopen(this._from || 'topic'); },
   _backFromReader() { this._openBook(Number(this._book.id)); },
 
   // ============ التنزيل ============
@@ -1011,7 +994,7 @@ const LibraryPage = {
     if (section === 'kids') { if ((LibraryData.KIDS_CHILDREN_AR || []).length || (LibraryData.KIDS_PARENTS_AR || []).length) out.push('ar'); }
     else if (section === 'newmuslims') { if ((LibraryData.NEW_MUSLIMS || []).length) out.push('ar'); }
     else out.push('ar');
-    const gs = section === 'kids' ? ['kids', 'family'] : (section === 'newmuslims' ? ['nm', 'basics'] : LibraryData.ESEN_TOPICS);
+    const gs = section === 'kids' ? ['kids', 'family'] : (section === 'newmuslims' ? ['nm'] : LibraryData.ESEN_TOPICS);
     ['es', 'en'].forEach(l => { if (gs.some(g => LibraryData.ihGroupBooks(l, g).length)) out.push(l); });
     return out.length ? out : ['ar'];
   },
@@ -1034,9 +1017,21 @@ const LibraryPage = {
   _topicKids() {
     const t = this._topic ? this._topicDef(this._topic) : null;
     if (!t) return [];
-    const def = LibraryData.TOPIC_DEFS[t.topic];
-    if (this._lang === 'ar') return (LibraryData.KIDS_TOPIC[t.topic] || []).map(b => ({ id: b.id, name: b.name, author: b.author || '', catId: def ? def.cat : null, volumes: b.volumes || 0 }));
-    return LibraryData.ihTopicBooks(this._lang, t.topic).filter(b => b.kids);
+    if (this._lang !== 'ar') {
+      const gid = LibraryData.ESEN_MAP[t.topic] || t.group || t.topic;   // v1.0.89: كان يقرأ topic غير موجود => تبويب الأطفال فارغ
+      return LibraryData.ihAllBooks(this._lang).filter(b => b.group === gid && b.kids);
+    }
+    const gid = this._arGroupOf(this._topic);
+    const g = LibraryData.ihGroups('ar').find(x => x.id === gid);
+    const keys = [];
+    if (LibraryData.KIDS_TOPIC[t.topic]) keys.push(t.topic);
+    ((g && g.tKeys) || []).forEach(k => { if (keys.indexOf(k) === -1) keys.push(k); });
+    const out = [];
+    keys.forEach(k => {
+      const def = LibraryData.TOPIC_DEFS[k];
+      (LibraryData.KIDS_TOPIC[k] || []).forEach(b => out.push({ id: b.id, name: b.name, author: b.author || '', catId: def ? def.cat : null, volumes: b.volumes || 0 }));
+    });
+    return out;
   },
   _curatedById(id) {
     const bid = Number(id);
@@ -1102,41 +1097,46 @@ const LibraryPage = {
   _paintJami() {
     const c = document.getElementById('lib-cats'); if (c) c.innerHTML = this._jamiChips();
     const b = document.getElementById('lib-books'); if (b) b.innerHTML = this._jamiHtml();
+    const m = document.getElementById('lib-jami-more');
+    if (m) m.hidden = this._jamiBooks().length <= (this._jlimit || 240);   // لا زر «المزيد» إن كانت كل الكتب ظاهرة
   },
   _setJcat(id) {
-    this._jcat = id; this._q = ''; this._results = null; this._jlimit = 120;
-    const i = document.getElementById('lib-q'); if (i) i.value = '';
+    this._jcat = id; this._results = null; this._jlimit = 240;
     this._paintJami();
   },
   _moreJami() { this._jlimit += 120; this._paintJami(); },
   _jamiHtml() {
     if (this._loading) return `<div class="lib-empty-list">${esc(this.L('libLoading'))}</div>`;
-    if (this._q) {
-      if (this._lang === 'ar') {
-        if (!this._results || !this._results.length) return `<div class="lib-empty-list"><i class="fas fa-magnifying-glass"></i> ${esc(this.L('libNoResults'))}</div>`;
-        return this._gridHtml(this._results.map(b => ({ b: b, kind: 't' })));
-      }
-      const found = this._ihSearch(this._q);
-      if (!found.length) return `<div class="lib-empty-list"><i class="fas fa-magnifying-glass"></i> ${esc(this.L('libNoResults'))}</div>`;
-      return this._gridHtml(found.map(x => ({ b: x.b, kind: 'ih', g: x.g })));
-    }
     const list = this._jamiBooks();
     if (!list.length) return `<div class="lib-empty-list">${esc(this.L('libNoCatBooks'))}</div>`;
-    return this._gridHtml(list.slice(0, this._jlimit).map(b => ({ b: b, kind: b.pdf ? 'ih' : 't', g: b.group || '' })));
+    return this._gridHtml(list.slice(0, (this._jlimit || 240)).map(b => ({ b: b, kind: b.pdf ? 'ih' : 't', g: b.group || '' })));
+  },
+  // v1.0.89 — كتب المكتبة الشاملة التابعة لباب ما (أو لكلها)
+  _turathBooksFor(keys) {
+    const out = [];
+    (keys || []).forEach(k => {
+      const def = LibraryData.TOPIC_DEFS[k];
+      (LibraryData.CAT_BOOKS[k] || []).forEach(b => out.push({ id: b.id, name: b.name, author: b.author || '', catId: def ? def.cat : null, volumes: b.volumes || 0 }));
+    });
+    return out;
+  },
+  _arGroupOf(id) {
+    if (!id) return null;
+    if (LibraryData.ihGroups('ar').some(g => g.id === id)) return id;
+    return LibraryData.IH_AR_MAP[id] || null;
+  },
+  _arGroupItems(gid) {
+    if (!gid) return [];
+    const g = LibraryData.ihGroups('ar').find(x => x.id === gid) || {};
+    const ih = (g.books || []).slice();
+    const tt = this._turathBooksFor(g.tKeys || []);
+    return ih.concat(tt);
   },
   _jamiBooks() {
     const cat = this._jcat;
     if (this._lang === 'ar') {
-      if (!cat) {
-        let all = [];
-        Object.keys(LibraryData.CAT_BOOKS).forEach(k => {
-          const def = LibraryData.TOPIC_DEFS[k];
-          (LibraryData.CAT_BOOKS[k] || []).forEach(b => all.push({ id: b.id, name: b.name, author: b.author || '', catId: def ? def.cat : null, volumes: b.volumes || 0 }));
-        });
-        return all;
-      }
-      const def = LibraryData.TOPIC_DEFS[cat];
-      return (LibraryData.CAT_BOOKS[cat] || []).map(b => ({ id: b.id, name: b.name, author: b.author || '', catId: def ? def.cat : null, volumes: b.volumes || 0 }));
+      if (!cat) return LibraryData.ihAllBooks('ar').slice().concat(this._turathBooksFor(Object.keys(LibraryData.CAT_BOOKS)));
+      return this._arGroupItems(this._arGroupOf(cat));
     }
     if (!cat) return LibraryData.ihAllBooks(this._lang);
     const g = LibraryData.ESEN_MAP[cat] || cat;
@@ -1157,7 +1157,7 @@ const LibraryPage = {
     const on = LibraryService.isFav(key);
     const onShelf = LibraryService.isOnShelfKind(nid, kind);
     const nm = escapeAttr(b.name || ''), au = escapeAttr(b.author || '');
-    const readFn = kind === 'ih' ? `LibraryPage._openPdfById(${nid},'jami')` : `LibraryPage._openBook(${nid})`;
+    const readFn = kind === 'ih' ? `LibraryPage._openPdfById(${nid})` : `LibraryPage._openBook(${nid})`;
     const dlFn = kind === 'ih' ? `LibraryPage._dlPdfById(${nid},this)` : `LibraryPage._quickDownload(${nid},this)`;
     return `<div class="lib-gcard">
       <button class="lib-gcard-cover" onclick="${readFn}" aria-label="${escapeAttr(b.name || '')}">${this._cover(b, '', kind)}</button>

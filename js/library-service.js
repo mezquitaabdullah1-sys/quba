@@ -220,8 +220,8 @@ const LibraryService = {
   async getPdfBlob(key) { try { return await CacheDB.get('lib_pdf_' + key); } catch (e) { return null; } },
   async hasPdf(key) { const b = await this.getPdfBlob(key); return !!b; },
   async removePdf(key) { try { await CacheDB.remove('lib_pdf_' + key); } catch (e) {} },
-  // يُنزّل الـPDF مع تقرير التقدّم، يخزّنه في IndexedDB للقراءة بلا إنترنت، ثم يحفظه في جهاز المستخدم
-  async downloadPdf(url, key, filename, onProgress) {
+  // v1.0.86 — يجلب الـPDF ويخزّنه في IndexedDB فقط (بلا حفظ في الجهاز) — يُستعمل لفتح الكتاب داخل التطبيق
+  async cachePdf(url, key, onProgress) {
     const r = await fetch(url, { mode: 'cors' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const total = Number(r.headers.get('content-length')) || 0;
@@ -241,6 +241,11 @@ const LibraryService = {
       if (onProgress) onProgress(blob.size, blob.size);
     }
     try { await CacheDB.set('lib_pdf_' + key, blob); } catch (e) { /* كاش فشل — نكمل */ }
+    return blob;
+  },
+  // يُنزّل الـPDF مع تقرير التقدّم، يخزّنه في IndexedDB، ثم يحفظه في جهاز المستخدم
+  async downloadPdf(url, key, filename, onProgress) {
+    const blob = await this.cachePdf(url, key, onProgress);
     this.saveBlobToDevice(blob, filename);
     return blob;
   },

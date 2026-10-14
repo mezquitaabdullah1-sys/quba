@@ -35,3 +35,40 @@
 .lib-jami-more { display: flex; justify-content: center; padding: 4px var(--sp-md) 14px; }
 .lib-jami-more .lib-btn { min-width: 140px; }
 @media (max-width: 380px) { .lib-grid { grid-template-columns: repeat(2, 1fr); } }
+
+/* ============ v1.0.86 — شريط كتب الجامع قابل للسحب يمينًا/يسارًا ============ */
+.lib-grid {
+  display: grid;
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(92px, 31%);
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  scrollbar-width: none;
+  padding: 0 var(--sp-md) var(--sp-md);
+  scroll-padding-inline-start: var(--sp-md);
+}
+.lib-grid::-webkit-scrollbar { display: none; }
+.lib-gcard { scroll-snap-align: start; }
+
+/* شريط التصنيفات: سحب صريح يمينًا/يسارًا */
+.lib-cats {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  scroll-snap-type: x proximity;
+}
+.lib-cat-chip { scroll-snap-align: center; }
+
+/* قارئ الكتب: مؤشّر تجهيز الملف داخل التطبيق */
+.lib-pdf-loading {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; min-height: 240px; color: var(--text-secondary, #55606E);
+  font-size: 13px; font-weight: 600; text-align: center; padding: 0 var(--sp-md);
+}
+.lib-pdf-loading i { font-size: 26px; color: #1A6B52; }

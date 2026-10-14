@@ -1,0 +1,582 @@
+/* 🎬 مقتطفات دينية — clips.css (v57)
+   صفحة فيديوهات يوتيوب داخل التطبيق + قسم الرئيسية */
+
+/* ---------- قسم الرئيسية (تحت الراديو) ---------- */
+.clips-home-row {
+  /* v59: شريط أفقي قابل للتمرير — يعرض حتى ١٠ فيديوهات */
+  display: flex;
+  gap: var(--sp-sm, 10px);
+  margin-bottom: var(--sp-md, 16px);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+.clips-home-row::-webkit-scrollbar { display: none; }
+.clips-home-row .clip-home-card {
+  flex: 0 0 46%;
+  min-width: 160px;
+  scroll-snap-align: start;
+}
+
+.clip-home-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 0 10px;
+  border: none;
+  border-radius: 16px;
+  background: var(--card-bg, #fff);
+  box-shadow: 0 2px 10px rgba(15, 76, 58, 0.10);
+  overflow: hidden;
+  cursor: pointer;
+  text-align: start;
+  font-family: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.clip-home-card:active { transform: scale(0.97); }
+.clip-home-card:hover { box-shadow: 0 4px 16px rgba(15, 76, 58, 0.18); }
+
+.clip-home-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #0F4C3A;
+  display: block;
+}
+.clip-home-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.clip-home-thumb .clip-play {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(15, 76, 58, 0.85);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  backdrop-filter: blur(2px);
+}
+
+.clip-home-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--text-primary, #1a1a1a);
+  padding: 0 10px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.9em;
+}
+
+.clip-home-watch {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0F766E;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---------- صفحة المقتطفات ---------- */
+.clips-page { padding-bottom: var(--sp-lg, 24px); }
+
+.clips-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: var(--sp-md, 16px);
+  background: linear-gradient(135deg, #0F4C3A 0%, #0F766E 100%);
+  color: #fff;
+  border-radius: 0 0 20px 20px;
+}
+.clips-back {
+  border: none;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.clips-header-text { flex: 1; min-width: 0; }
+.clips-title { font-size: 19px; font-weight: 700; }
+.clips-subtitle {
+  font-size: 12px;
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.clips-yt-badge { font-size: 26px; opacity: 0.9; }
+
+/* ---------- v72: أزرار التقسيم — أنحف وأطول (حبّات)، بلا أيقونات، تُمرَّر يمينًا/يسارًا ---------- */
+.clips-tabs,
+.clips-chips {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  padding: 10px var(--sp-md, 16px) 2px;
+}
+.clips-tabs::-webkit-scrollbar,
+.clips-chips::-webkit-scrollbar { display: none; }
+.clips-chips { padding-top: 8px; padding-bottom: 4px; }
+.clips-chips[hidden] { display: none; }
+
+.clips-tab,
+.clips-chip {
+  flex: 0 0 auto;           /* عرض بحسب النص — لا تمدّد ولا انكماش */
+  white-space: nowrap;
+  border: none;
+  border-radius: 999px;
+  padding: 0 16px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  background: var(--card-bg, #f0f0f0);
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.clips-tab-n { font-size: 11px; font-weight: 700; opacity: 0.6; }
+.clips-tab.active,
+.clips-chip.active {
+  background: #0F4C3A;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(15, 76, 58, 0.3);
+}
+.clips-tab.active .clips-tab-n { opacity: 0.85; }
+/* شريط التصنيفات أخف بصريًا من شريط اللغة */
+.clips-chip { height: 30px; padding: 0 14px; font-size: 12.5px; font-weight: 600; background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.28); }
+.clips-chip.active { background: #0F766E; box-shadow: 0 2px 8px rgba(15, 118, 110, 0.3); }
+
+/* ---------- v72: البحث ---------- */
+.clips-searchbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px var(--sp-md, 16px) 0;
+  padding: 0 14px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--card-bg, #f0f0f0);
+  box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.25);
+  color: var(--text-secondary, #777);
+}
+.clips-searchbar[hidden] { display: none; }
+.clips-searchbar input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--text-primary, #1a1a1a);
+}
+.clips-searchbar input::-webkit-search-cancel-button { display: none; }
+/* أثناء البحث تُخفى أشرطة اللغة والتصنيف */
+.clips-page.is-searching .clips-tabs,
+.clips-page.is-searching .clips-chips { display: none; }
+
+/* ---------- v72: صفوف التصنيفات (عرض «الكل») ---------- */
+.clips-body { min-height: 120px; }
+.clips-row-sec { padding-top: 14px; }
+.clips-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 var(--sp-md, 16px);
+  margin-bottom: 10px;
+}
+.clips-row-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a1a);
+}
+.clips-row-all {
+  border: none;
+  background: none;
+  padding: 4px 2px;
+  color: #0F766E;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.clips-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  padding: 2px var(--sp-md, 16px) 8px;
+  scroll-padding: 0 var(--sp-md, 16px);
+}
+.clips-row::-webkit-scrollbar { display: none; }
+.clip-card--row {
+  flex: 0 0 62%;
+  max-width: 280px;
+  min-width: 180px;
+  scroll-snap-align: start;
+}
+
+.clips-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px var(--sp-md, 16px);
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-secondary, #777);
+}
+.clips-empty i { font-size: 30px; opacity: 0.5; }
+
+.clips-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: var(--sp-md, 16px);
+}
+@media (min-width: 520px) {
+  .clips-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.clip-card {
+  display: flex;
+  flex-direction: column;
+  border: none;
+  border-radius: 14px;
+  background: var(--card-bg, #fff);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  cursor: pointer;
+  text-align: start;
+  font-family: inherit;
+  padding: 0 0 10px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.clip-card:active { transform: scale(0.97); }
+.clip-card:hover { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14); }
+
+.clip-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #10382c;
+  display: block;
+}
+.clip-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.clip-thumb .clip-play {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(15, 76, 58, 0.85);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.clip-album-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0F4C3A, #1A6B52);
+}
+.clip-album-icon { font-size: 40px; color: rgba(255, 255, 255, 0.9); }
+
+.clip-info { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px 0; }
+.clip-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-primary, #1a1a1a);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.clip-channel {
+  font-size: 11px;
+  color: var(--text-secondary, #777);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.clip-channel i { color: #c00; }
+.clip-watch {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0F766E;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+/* ---------- المشغّل ---------- */
+.clip-player-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+.clip-player-frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.clip-player-info { padding: var(--sp-md, 16px); }
+.clip-player-title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--text-primary, #1a1a1a);
+  margin-bottom: 6px;
+}
+.clip-player-channel {
+  font-size: 13px;
+  color: var(--text-secondary, #666);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.clip-player-channel i { color: #c00; }
+
+/* v85: زر «افتح في يوتيوب» مصغَّر */
+.clip-yt-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9px;
+  background: #c00;
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.clip-yt-link i { font-size: 10.5px; }
+.clip-yt-link:active { transform: scale(0.97); }
+
+/* v85: صفّ الإجراءات أسفل المشغّل (زر يوتيوب + القلب) */
+.clip-player-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.clip-player-desc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary, #666);
+  margin: 0 0 14px;
+}
+
+/* رأس قسم الرئيسية: العنوان + زر «الكل» */
+.clips-home-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.clips-home-head .section-title { margin-bottom: 0; }
+.clips-home-all {
+  border: none;
+  background: none;
+  color: #0F766E;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 2px;
+}
+
+/* ============ v61: شريط «أكمل القراءة» + بطاقات المناسبة/الصيام ============ */
+.resume-strip {
+  display: flex; align-items: center; gap: 10px;
+  width: calc(100% - 2 * var(--sp-md)); margin: 2px var(--sp-md) 6px;
+  padding: 7px 12px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--glass-border, rgba(255,255,255,.08));
+  background: linear-gradient(135deg, var(--color-primary, #0f4c5c) 0%, #0b3d49 100%);
+  color: #fff; text-align: start; font-family: inherit;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.resume-strip:active { transform: scale(.98); }
+.resume-strip-ic {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(216,178,106,.22); color: var(--color-accent, #d8b26a); font-size: 12px;
+}
+.resume-strip-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.resume-strip-label { font-size: 10px; opacity: .72; font-weight: 500; }
+.resume-strip-title { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.resume-strip-meta { font-size: 10.5px; opacity: .78; }
+.resume-strip-arrow { font-size: 12px; opacity: .6; flex-shrink: 0; }
+
+.home-mini-card {
+  display: flex; align-items: center; gap: 10px;
+  margin: 10px 0 0; padding: 9px 12px; border-radius: 12px;
+  background: var(--color-card, rgba(255,255,255,.04));
+  border: 1px solid var(--glass-border, rgba(255,255,255,.08));
+}
+.home-mini-ic {
+  flex-shrink: 0; width: 32px; height: 32px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.home-mini-ic.ev { background: rgba(216,178,106,.15); color: var(--color-accent, #d8b26a); }
+.home-mini-ic.fast { background: rgba(15,76,92,.18); color: var(--color-primary, #0f4c5c); }
+.home-mini-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.home-mini-title { font-size: 10.5px; opacity: .65; font-weight: 600; }
+.home-mini-main { font-size: 13.5px; font-weight: 700; }
+.home-mini-meta { font-size: 11px; opacity: .72; }
+
+/* ============ v63: ترتيب بطاقات الصفحة الرئيسية ============ */
+/* أعلى الصفحة: شريط «أكمل القراءة» فقط */
+.home-info-cards {
+  display: flex; flex-direction: column; gap: 10px;
+  margin: 0 var(--sp-md) 6px;
+}
+.home-info-cards .resume-strip { width: 100%; margin: 0; }
+
+/* أسفل الصفحة: العد التنازلي لرمضان ← يوم الصيام القادم ← المناسبة القادمة */
+.home-bottom-cards {
+  display: flex; flex-direction: column; gap: 10px;
+  margin-top: 6px;
+}
+.home-bottom-cards .home-mini-card { margin: 0; }
+.home-bottom-cards .ramadan-cd-card { margin-bottom: 0; }
+.home-bottom-cards > .section-title { margin: 4px 0 -2px; }
+
+/* v62: تثبيت عرض «مقتطفات دينية» أفقيًا — سحب يمينًا/يسارًا بدل التكديس العمودي */
+.clips-home-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+.clips-home-row .clip-home-card { flex: 0 0 46%; min-width: 160px; }
+
+/* ============ v85: نبذة أسفل الفيديو + قلب المفضلة ============ */
+.clip-desc {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-secondary, #777);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 2px;
+}
+.clip-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
+.clip-foot .clip-watch { margin-top: 0; }
+
+.clip-fav {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(127, 127, 127, 0.12);
+  color: #b9b9b9;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+.clip-fav:hover { background: rgba(204, 0, 0, 0.12); color: #c00; }
+.clip-fav.is-fav { color: #e0245e; background: rgba(224, 36, 94, 0.14); }
+.clip-fav--lg { width: 36px; height: 36px; font-size: 15px; }
+.clip-fav.pop { animation: clipFavPop 0.35s ease; }
+@keyframes clipFavPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.28); }
+  100% { transform: scale(1); }
+}
+
+/* زر المفضلة في الشريط العلوي */
+.clips-fav-btn { position: relative; }
+.clips-fav-btn.active { background: rgba(255, 255, 255, 0.92); color: #e0245e; }
+.clips-fav-n {
+  position: absolute;
+  top: -5px;
+  inset-inline-end: -5px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #e0245e;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+}
+.clips-fav-n[hidden] { display: none; }
+
+/* وضع المفضلة: تُخفى أشرطة اللغة والتصنيفات */
+.clips-page.is-fav .clips-tabs,
+.clips-page.is-fav .clips-chips { display: none; }
+
+/* القلب داخل بطاقة صفّية أصغر قليلًا */
+.clip-card--row .clip-fav { width: 28px; height: 28px; font-size: 12px; }

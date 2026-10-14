@@ -18,7 +18,7 @@ const ClipsData = {
       clipsTopicQuestions: 'أسئلة',
       clipsTopicLang: 'لغة',
       clipsTopicLectures: 'محاضرات',
-      clipsTopicRecitation: 'تلاوات',
+      clipsTopicRecitation: 'تلاوات قرآنية',
       clipsSeeAll: 'عرض الكل',
       clipsSearch: 'بحث',
       clipsSearchPlaceholder: 'ابحث في الفيديوهات…',
@@ -49,6 +49,13 @@ const ClipsData = {
       clipsFavRemove: 'إزالة من المفضلة',
       clipsFavAdded: 'أُضيف إلى المفضلة',
       clipsFavRemoved: 'أُزيل من المفضلة',
+      clipsTopicPodcastNote: 'مقاطع أطول من ٤٥ دقيقة',
+      clipsAdsNote: 'تنبيه: أي إعلانات تظهر داخل الفيديو هي من يوتيوب نفسه، ونحن غير مسؤولين عنها.',      clipsClose: 'إغلاق',
+      clipsAllTopics: 'جميع التصنيفات',
+      clipsSecCore: 'الأقسام الأساسية',
+      clipsSecMore: 'تصنيفات أخرى',
+      clipsLangSwitch: 'تغيير اللغة',
+
     },
     es: {
       clipsLangEs: 'Español',
@@ -62,7 +69,7 @@ const ClipsData = {
       clipsTopicQuestions: 'Preguntas',
       clipsTopicLang: 'Idioma',
       clipsTopicLectures: 'Conferencias',
-      clipsTopicRecitation: 'Recitaciones',
+      clipsTopicRecitation: 'Recitaciones del Corán',
       clipsSeeAll: 'Ver todo',
       clipsSearch: 'Buscar',
       clipsSearchPlaceholder: 'Buscar videos…',
@@ -93,6 +100,13 @@ const ClipsData = {
       clipsFavRemove: 'Quitar de favoritos',
       clipsFavAdded: 'Añadido a favoritos',
       clipsFavRemoved: 'Quitado de favoritos',
+      clipsTopicPodcastNote: 'Videos de más de 45 minutos',
+      clipsAdsNote: 'Aviso: los anuncios que aparezcan dentro del video son de YouTube; no somos responsables de ellos.',      clipsClose: 'Cerrar',
+      clipsAllTopics: 'Todas las categorías',
+      clipsSecCore: 'Secciones principales',
+      clipsSecMore: 'Otras categorías',
+      clipsLangSwitch: 'Cambiar idioma',
+
     },
     en: {
       clipsLangEs: 'Spanish',
@@ -106,7 +120,7 @@ const ClipsData = {
       clipsTopicQuestions: 'Questions',
       clipsTopicLang: 'Language',
       clipsTopicLectures: 'Lectures',
-      clipsTopicRecitation: 'Recitations',
+      clipsTopicRecitation: 'Quran recitations',
       clipsSeeAll: 'See all',
       clipsSearch: 'Search',
       clipsSearchPlaceholder: 'Search videos…',
@@ -137,6 +151,13 @@ const ClipsData = {
       clipsFavRemove: 'Remove from favorites',
       clipsFavAdded: 'Added to favorites',
       clipsFavRemoved: 'Removed from favorites',
+      clipsTopicPodcastNote: 'Clips longer than 45 minutes',
+      clipsAdsNote: 'Note: any ads shown inside the video come from YouTube itself; we are not responsible for them.',      clipsClose: 'Close',
+      clipsAllTopics: 'All categories',
+      clipsSecCore: 'Main sections',
+      clipsSecMore: 'More categories',
+      clipsLangSwitch: 'Change language',
+
     },
   },
 
@@ -335,6 +356,30 @@ const ClipsData = {
       desc: { ar: 'سورة الكهف كاملة بصوت الشيخ ماهر المعيقلي.',
               es: 'Surat Al-Kahf completa, recitada por el jeque Maher Al-Muaiqly.',
               en: 'Surat Al-Kahf in full, recited by Sheikh Maher Al-Muaiqly.' } },
+    { id: '84H6iwlg2KY', title: 'El Sagrado Corán traducido al español — القرآن الكريم مع ترجمة صوتية', channel: 'ultimo mensajero', cats: ['es'], topics: ['recitation'],
+      desc: { ar: 'القرآن الكريم كاملًا بالترجمة الإسبانية الصوتية (٩ ساعات و٢٨ دقيقة).',
+              es: 'El Corán completo con traducción al español en audio.',
+              en: 'The full Quran with Spanish audio translation.' } },
+    { id: 'KTsrb1895qA', title: 'EL CORÁN COMPLETO EN ESPAÑOL | Audiolibro Voz Humana', channel: 'Aubiblio Narraciones', cats: ['es'], topics: ['recitation'],
+      desc: { ar: 'القرآن الكريم كاملًا بالترجمة الإسبانية مقروءة بصوت بشري.',
+              es: 'El Corán completo en español en formato audiolibro.',
+              en: 'The complete Quran in Spanish as an audiobook.' } },
+    { id: 'S4r7ku3_W0M', title: '002 Surah Al-Baqara (البقرة) — With Spanish Translation By Mufti Ismail Menk', channel: 'My Quran Translations', cats: ['es'], topics: ['recitation'],
+      desc: { ar: 'سورة البقرة مع الترجمة الإسبانية يقدّمها مفتي إسماعيل منك.',
+              es: 'Surat Al-Baqarah con traducción al español por Mufti Ismail Menk.',
+              en: 'Surah Al-Baqarah with Spanish translation by Mufti Ismail Menk.' } },
+    { id: 'twozvAUO6Qg', title: 'كيف نفهم الإسلام؟ | بودكاست رفوف (70) مع د. سعيد سالم', channel: 'مكتبة استديو', cats: ['ar'], topics: ['podcast'],
+      desc: { ar: 'حلقة بودكاست مطوّلة عن فهم الإسلام مع د. سعيد سالم.',
+              es: 'Episodio largo de podcast sobre cómo entender el Islam.',
+              en: 'A long-form podcast episode on understanding Islam.' } },
+    { id: 'am6jfmu7E_M', title: 'القضاء والقدر: بين الإيمان والعمل | د. عبدالرحمن الحرمي', channel: 'د. عبدالرحمن الحرمي', cats: ['ar'], topics: ['podcast'],
+      desc: { ar: 'محاضرة مطوّلة عن القضاء والقدر بين الإيمان والعمل للدكتور عبدالرحمن الحرمي.',
+              es: 'Conferencia extensa sobre el decreto divino y la fe.',
+              en: 'An extended lecture on divine decree between faith and action.' } },
+    { id: '1Qlsf527EJM', title: 'Islam y Musulmanes: Lo Que Nunca Nos Contaron | Hisham Muhammad', channel: 'El ADN del Éxito Podcast con Jorge Cáceres', cats: ['es'], topics: ['podcast'],
+      desc: { ar: 'حلقة بودكاست مطوّلة عن الإسلام والمسلمين مع هشام محمد.',
+              es: 'Episodio largo de podcast sobre el Islam y los musulmanes.',
+              en: 'A long-form podcast episode about Islam and Muslims.' } },
   ],
 
   // قوائم التشغيل (ألبومات)
@@ -346,11 +391,148 @@ const ClipsData = {
   // v72: التصنيفات (شريط التصنيفات تحت شريط اللغة + صفوف «على طريقة يوتيوب»)
   // v85: أُضيفت «لغة» (كورس العربية) + «محاضرات» + «تلاوات».
   // لإضافة تصنيف جديد: أضف مفتاحه هنا + نصّه clipsTopic<Key> في LOCALES الثلاث.
-  TOPICS: ['featured', 'quran', 'recitation', 'lectures', 'lang', 'podcast', 'questions', 'kids'],
+  // v91: التصنيفات ثلاثة فقط — محاضرات / بودكاست (أطول من ٤٥ دقيقة) / تلاوات قرآنية
+  //      «تلاوات قرآنية» تشمل كل قراءة للقرآن: التلاوات المفردة + تلاوات القرآن المترجم.
+  //      المقطع الطويل يظهر في «محاضرات» و«بودكاست» معًا بحسب مدّته.
+  //      v91: أُزيل مقطع مشاري العفاسي (سورة البقرة بالترجمة الإسبانية) بطلب المستخدم.
+  //      v92: أُزيل مقطع «بودكاست فنجان — إذاعة ثمانية» لعدم صلته.
+  TOPICS: ['lectures', 'podcast', 'recitation'],
+  // v93: الأقسام الأساسية (الشريط فوق الفيديوهات)
+  CORE_TOPICS: ['lectures', 'podcast', 'recitation'],
+  // v93: التصنيفات الكاملة القديمة — تظهر داخل قائمة «جميع التصنيفات» (ثلاث شحطات) في الشريط الأخضر
+  LEGACY_TOPICS: ['featured', 'quran', 'questions', 'kids', 'lang'],
+  ALL_TOPICS: ['lectures', 'podcast', 'recitation', 'featured', 'quran', 'questions', 'kids', 'lang'],
+
+  // v90: مدّة كل مقطع بالثواني — موثّقة من يوتيوب لحظة الإضافة
+  DUR: {
+    '1PgE5YJMgNc': 1058,
+    '1Qlsf527EJM': 12058,
+    '73iZ56eliz0': 128,
+    '7WvVSdgPCQA': 2025,
+    '7lvuE6xwjrY': 6229,
+    '84H6iwlg2KY': 34088,
+    '884zeWNvI54': 1806,
+    '9k1U0aGQRNA': 1419,
+    '9zu7dpztLFk': 1105,
+    'AJGry6FeJM0': 2780,
+    'ESlJo2jqBa4': 3654,
+    'EajB3cScC38': 6272,
+    'Ed24YWDWz6Y': 850,
+    'EsQfp1oy0HU': 1633,
+    'Iz1Eh7k-q94': 1894,
+    'JD_WA-KKBBQ': 1395,
+    'JO4Nm8obyEc': 4598,
+    'JnECmQ_8C6Q': 93,
+    'KTsrb1895qA': 63718,
+    'LfCWAyQWUWc': 544,
+    'MFLHYRtXjSE': 372,
+    'McJWSyDwnpE': 1282,
+    'O1RpfRp19co': 356,
+    'O7jBANtNHHU': 1819,
+    'OD-onPuCiGs': 13,
+    'ORilHbMl31E': 1970,
+    'OjF6qi45Q1E': 451,
+    'S4r7ku3_W0M': 6280,
+    'U86D0188Mp8': 990,
+    'Uu2XfkC68Hs': 618,
+    'ZtQpdJXf8GY': 1765,
+    '_OYt6l7lzJI': 904,
+    '_sC2-nGBlnE': 379,
+    'am6jfmu7E_M': 8973,
+    'd0B-N97qLsU': 730,
+    'g4kKUZ8HtWo': 865,
+    'g8yMMoCr4Uw': 1697,
+    'gun0kmRcczw': 1866,
+    'hB8iQkv7-88': 2649,
+    'hE7cnsFfIus': 46,
+    'iTQnfYmS3co': 1022,
+    'jz4cqxNBspY': 3539,
+    'l5NpHG3u48E': 989,
+    'lkX6mcCD3CI': 5433,
+    'r7HHc08F6P0': 124,
+    's5ekQ0Uu09k': 2293,
+    'tMoAx-ppLsw': 604,
+    'twozvAUO6Qg': 10800,
+    'ud6Jq3xbQFc': 707,
+    'yt5WyqQT0GI': 506,
+    'zSBNnueoiVo': 638
+  },
+
+  // v90: تصنيف كل مقطع
+  TOPICS_BY_ID: {
+    '7WvVSdgPCQA': ['lectures'],
+    'O1RpfRp19co': ['lectures'],
+    'JnECmQ_8C6Q': ['recitation'],
+    '7lvuE6xwjrY': ['lectures', 'podcast'],
+    'Uu2XfkC68Hs': ['lectures'],
+    'O7jBANtNHHU': ['lectures'],
+    'EajB3cScC38': ['lectures', 'podcast'],
+    'OjF6qi45Q1E': ['lectures'],
+    'yt5WyqQT0GI': ['lectures'],
+    'hE7cnsFfIus': ['recitation'],
+    'OD-onPuCiGs': ['recitation'],
+    'U86D0188Mp8': ['lectures'],
+    'd0B-N97qLsU': ['lectures'],
+    'r7HHc08F6P0': ['lectures'],
+    'LfCWAyQWUWc': ['lectures'],
+    '73iZ56eliz0': ['lectures'],
+    'EsQfp1oy0HU': ['lectures'],
+    'AJGry6FeJM0': ['lectures', 'podcast'],
+    'lkX6mcCD3CI': ['lectures', 'podcast'],
+    'jz4cqxNBspY': ['lectures', 'podcast'],
+    'hB8iQkv7-88': ['lectures'],
+    'Iz1Eh7k-q94': ['lectures'],
+    'JO4Nm8obyEc': ['lectures', 'podcast'],
+    '_sC2-nGBlnE': ['lectures'],
+    'MFLHYRtXjSE': ['lectures'],
+    'iTQnfYmS3co': ['lectures'],
+    'JD_WA-KKBBQ': ['lectures'],
+    'zSBNnueoiVo': ['lectures'],
+    'l5NpHG3u48E': ['lectures'],
+    'ESlJo2jqBa4': ['lectures', 'podcast'],
+    'ZtQpdJXf8GY': ['lectures'],
+    'ud6Jq3xbQFc': ['lectures'],
+    's5ekQ0Uu09k': ['lectures'],
+    '1PgE5YJMgNc': ['lectures'],
+    'tMoAx-ppLsw': ['lectures'],
+    'g4kKUZ8HtWo': ['lectures'],
+    'Ed24YWDWz6Y': ['lectures'],
+    'McJWSyDwnpE': ['lectures'],
+    '884zeWNvI54': ['lectures'],
+    'g8yMMoCr4Uw': ['recitation'],
+    'ORilHbMl31E': ['recitation'],
+    'gun0kmRcczw': ['recitation'],
+    '9zu7dpztLFk': ['recitation'],
+    '_OYt6l7lzJI': ['recitation'],
+    '9k1U0aGQRNA': ['recitation'],
+    '84H6iwlg2KY': ['recitation', 'podcast'],
+    'KTsrb1895qA': ['recitation', 'podcast'],
+    'S4r7ku3_W0M': ['recitation', 'podcast'],
+    'twozvAUO6Qg': ['lectures', 'podcast'],
+    'am6jfmu7E_M': ['lectures', 'podcast'],
+    '1Qlsf527EJM': ['lectures', 'podcast']
+  },
+
+  topicsOf(v) {
+    if (!v || !v.id) return ['lectures'];
+    const t = this.TOPICS_BY_ID[v.id];
+    if (t && t.length) return t;
+    return (this.durOf(v.id) >= 2700) ? ['lectures', 'podcast'] : ['lectures'];
+  },
+
+  durOf(id) { return this.DUR[id] || 0; },
+
+  fmtDur(sec) {
+    sec = parseInt(sec, 10) || 0;
+    if (sec <= 0) return '';
+    const hh = Math.floor(sec / 3600), mm = Math.floor((sec % 3600) / 60), ss = sec % 60;
+    const p2 = (n) => (n < 10 ? '0' + n : '' + n);
+    return hh ? (hh + ':' + p2(mm) + ':' + p2(ss)) : (mm + ':' + p2(ss));
+  },
 
   topicKey(t) { return 'clipsTopic' + t.charAt(0).toUpperCase() + t.slice(1); },
 
-  thumb(id) { return 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg'; },
+  thumb(id, wide) { return 'https://i.ytimg.com/vi/' + id + (wide ? '/maxresdefault.jpg' : '/hqdefault.jpg'); },
 
   watchUrl(id) { return 'https://youtu.be/' + id; },
 
@@ -358,13 +540,38 @@ const ClipsData = {
   byCat(cat) { return this.VIDEOS.filter(v => (v.cats || ['es']).indexOf(cat) !== -1); },
   // v72: فيديوهات لغة + تصنيف معيّن (topic = null → كل تصنيفات اللغة)
   byLangTopic(lang, topic) {
-    return this.byCat(lang).filter(v => !topic || (v.topics && v.topics.length ? v.topics : ['featured']).indexOf(topic) !== -1);
+    return this.byCat(lang).filter(v => !topic || this.topicsOf(v).indexOf(topic) !== -1);
   },
 
   // v85: التصنيفات التي تحتوي فيديوهات فعلًا في لغة معيّنة (لإخفاء الحبّات الفارغة)
   topicsFor(lang) {
     return this.TOPICS.filter(t => this.byLangTopic(lang, t).length > 0);
   },
+
+  // v93: هل التصنيف قسم أساسي أم تصنيف قديم (يُعرض في قائمة «جميع التصنيفات»)؟
+  isCoreTopic(t) { return this.CORE_TOPICS.indexOf(t) !== -1; },
+  isLegacyTopic(t) { return this.LEGACY_TOPICS.indexOf(t) !== -1; },
+
+  // v93: تصفية التصنيفات القديمة على حقل topics الأصلي لكل مقطع
+  //      (لا يُستخدم topicsOf هنا: ذاك يدمج القديم في الجديد)
+  byLegacyTopic(lang, topic) {
+    return this.byCat(lang).filter(v => !topic ||
+      (v.topics && v.topics.length ? v.topics : ['featured']).indexOf(topic) !== -1);
+  },
+  legacyTopicsFor(lang) {
+    return this.LEGACY_TOPICS.filter(t => this.byLegacyTopic(lang, t).length > 0);
+  },
+  // v93: عدد مقاطع أي تصنيف (أساسي أو قديم) في لغة
+  topicCount(lang, t) {
+    return this.isLegacyTopic(t) ? this.byLegacyTopic(lang, t).length : this.byLangTopic(lang, t).length;
+  },
+  topicList(lang, t) {
+    return this.isLegacyTopic(t) ? this.byLegacyTopic(lang, t) : this.byLangTopic(lang, t);
+  },
+  // v93: لغات الواجهة (مبدّل اللغة في الشريط الأخضر)
+  LANGS: ['ar', 'es', 'en'],
+  langFlag(c) { return c === 'ar' ? '\u{1F1F8}\u{1F1E6}' : (c === 'en' ? '\u{1F1EC}\u{1F1E7}' : '\u{1F1EA}\u{1F1F8}'); },
+  langCode(c) { return c === 'ar' ? '\u0639' : c.toUpperCase(); },
 
   // v85: نبذة الفيديو حسب لغة الواجهة الحالية
   desc(v) {
