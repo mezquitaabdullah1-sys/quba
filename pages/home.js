@@ -127,102 +127,134 @@ const HomePage = {
     // v26: progreso del check-in diario de oraciones (se reinicia cada día)
     const doneCount = (typeof PrayerTracker !== 'undefined') ? PrayerTracker.doneCount() : 0;
     const totalCount = (typeof PrayerTracker !== 'undefined') ? PrayerTracker.totalCount() : 5;
-    // v94: الرئيسية المبسّطة — معلومة واحدة في مكان واحد، سقف ارتفاع للبطاقات،
-    //      شريط «اليوم» بالسحب، وقسم وسائط واحد بثلاثة تبويبات.
+    // v95: v95: ترتيب مريح في وسط الشاشة — معلومة واحدة في مكان واحد،
+    //      الصلوات الخمس تظهر كاملة بلا سحب + أيقونة لكل صلاة، زر المدينة في بطاقة الصلوات،
+    //      بطاقات الآية/الدعاء/الحديث صغيرة وموزّعة بين الأقسام،
+    //      مقتطفات بلغة التطبيق المختارة، وبطاقات المناسبات بألوان مختلفة مع زر التقويم الهجري.
     const isAr = document.documentElement.dir === 'rtl';
     const chev = 'fa-chevron-' + (isAr ? 'left' : 'right');
+    const chevStart = 'fa-chevron-' + (isAr ? 'right' : 'left');
     const loc0 = (typeof currentLocale !== 'undefined' && ['es', 'ar', 'en'].includes(currentLocale)) ? currentLocale : 'es';
-    const cityLine = [loc.city, loc.country].filter(Boolean).join(', ');
+    const cityLine = [loc.city, loc.country].filter(Boolean).join(', ') || (t('chooseCityOrLocation') || '');
     const now0 = new Date();
     const gLine = String(now0.getDate()).padStart(2, '0') + '/' + String(now0.getMonth() + 1).padStart(2, '0') + '/' + now0.getFullYear();
     const hLine = hijri ? (hijri.day + '/' + (hijri.month?.number || '') + '/' + hijri.year + ' ' + (loc0 === 'ar' ? 'هـ' : 'AH')) : '';
+    // v96: الصلوات الست (الشروق + الخمس) في شريط واحد — الست تظهر كاملة بلا سحب
+    const SIX = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+    const six = dailyPrayers.filter(p => SIX.includes(p.name));
+    // v95: مقتطفات الرئيسية بلغة التطبيق المختارة (عربي/إسباني/إنجليزي)
+    const appLang = (typeof ClipsData !== 'undefined' && ClipsData.LANGS && ClipsData.LANGS.includes(loc0)) ? loc0 : 'es';
+    const langName = { ar: 'العربية', es: 'Español', en: 'English' }[appLang] || '';
+    let clipList = (typeof ClipsData !== 'undefined' && ClipsData.byCat) ? ClipsData.byCat(appLang) : [];
+    if (!clipList.length && typeof ClipsData !== 'undefined' && ClipsData.byCat) clipList = ClipsData.byCat('es');
+    clipList = clipList.slice(0, 12);
 
     container.innerHTML = `
-      <!-- v94: الرأس كتلة واحدة — تحية + سطر معلومة واحد + الصلاة القادمة + شريط الأيقونات (يثبت عند النزول) -->
+      <!-- v95: الرأس كتلة واحدة ثابتة، ومحتواها في عمود وسط الشاشة -->
       <div class="home-header home-hero">
-        <div class="hh-top">
-          <div class="hh-title">
-            <div class="home-greeting">${getGreetingByHour()}</div>
-            <div class="hh-meta">
-              <span class="hh-city"><i class="fas fa-location-dot"></i> ${escapeHtml(cityLine)}</span>
-              ${hLine ? `<span class="hh-dot">·</span><span class="hh-date"><i class="fas fa-moon"></i> ${hLine}<span class="hh-sep">/</span><i class="fas fa-calendar-day"></i> ${gLine}</span>` : ''}
+        <div class="hh-inner">
+          <div class="hh-top">
+            <div class="hh-title">
+              <div class="home-greeting">${getGreetingByHour()}</div>
+              <div class="hh-meta">
+                ${hLine ? `<span class="hh-date"><i class="fas fa-moon"></i> ${hLine}</span><span class="hh-sep">/</span>` : ''}
+                <span class="hh-date"><i class="fas fa-calendar-day"></i> ${gLine}</span>
+              </div>
             </div>
+            <button class="home-profile-btn" onclick="Router.go('profile')" aria-label="Profile">
+              <i class="fas fa-user-circle"></i>
+            </button>
           </div>
-          <button class="home-profile-btn" onclick="Router.go('profile')" aria-label="Profile">
-            <i class="fas fa-user-circle"></i>
-          </button>
-        </div>
 
-        ${nextPrayer ? `
-          <div class="hh-next">
-            <span class="hh-next-label">${t('nextPrayer')}</span>
-            <span class="hh-next-name" id="next-prayer-name">${t('prayers.' + nextPrayer.name)}</span>
-            <span class="hh-next-cd" id="countdown">${formatCountdown(nextPrayer.diffMs)}</span>
-            <span class="hh-next-time" id="next-prayer-time">${formatTime12h(nextPrayer.time)}</span>
-            ${isEstimated ? `<span class="estimated-badge"><i class="fas fa-wifi-slash"></i> ${t('estimatedTimes')}</span>` : ''}
+          ${nextPrayer ? `
+            <div class="hh-next">
+              <span class="hh-next-label">${t('nextPrayer')}</span>
+              <span class="hh-next-name" id="next-prayer-name">${t('prayers.' + nextPrayer.name)}</span>
+              <span class="hh-next-cd" id="countdown">${formatCountdown(nextPrayer.diffMs)}</span>
+              <span class="hh-next-time" id="next-prayer-time">${formatTime12h(nextPrayer.time)}</span>
+              ${isEstimated ? `<span class="estimated-badge"><i class="fas fa-wifi-slash"></i> ${t('estimatedTimes')}</span>` : ''}
+            </div>
+          ` : ''}
+
+          <!-- v95: شريط الأيقونات + سهمان صغيران يدلّان على وجود مزيد من الأيقونات -->
+          <div class="hh-quick">
+            <button class="hh-arrow hh-arrow-start" onclick="HomePage.qScroll(-1)" aria-label="${escapeAttr(t('seeMore') || 'More')}" tabindex="-1"><i class="fas ${chevStart}"></i></button>
+            <div class="home-quick-grid" id="home-quick-grid" onscroll="HomePage._syncQArrows()">
+              <button class="quick-access-btn" onclick="Router.go('quran')" aria-label="${escapeAttr(t('tabQuran'))}" title="${escapeAttr(t('tabQuran'))}">
+                <span class="quick-access-icon"><img src="assets/quick/quran.png" alt="" loading="lazy" draggable="false"></span>
+                <span class="quick-access-label">${t('quickQuran')}</span>
+              </button>
+              <button class="quick-access-btn" onclick="Router.go('prayer',{tab:'qibla'})" aria-label="${escapeAttr(t('qibla'))}" title="${escapeAttr(t('qibla'))}">
+                <span class="quick-access-icon"><img src="assets/quick/qibla.png" alt="" loading="lazy" draggable="false"></span>
+                <span class="quick-access-label">${t('quickQibla')}</span>
+              </button>
+              <button class="quick-access-btn" onclick="Router.go('calendar')" aria-label="${escapeAttr(t('hijriCalendar'))}" title="${escapeAttr(t('hijriCalendar'))}">
+                <span class="quick-access-icon"><img src="assets/quick/calendar.png" alt="" loading="lazy" draggable="false"></span>
+                <span class="quick-access-label">${t('quickCalendar')}</span>
+              </button>
+              <button class="quick-access-btn" onclick="Router.go('radio')" aria-label="${escapeAttr(RadioData.L('radioTitle'))}" title="${escapeAttr(RadioData.L('radioTitle'))}">
+                <span class="quick-access-icon"><img src="assets/quick/radio.png" alt="" loading="lazy" draggable="false"></span>
+                <span class="quick-access-label">${t('quickRadio')}</span>
+              </button>
+              <button class="quick-access-btn" onclick="Router.go('wisdom/library')" aria-label="${escapeAttr(LibraryData.L('libTitle'))}" title="${escapeAttr(LibraryData.L('libTitle'))}">
+                <span class="quick-access-icon"><img src="assets/quick/library.png" alt="" loading="lazy" draggable="false"></span>
+                <span class="quick-access-label">${t('quickLibrary')}</span>
+              </button>
+              <button class="quick-access-btn" onclick="Router.go('wisdom/tasbih')" aria-label="${escapeAttr(t('tasbih'))}" title="${escapeAttr(t('tasbih'))}">
+                <span class="quick-access-icon"><img src="assets/quick/misbaha.png" alt="" loading="lazy" draggable="false"></span>
+                <span class="quick-access-label">${t('quickTasbih')}</span>
+              </button>
+              <button class="quick-access-btn" onclick="Router.go('videos')" aria-label="${escapeAttr(ClipsData.L('clipsTitle'))}" title="${escapeAttr(ClipsData.L('clipsTitle'))}">
+                <span class="quick-access-icon"><img src="assets/quick/clips.png" alt="" loading="lazy" draggable="false"></span>
+                <span class="quick-access-label">${t('quickClips')}</span>
+              </button>
+              <button class="quick-access-btn" onclick="Router.go('wisdom/duas')" aria-label="${escapeAttr(t('quickDuas'))}" title="${escapeAttr(t('quickDuas'))}">
+                <span class="quick-access-icon"><img src="assets/quick/duas.png" alt="" loading="lazy" draggable="false"></span>
+                <span class="quick-access-label">${t('quickDuas')}</span>
+              </button>
+              <button class="quick-access-btn" onclick="Router.go('wisdom/courses')" aria-label="${escapeAttr(t('coursesTitle'))}" title="${escapeAttr(t('coursesTitle'))}">
+                <span class="quick-access-icon"><img src="assets/quick/courses.png" alt="" loading="lazy" draggable="false"></span>
+                <span class="quick-access-label">${t('quickCourses')}</span>
+              </button>
+            </div>
+            <button class="hh-arrow hh-arrow-end" onclick="HomePage.qScroll(1)" aria-label="${escapeAttr(t('seeMore') || 'More')}" tabindex="-1"><i class="fas ${chev}"></i></button>
           </div>
-        ` : ''}
-
-        <div class="home-quick-grid">
-        <button class="quick-access-btn" onclick="Router.go('quran')" aria-label="${t('tabQuran')}">
-          <span class="quick-access-icon"><img src="assets/quick/quran.png" alt="" loading="lazy" draggable="false"></span>
-          <span class="quick-access-label">${t('tabQuran')}</span>
-        </button>
-        <button class="quick-access-btn" onclick="Router.go('wisdom/duas')" aria-label="${t('quickDuas')}">
-          <span class="quick-access-icon"><img src="assets/quick/duas.png" alt="" loading="lazy" draggable="false"></span>
-          <span class="quick-access-label">${t('quickDuas')}</span>
-        </button>
-        <button class="quick-access-btn" onclick="Router.go('wisdom/tasbih')" aria-label="${t('tasbih')}">
-          <span class="quick-access-icon"><img src="assets/quick/misbaha.png" alt="" loading="lazy" draggable="false"></span>
-          <span class="quick-access-label">${t('tasbih')}</span>
-        </button>
-        <button class="quick-access-btn" onclick="Router.go('prayer',{tab:'qibla'})" aria-label="${t('qibla')}">
-          <span class="quick-access-icon"><img src="assets/quick/qibla.png" alt="" loading="lazy" draggable="false"></span>
-          <span class="quick-access-label">${t('qibla')}</span>
-        </button>
-        <button class="quick-access-btn" onclick="Router.go('wisdom/courses')" aria-label="${t('coursesTitle')}">
-          <span class="quick-access-icon"><img src="assets/quick/courses.png" alt="" loading="lazy" draggable="false"></span>
-          <span class="quick-access-label">${t('coursesTitle')}</span>
-        </button>
-        <button class="quick-access-btn" onclick="Router.go('videos')" aria-label="${ClipsData.L('clipsTitle')}">
-          <span class="quick-access-icon"><img src="assets/quick/clips.png" alt="" loading="lazy" draggable="false"></span>
-          <span class="quick-access-label">${ClipsData.L('clipsTitle')}</span>
-        </button>
-        <button class="quick-access-btn" onclick="Router.go('radio')" aria-label="${RadioData.L('radioTitle')}">
-          <span class="quick-access-icon"><img src="assets/quick/radio.png" alt="" loading="lazy" draggable="false"></span>
-          <span class="quick-access-label">${RadioData.L('radioTitle')}</span>
-        </button>
-        <button class="quick-access-btn" onclick="Router.go('wisdom/library')" aria-label="${LibraryData.L('libTitle')}">
-          <span class="quick-access-icon"><img src="assets/quick/library.png" alt="" loading="lazy" draggable="false"></span>
-          <span class="quick-access-label">${LibraryData.L('libTitle')}</span>
-        </button>
         </div>
       </div>
 
       <div class="hm-wrap">
-        <!-- بطاقة واحدة للصلوات: حبّات أفقية (اسم + وقت + إتمام + جرس) وزر الجدول الشهري -->
+        <!-- بطاقة الصلوات: الصلوات الخمس كاملة + أيقونة لكل صلاة + زر المدينة + زر جدول الصلوات -->
         <section class="hm-card hm-prayers">
           <div class="hm-card-head">
-            <h2 class="hm-title">${t('todayPrayers')}
+            <h2 class="hm-title"><i class="fas fa-mosque"></i> ${t('todayPrayers')}
               <span class="prayer-checkin-progress">${doneCount}/${totalCount} ✔</span>
             </h2>
-            <button class="hm-mini-btn" onclick="Router.go('prayer',{tab:'monthly'})">
-              <i class="fas fa-table-columns"></i> ${t('prayerTable') || ''}
-            </button>
+            <div class="hm-head-actions">
+              <button class="prayers-location" onclick="ProfilePage.pickCity()" title="${escapeAttr(t('changeCity') || '')}" aria-label="${escapeAttr(t('changeCity') || '')}">
+                <i class="fas fa-location-dot"></i>
+                <span>${escapeHtml(cityLine)}</span>
+                <i class="fas fa-pen prayers-location-edit"></i>
+              </button>
+              <button class="hm-mini-btn" onclick="Router.go('prayer')">
+                <i class="fas fa-table-columns"></i> ${t('prayerTable') || ''}
+              </button>
+            </div>
           </div>
-          <div class="hm-strip hm-prayer-strip" id="hm-prayer-strip">
-            ${dailyPrayers.map(p => {
+
+          <div class="hm-prayer-grid" id="hm-prayer-strip">
+            ${six.map(p => {
               const canCheck = (typeof PrayerTracker !== 'undefined') && PrayerTracker.PRAYERS.includes(p.name);
               const isDone = canCheck && PrayerTracker.isDone(p.name);
               const passed = canCheck && this.isAdhanPassed(p.name);
               const isNext = nextPrayer && nextPrayer.name === p.name;
               return `
-              <div class="prayer-row hm-chip ${isNext ? 'next' : ''} ${isDone ? 'prayer-done' : ''}">
+              <div class="prayer-row hm-prayer-cell ${isNext ? 'next' : ''} ${isDone ? 'prayer-done' : ''}" data-prayer="${p.name}">
+                <span class="hm-pc-ic">${this._prayerIcon(p.name, 20)}</span>
                 <span class="hm-chip-nm">${t('prayers.' + p.name)}</span>
                 <span class="prayer-time-block">
                   <span class="prayer-time">${formatTime12h(p.time)}</span>
-                  ${isNext ? `<span class="prayer-remaining" data-prayer-remaining="${p.name}"><span class="prayer-remaining-text">${formatCountdown(nextPrayer.diffMs)}</span></span>` : ''}
                 </span>
+                ${isNext ? `<span class="prayer-remaining" data-prayer-remaining="${p.name}"><span class="prayer-remaining-text">${formatCountdown(nextPrayer.diffMs)}</span></span>` : ''}
                 <span class="hm-chip-tools">
                   ${canCheck ? `
                     <button class="hm-check ${isDone ? 'checked' : ''} ${passed ? '' : 'locked'}"
@@ -237,48 +269,17 @@ const HomePage = {
               </div>`;
             }).join('')}
           </div>
-          ${typeof DualTiming !== 'undefined' ? `<div class="hm-dual">${DualTiming.render()}</div>` : ''}
+
+${typeof DualTiming !== 'undefined' ? `<div class="hm-dual">${DualTiming.render()}</div>` : ''}
         </section>
+
+        <!-- آية اليوم — بطاقة صغيرة (كما كانت، بحجم أصغر) -->
+        ${verse ? this._verseCardHtml(verse, loc0) : ''}
 
         <!-- «أكمل القراءة» — سطر واحد إن وُجد -->
         ${(() => { const rs = this._resumeStripHtml(); return rs ? `<div class="hm-resume">${rs}</div>` : ''; })()}
 
-        <!-- شريط «اليوم»: آية · دعاء · حديث · مناسبة — يسحب يمينًا/يسارًا، كل بطاقة بسقف ارتفاع -->
-        <section class="hm-today">
-          <div class="hm-today-strip">
-            ${verse ? `
-              <article class="hm-today-card hm-c-verse">
-                <div class="hm-today-h"><i class="fas fa-book-open-reader"></i> ${t('verseOfDay')}</div>
-                <div class="hm-today-ar" dir="rtl">${escapeHtml(verse.arabic)}</div>
-                <div class="hm-today-tr">"${escapeHtml(verse['translation_' + loc0] || verse.translation_es)}"</div>
-                <div class="hm-today-src">— ${escapeHtml(verse.surahName)} ${verse.surahNumber}:${verse.ayahNumber}</div>
-                <button class="hm-icon-btn" onclick="ShareCard.open('verse')" aria-label="${escapeAttr(t('shareCardBtn') || '')}"><i class="fas fa-share-nodes"></i></button>
-              </article>` : ''}
-            ${dua ? `
-              <article class="hm-today-card hm-c-dua">
-                <div class="hm-today-h"><i class="fas fa-hands-praying"></i> ${t('duaOfDay')}</div>
-                <div class="hm-today-t">${escapeHtml(dua['title_' + loc0] || dua.title || '')}</div>
-                <div class="hm-today-ar" dir="rtl">${escapeHtml(dua.arabic || '')}</div>
-                <div class="hm-today-tr">"${escapeHtml(dua['translation_' + loc0] || dua.translation_es || dua.translation || '')}"</div>
-                <button class="hm-icon-btn" onclick="ShareCard.open('dua')" aria-label="${escapeAttr(t('shareCardBtn') || '')}"><i class="fas fa-share-nodes"></i></button>
-              </article>` : ''}
-            ${hadith ? `
-              <article class="hm-today-card hm-c-hadith">
-                <div class="hm-today-h"><i class="fas fa-scroll"></i> ${t('hadithOfDay')}</div>
-                <div class="hm-today-ar" dir="rtl">${escapeHtml(hadith.arabic || '')}</div>
-                <div class="hm-today-tr">"${escapeHtml(hadith['translation_' + loc0] || hadith.translation_es || '')}"</div>
-                <div class="hm-today-src">— ${escapeHtml(hadith['source_' + loc0] || hadith.source_es || '')}</div>
-              </article>` : ''}
-            ${virtue ? `
-              <article class="hm-today-card hm-c-virtue">
-                <div class="hm-today-h"><i class="fas fa-sparkles"></i> ${escapeHtml(virtue.title || '')}</div>
-                <div class="hm-today-tr">${escapeHtml(virtue.verse || '')}</div>
-                <div class="hm-today-src">— ${escapeHtml(virtue.source || '')}</div>
-              </article>` : ''}
-          </div>
-        </section>
-
-        <!-- قسم واحد للوسائط: راديو · مقتطفات · مكتبة -->
+        <!-- قسم واحد للوسائط: راديو · مقتطفات (بلغة التطبيق) · مكتبة -->
         <section class="hm-media">
           <div class="hm-media-head">
             <div class="hm-tabs" role="tablist">
@@ -304,12 +305,16 @@ const HomePage = {
           </div>
 
           <div class="hm-pane" id="hm-pane-clips" hidden>
+            <div class="hm-pane-note">
+              <i class="fas fa-language"></i> ${ClipsData.langFlag(appLang)} ${escapeHtml(langName)} — ${clipList.length}
+            </div>
             <div class="hm-strip clips-home-row hm-clips-row">
-              ${ClipsData.VIDEOS.slice(0, 10).map(v => `
+              ${clipList.map(v => `
                 <button class="clip-home-card" onclick="Router.go('videos',{play:'${v.id}'})" aria-label="${escapeAttr(v.title)}">
                   <span class="clip-home-thumb">
                     <img src="${ClipsData.thumb(v.id, true)}" alt="" loading="lazy" draggable="false" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/mqdefault.jpg';">
                     <span class="clip-play"><i class="fas fa-play"></i></span>
+                    ${ClipsData.fmtDur(ClipsData.durOf(v.id)) ? `<span class="hm-clip-dur">${ClipsData.fmtDur(ClipsData.durOf(v.id))}</span>` : ''}
                   </span>
                   <span class="clip-home-title">${escapeHtml(v.title)}</span>
                 </button>
@@ -339,20 +344,32 @@ const HomePage = {
               <button class="hm-lib-chip" onclick="Router.go('wisdom/library',{kids:true})"><i class="fas fa-child-reaching"></i> ${LibraryData.L('libCardKids')}</button>
               <button class="hm-lib-chip" onclick="Router.go('wisdom/library',{topic:'qisas'})"><i class="fas fa-feather"></i> ${LibraryData.L('libSecQisas')}</button>
               <button class="hm-lib-chip" onclick="Router.go('wisdom/library',{topic:'seerah'})"><i class="fas fa-book"></i> ${LibraryData.L('libSecSeerah')}</button>
-              <button class="hm-lib-chip" onclick="Router.go('wisdom/library',{topic:'hadith'})"><i class="fas fa-quote-right"></i> ${LibraryData.L('libSecHadith')}</button>
+              <button class="hm-lib-chip" onclick="Router.go('wisdom/library',{topic:'hadith')"><i class="fas fa-quote-right"></i> ${LibraryData.L('libSecHadith')}</button>
               <button class="hm-lib-chip" onclick="Router.go('wisdom/library',{topic:'fiqh'})"><i class="fas fa-scale-balanced"></i> ${LibraryData.L('libSecFiqh')}</button>
             </div>
           </div>
         </section>
 
-        <!-- سطر الذيل الموحّد: رمضان · الصيام · المناسبة -->
-        <div class="hm-footer-strip">
+        <!-- دعاء اليوم — بطاقة صغيرة -->
+        ${dua ? this._duaCardHtml(dua, loc0) : ''}
+
+        <!-- حديث اليوم — بطاقة صغيرة -->
+        ${hadith ? this._hadithSmallHtml(hadith, loc0) : ''}
+
+        <!-- المناسبات: رمضان (مؤقت كامل) + الصيام + المناسبة القادمة + مناسبة اليوم -->
+        <section class="hm-occ">
           ${this._ramadanCountdownHtml()}
-          ${this._nextFastHtml()}
-          ${this._nextEventHtml()}
-        </div>
+          <div class="hm-occ-grid">
+            ${this._nextFastHtml()}
+            ${this._nextEventHtml()}
+          </div>
+          ${virtue ? this._virtueCardHtml(virtue) : ''}
+        </section>
       </div>
     `;
+
+    // v95: ضبط أسهم شريط الأيقونات بعد الرسم — السهم يظهر فقط عند وجود مزيد
+    setTimeout(() => { try { this._syncQArrows(); } catch (e) {} }, 80);
   },
 
   // v26: marcar/desmarcar una oración como realizada (check-in diario).
@@ -389,6 +406,7 @@ const HomePage = {
     return null;
   },
 
+  // ============ v95: مؤقّت رمضان — بطاقة كاملة (بلا قطع) + زر التقويم الهجري ============
   _ramadanCountdownHtml() {
     const target = this._findRamadanTarget();
     if (!target) return '';
@@ -400,8 +418,14 @@ const HomePage = {
     try { gFmt = target.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
     catch (e) { gFmt = target.toISOString().slice(0, 10); }
     return `
-      <h2 class="section-title"><i class="fas fa-moon"></i> ${t('ramadanCountdown')}</h2>
-      <div class="ramadan-cd-card">
+      <div class="ramadan-cd-card occ-card occ-ramadan">
+        <div class="occ-head">
+          <span class="occ-ic"><i class="fas fa-moon"></i></span>
+          <span class="occ-title">${t('ramadanCountdown')}</span>
+          <button class="occ-btn" onclick="Router.go('calendar')" title="${escapeAttr(t('hijriCalendar') || '')}">
+            <i class="fas fa-calendar-days"></i> ${t('hijriCalendar')}
+          </button>
+        </div>
         <div class="ramadan-cd-grid">
           <div class="ramadan-cd-cell"><div class="ramadan-cd-num" id="ramadan-cd-d">–</div><div class="ramadan-cd-lbl">${t('cdDays')}</div></div>
           <div class="ramadan-cd-cell"><div class="ramadan-cd-num" id="ramadan-cd-h">–</div><div class="ramadan-cd-lbl">${t('cdHours')}</div></div>
@@ -414,6 +438,25 @@ const HomePage = {
         </div>
       </div>
     `;
+  },
+
+  // Busca el próximo 1 de Ramadán día a día con HijriCalc (local, sin red).
+  _findRamadanTarget() {
+    if (typeof HijriCalc === 'undefined' || !HijriCalc.toGregorian) return null;
+    try {
+      const now = new Date();
+      const h0 = HijriCalc.fromDate(now);
+      if (!h0) return null;
+      const hy = (h0.month >= 9) ? h0.year + 1 : h0.year;
+      let g = HijriCalc.toGregorian(hy, 9, 1);
+      let target = g ? new Date(g.getFullYear(), g.getMonth(), g.getDate(), 0, 0, 0, 0) : null;
+      if (!target || target.getTime() <= now.getTime()) {
+        g = HijriCalc.toGregorian(hy + 1, 9, 1);
+        target = g ? new Date(g.getFullYear(), g.getMonth(), g.getDate(), 0, 0, 0, 0) : null;
+      }
+      return target;
+    } catch (e) {}
+    return null;
   },
 
   _tickRamadan() {
@@ -508,6 +551,7 @@ const HomePage = {
   },
 
   // ============ v61: المناسبة القادمة — بمحرك أم القرى المحلي (دون إنترنت) ============
+  // ============ v95: المناسبة القادمة — بطاقة ملوّنة ============
   _nextEventHtml() {
     try {
       if (typeof ISLAMIC_HOLIDAYS === 'undefined' || typeof HijriCalc === 'undefined' || !HijriCalc.nextOccurrence) return '';
@@ -517,26 +561,27 @@ const HomePage = {
         if (oc && (!best || oc.daysLeft < best.daysLeft)) best = { ...oc, h };
       }
       if (!best) return '';
-      const loc = (typeof currentLocale !== 'undefined' && ['es','ar','en'].includes(currentLocale)) ? currentLocale : 'es';
+      const loc = (typeof currentLocale !== 'undefined' && ['es', 'ar', 'en'].includes(currentLocale)) ? currentLocale : 'es';
       const name = best.h['name_' + loc] || best.h.name_es;
       let gFmt;
       try { gFmt = best.date.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }); }
       catch (e) { gFmt = best.date.toISOString().slice(0, 10); }
       const daysTxt = best.daysLeft === 0 ? t('todayWord') : (best.daysLeft === 1 ? t('tomorrowWord') : t('daysLeftTxt').replace('{n}', best.daysLeft));
       return `
-      <div class="home-mini-card">
-        <span class="home-mini-ic ev"><i class="fas fa-star-and-crescent"></i></span>
-        <span class="home-mini-body">
-          <span class="home-mini-title">${t('nextEventTitle')}</span>
-          <span class="home-mini-main">${escapeHtml(name)}</span>
-          <span class="home-mini-meta">${best.h.day} ${this._hijriMonthName(best.h.month, loc)} ${best.hijriYear} ${loc === 'ar' ? 'هـ' : 'AH'} · ${escapeHtml(gFmt)} · ${daysTxt}</span>
-        </span>
+      <div class="occ-card occ-event">
+        <div class="occ-head">
+          <span class="occ-ic"><i class="fas fa-star-and-crescent"></i></span>
+          <span class="occ-title">${t('nextEventTitle')}</span>
+        </div>
+        <div class="occ-main">${escapeHtml(name)}</div>
+        <div class="occ-meta">${best.h.day} ${this._hijriMonthName(best.h.month, loc)} ${best.hijriYear} ${loc === 'ar' ? 'هـ' : 'AH'} · ${escapeHtml(gFmt)} · ${daysTxt}</div>
       </div>`;
     } catch (e) { return ''; }
   },
 
   // ============ v61: يوم الصيام القادم (الاثنين/الخميس · الأيام البيض · عاشوراء وعرفة) ============
   // داخل رمضان لا يُعرض — لرمضان عدّاده الخاص أعلاه.
+  // ============ v95: يوم الصيام القادم — بطاقة ملوّنة بأسلوب المناسبات ============
   _nextFastHtml() {
     try {
       if (typeof HijriCalc === 'undefined' || !HijriCalc.fromDate) return '';
@@ -550,19 +595,19 @@ const HomePage = {
         else if (h.month !== 9 && h.day >= 13 && h.day <= 15) kind = 'fastWhite';
         else if (h.month !== 9 && (d.getDay() === 1 || d.getDay() === 4)) kind = 'fastWeekday';
         if (!kind) continue;
-        const loc = (typeof currentLocale !== 'undefined' && ['es','ar','en'].includes(currentLocale)) ? currentLocale : 'es';
+        const loc = (typeof currentLocale !== 'undefined' && ['es', 'ar', 'en'].includes(currentLocale)) ? currentLocale : 'es';
         let gFmt;
         try { gFmt = d.toLocaleDateString(loc, { day: 'numeric', month: 'long' }); } catch (e) { gFmt = d.toISOString().slice(0, 10); }
         const wd = (typeof getWeekdayName === 'function') ? getWeekdayName(d.getDay(), loc) : '';
         const daysTxt = i === 0 ? t('todayWord') : (i === 1 ? t('tomorrowWord') : t('daysLeftTxt').replace('{n}', i));
         return `
-      <div class="home-mini-card">
-        <span class="home-mini-ic fast"><i class="fas fa-moon"></i></span>
-        <span class="home-mini-body">
-          <span class="home-mini-title">${t('nextFastTitle')} — ${t(kind)}</span>
-          <span class="home-mini-main">${wd} · ${escapeHtml(gFmt)}</span>
-          <span class="home-mini-meta">${h.day} ${this._hijriMonthName(h.month, loc)} ${h.year} ${loc === 'ar' ? 'هـ' : 'AH'} · ${daysTxt}</span>
-        </span>
+      <div class="occ-card occ-fast">
+        <div class="occ-head">
+          <span class="occ-ic"><i class="fas fa-moon"></i></span>
+          <span class="occ-title">${t('nextFastTitle')} — ${t(kind)}</span>
+        </div>
+        <div class="occ-main">${escapeHtml(wd)} · ${escapeHtml(gFmt)}</div>
+        <div class="occ-meta">${h.day} ${this._hijriMonthName(h.month, loc)} ${h.year} ${loc === 'ar' ? 'هـ' : 'AH'} · ${daysTxt}</div>
       </div>`;
       }
     } catch (e) {}
@@ -688,6 +733,8 @@ const HomePage = {
 
   // v40: cambio de oración SIN re-render — actualiza en su sitio la tarjeta
   // de la cabecera y mueve el marcador «siguiente» entre las filas.
+  // v95: تغيير الصلاة القادمة — البحث باسم الصلاة (data-prayer) بدل الفهرس،
+  //      لأن الشبكة صارت خمس حبّات (بلا الشروق) والفهرس القديم كان يحرّك الحبّة الخطأ.
   _moveNextPrayer(np) {
     const container = document.getElementById('main-content');
     if (!container) return;
@@ -698,16 +745,13 @@ const HomePage = {
     container.querySelectorAll('.prayer-row.next').forEach(r => r.classList.remove('next'));
     const remEl = container.querySelector('.prayer-remaining');
     if (remEl) remEl.remove();
-    const rows = container.querySelectorAll('.prayer-row');
-    const daily = getDailyPrayers(AppState.timings);
-    const idx = daily.findIndex(p => p.name === np.name);
-    if (idx >= 0 && rows[idx]) {
-      rows[idx].classList.add('next');
-      const block = rows[idx].querySelector('.prayer-time-block');
-      if (block) {
-        block.insertAdjacentHTML('beforeend',
-          `<div class="prayer-remaining" data-prayer-remaining="${np.name}"><i class="fas fa-hourglass-half"></i> <span class="prayer-remaining-text">${formatCountdown(np.diffMs)}</span></div>`);
-      }
+    const row = container.querySelector('.prayer-row[data-prayer="' + np.name + '"]');
+    if (row) {
+      row.classList.add('next');
+      const html = `<span class="prayer-remaining" data-prayer-remaining="${np.name}"><span class="prayer-remaining-text">${formatCountdown(np.diffMs)}</span></span>`;
+      const tools = row.querySelector('.hm-chip-tools');
+      if (tools) tools.insertAdjacentHTML('beforebegin', html);
+      else row.insertAdjacentHTML('beforeend', html);
     }
   },
 
@@ -730,6 +774,154 @@ const HomePage = {
     if (p === 'clips') Router.go('videos');
     else if (p === 'library') Router.go('wisdom/library');
     else Router.go('radio');
+  },
+
+  // ============ v95: بطاقات صغيرة للآية/الدعاء/الحديث/مناسبة اليوم ============
+  _verseCardHtml(verse, loc0) {
+    try {
+      if (!verse) return '';
+      const tr = verse['translation_' + loc0] || verse.translation_es || '';
+      const wis = verse['wisdom_' + loc0] || verse.wisdom_es || '';
+      return `
+      <section class="hm-card hm-small hm-c-verse">
+        <div class="hm-card-head">
+          <h2 class="hm-title"><i class="fas fa-book-open-reader"></i> ${t('verseOfDay')}</h2>
+          <button class="hm-icon-btn" onclick="ShareCard.open('verse')" aria-label="${escapeAttr(t('shareCardBtn') || '')}"><i class="fas fa-share-nodes"></i></button>
+        </div>
+        <div class="card-gradient hm-verse-body">
+          <div class="verse-arabic" dir="rtl">${escapeHtml(verse.arabic || '')}</div>
+          ${verse.transliteration ? `<div class="verse-translit">${escapeHtml(verse.transliteration)}</div>` : ''}
+          <div class="verse-divider"></div>
+          <div class="verse-translation">"${escapeHtml(tr)}"</div>
+          <div class="verse-source">— ${escapeHtml(verse.surahName)} ${verse.surahNumber}:${verse.ayahNumber}</div>
+          ${wis ? `<div class="verse-wisdom"><i class="fas fa-lightbulb"></i> <span>${escapeHtml(wis)}</span></div>` : ''}
+        </div>
+      </section>`;
+    } catch (e) { return ''; }
+  },
+
+  _duaCardHtml(dua, loc0) {
+    try {
+      if (!dua) return '';
+      const tr = dua['translation_' + loc0] || dua.translation_es || dua.translation || '';
+      return `
+      <section class="hm-card hm-small hm-c-dua">
+        <div class="hm-card-head">
+          <h2 class="hm-title"><i class="fas fa-hands-praying"></i> ${t('duaOfDay')}</h2>
+          <button class="hm-icon-btn" onclick="ShareCard.open('dua')" aria-label="${escapeAttr(t('shareCardBtn') || '')}"><i class="fas fa-share-nodes"></i></button>
+        </div>
+        <div class="card dua-day-card hm-verse-body">
+          <div class="dua-title">${escapeHtml(dua['title_' + loc0] || dua.title || '')}</div>
+          <div class="dua-arabic" dir="rtl">${escapeHtml(dua.arabic || '')}</div>
+          ${dua.transliteration ? `<div class="dua-transliteration">${escapeHtml(dua.transliteration)}</div>` : ''}
+          <div class="dua-translation">"${escapeHtml(tr)}"</div>
+          <div class="dua-source">— ${escapeHtml(dua.source || '')}</div>
+        </div>
+      </section>`;
+    } catch (e) { return ''; }
+  },
+
+  _hadithSmallHtml(hadith, loc0) {
+    try {
+      if (!hadith) return '';
+      const tr = hadith['translation_' + loc0] || hadith.translation_es || '';
+      const src = hadith['source_' + loc0] || hadith.source_es || '';
+      return `
+      <section class="hm-card hm-small hm-c-hadith">
+        <div class="hm-card-head">
+          <h2 class="hm-title"><i class="fas fa-scroll"></i> ${t('hadithOfDay')}</h2>
+        </div>
+        <div class="card dua-day-card hadith-day-card hm-verse-body">
+          <div class="dua-arabic" dir="rtl">${escapeHtml(hadith.arabic || '')}</div>
+          ${tr ? `<div class="dua-translation">"${escapeHtml(tr)}"</div>` : ''}
+          <div class="dua-source">— ${escapeHtml(src)}</div>
+        </div>
+      </section>`;
+    } catch (e) { return ''; }
+  },
+
+  _virtueCardHtml(virtue) {
+    try {
+      if (!virtue) return '';
+      return `
+      <div class="occ-card occ-virtue">
+        <div class="occ-head">
+          <span class="occ-ic"><i class="fas fa-sparkles"></i></span>
+          <span class="occ-title">${escapeHtml(virtue.title || '')}</span>
+        </div>
+        <div class="occ-main">${escapeHtml(virtue.verse || '')}</div>
+        <div class="occ-meta">— ${escapeHtml(virtue.source || '')}</div>
+      </div>`;
+    } catch (e) { return ''; }
+  },
+
+  // ============ v95: أيقونة لكل صلاة (SVG مدمج — مُضمَنة في كل الحالات) ============
+  _prayerIcon(name, size) {
+    const s = size || 20;
+    const open = '<svg viewBox="0 0 24 24" width="' + s + '" height="' + s + '" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+    const sun = (cx, cy, r) => `<circle cx="${cx}" cy="${cy}" r="${r}"/>`;
+    const rays = (cx, cy, r, len) => {
+      let d = '';
+      for (let i = 0; i < 8; i++) {
+        const a = (Math.PI / 4) * i;
+        const x1 = cx + Math.cos(a) * (r + 1.4), y1 = cy + Math.sin(a) * (r + 1.4);
+        const x2 = cx + Math.cos(a) * (r + 1.4 + len), y2 = cy + Math.sin(a) * (r + 1.4 + len);
+        d += `<path d="M${x1.toFixed(1)} ${y1.toFixed(1)}L${x2.toFixed(1)} ${y2.toFixed(1)}"/>`;
+      }
+      return d;
+    };
+    const crescent = '<path d="M15.6 5.2a6 6 0 1 0 3.1 8.6 6.9 6.9 0 0 1-3.1-8.6z" fill="currentColor" stroke="none"/>';
+    const star = (x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="currentColor" stroke="none"/>`;
+    let body = '';
+    if (name === 'Fajr') {
+      // فجر: هلال الفجر + سطر الأفق
+      body = crescent + star(5.2, 7.4, 0.95) + star(3.4, 11.6, 0.7) + '<path d="M4 18.4h16"/>';
+    } else if (name === 'Sunrise') {
+      // شروق: نصف شمس فوق الأفق + سهم صاعد
+      body = '<path d="M3.4 17.6h17.2"/><path d="M6.6 17.6a5.4 5.4 0 0 1 10.8 0"/>'
+        + '<path d="M12 3.4v2.4"/><path d="M5.6 6.2l1.4 1.4"/><path d="M18.4 6.2l-1.4 1.4"/>';
+    } else if (name === 'Dhuhr') {
+      body = sun(12, 12, 4) + rays(12, 12, 4, 2.1);
+    } else if (name === 'Asr') {
+      // عصر: شمس مع غيمة
+      body = sun(9.6, 9.6, 3.1) + rays(9.6, 9.6, 3.1, 1.6)
+        + '<path d="M8.6 18.4h9.2a3.1 3.1 0 0 0 .2-6.2 4.3 4.3 0 0 0-8.2 1 2.7 2.7 0 0 0-1.2 5.2z" fill="none"/>';
+    } else if (name === 'Maghrib') {
+      // مغرب: شمس تغيب تحت الأفق + سهم هابط
+      body = '<path d="M3.4 15.2h17.2"/><path d="M6.6 15.2a5.4 5.4 0 0 1 10.8 0"/>'
+        + '<path d="M12 19.6v2.2"/><path d="M9.9 19.9l2.1 2.1 2.1-2.1"/>';
+    } else {
+      // عشاء: هلال + نجوم
+      body = crescent + star(5.4, 7, 1.05) + star(3.2, 11.2, 0.75) + star(7.8, 17.4, 0.85) + star(17.2, 18.6, 0.7);
+    }
+    return open + body + '</svg>';
+  },
+
+  // ============ v95: أسهم شريط الأيقونات (تدلّ على وجود مزيد من الأيقونات) ============
+  qScroll(dir) {
+    const el = document.getElementById('home-quick-grid');
+    if (!el) return;
+    const rtl = document.documentElement.dir === 'rtl';
+    const amount = Math.max(150, Math.round(el.clientWidth * 0.75));
+    const left = (rtl ? -1 : 1) * (dir || 1) * amount;
+    try { el.scrollBy({ left, behavior: 'smooth' }); } catch (e) { el.scrollLeft += left; }
+    setTimeout(() => { try { this._syncQArrows(); } catch (e) {} }, 420);
+  },
+
+  _syncQArrows() {
+    const el = document.getElementById('home-quick-grid');
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    const pos = Math.abs(el.scrollLeft || 0);
+    const scrollable = max > 4;
+    const atStart = pos <= 4;
+    const atEnd = !scrollable || pos >= max - 4;
+    const root = el.closest('.hh-quick') || el.parentElement;
+    if (!root) return;
+    const a = root.querySelector('.hh-arrow-start');
+    const b = root.querySelector('.hh-arrow-end');
+    if (a) a.classList.toggle('show', scrollable && !atStart);
+    if (b) b.classList.toggle('show', scrollable && !atEnd);
   },
 
   cleanup() {

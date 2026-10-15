@@ -754,3 +754,32 @@
 .clips-sheet-nm { flex: 1; min-width: 0; }
 .clips-sheet-ct { font-size: 12px; font-weight: 700; color: var(--text-secondary, #888); font-variant-numeric: tabular-nums; }
 .clips-sheet-item i { font-size: 12px; color: #0F766E; }
+
+/* ============ v97: قائمة «جميع التصنيفات» — قائمة جانبية (درج) بدل الورقة السفلية ============ */
+.clips-sheet { align-items: stretch; justify-content: flex-start; }
+.clips-sheet-card {
+  width: min(80vw, 320px);
+  height: 100%;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0 18px 18px 0;
+  box-shadow: 8px 0 26px rgba(0, 0, 0, 0.22);
+  padding-bottom: 0;
+}
+.clips-sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 16px;
+}
+.clips-sheet.is-open .clips-sheet-card { animation: clipsSheetIn 0.24s ease; }
+@keyframes clipsSheetIn { from { transform: translateX(-20px); opacity: 0.5; } to { transform: none; opacity: 1; } }
+[dir="rtl"] .clips-sheet { justify-content: flex-end; }
+[dir="rtl"] .clips-sheet-card {
+  border-radius: 18px 0 0 18px;
+  box-shadow: -8px 0 26px rgba(0, 0, 0, 0.22);
+}
+[dir="rtl"] .clips-sheet.is-open .clips-sheet-card { animation: clipsSheetInRtl 0.24s ease; }
+@keyframes clipsSheetInRtl { from { transform: translateX(20px); opacity: 0.5; } to { transform: none; opacity: 1; } }
