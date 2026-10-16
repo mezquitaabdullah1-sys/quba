@@ -5,6 +5,8 @@ const Router = {
     quran: { page: QuranPage, tabId: 'quran' },
     prayer: { page: PrayerPage, tabId: 'prayer' },
     calendar: { page: CalendarPage, tabId: null },
+    // v98: إمساكية رمضان — جدول مواعيد الشهر كامل ولخمس رمضانات قادمة
+    imsakiyah: { page: ImsakiyahPage, tabId: 'prayer' },
     wisdom: { page: WisdomPage, tabId: 'wisdom' },
     profile: { page: ProfilePage, tabId: 'profile' },
     surah: { page: QuranPage, tabId: 'quran', method: 'renderDetail' },

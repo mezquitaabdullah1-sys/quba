@@ -1,0 +1,278 @@
+/* ============ v98: صفحة إمساكية رمضان — غلاف مزخرف + جدول الشهر كامل ============ */
+
+.imsk-page { padding-bottom: 26px; }
+
+/* --- الغلاف --- */
+.imsk-cover {
+  position: relative;
+  margin: 0 14px 12px;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(15, 76, 58, 0.28);
+  background: #0F4C3A;
+}
+.imsk-cover-img {
+  display: block;
+  width: 100%;
+  height: clamp(150px, 30vh, 230px);
+  object-fit: cover;
+}
+.imsk-cover-veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(7, 30, 23, 0.10) 0%, rgba(7, 30, 23, 0.55) 55%, rgba(7, 30, 23, 0.86) 100%);
+}
+.imsk-cover-body {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  padding: 12px 14px 13px;
+  text-align: center;
+  color: #fff;
+}
+.imsk-cover-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(212, 175, 55, 0.55);
+  color: #F6E7BC;
+  font-size: 10.5px;
+  font-weight: 700;
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+.imsk-cover-kicker i { font-size: 10px; color: #D4AF37; }
+.imsk-cover-title {
+  margin: 7px 0 2px;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+.imsk-cover-year {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #F6E7BC;
+}
+.imsk-cover-loc {
+  margin-top: 3px;
+  font-size: 11px;
+  opacity: 0.9;
+}
+.imsk-cover-loc i { font-size: 10px; color: #D4AF37; margin-inline-end: 3px; }
+.imsk-back {
+  position: absolute;
+  top: 10px;
+  inset-inline-start: 10px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(7, 30, 23, 0.42);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* --- حبّات اختيار السنة --- */
+.imsk-years {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 7px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 14px 4px;
+}
+.imsk-years::-webkit-scrollbar { display: none; }
+.imsk-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 62px;
+  padding: 7px 10px;
+  border: 1.5px solid rgba(212, 175, 55, 0.45);
+  border-radius: 13px;
+  background: var(--card-bg, #fff);
+  color: var(--text-primary, #1a1a1a);
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.imsk-chip-h { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.imsk-chip-g { font-size: 10px; opacity: 0.66; font-variant-numeric: tabular-nums; }
+.imsk-chip.active {
+  background: linear-gradient(135deg, #0F4C3A 0%, #14795F 100%);
+  border-color: #D4AF37;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(15, 76, 58, 0.28);
+}
+.imsk-chip.active .imsk-chip-g { opacity: 0.85; color: #F6E7BC; }
+
+/* --- إحصاءات الشهر --- */
+.imsk-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 14px 8px;
+}
+.imsk-stat {
+  border: 1px solid rgba(212, 175, 55, 0.38);
+  border-radius: 14px;
+  background: var(--card-bg, #fff);
+  padding: 9px 6px;
+  text-align: center;
+}
+.imsk-stat-v { font-size: 14px; font-weight: 800; color: #0F4C3A; font-variant-numeric: tabular-nums; }
+[data-theme="dark"] .imsk-stat-v { color: #D4AF37; }
+.imsk-stat-l { margin-top: 2px; font-size: 10px; color: var(--text-secondary, #666); }
+.imsk-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 14px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary, #666);
+}
+.imsk-range i { font-size: 10.5px; color: #D4AF37; }
+
+/* --- الجدول --- */
+.imsk-tablewrap {
+  margin: 0 14px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  box-shadow: 0 4px 16px rgba(15, 76, 58, 0.10);
+  background: var(--card-bg, #fff);
+}
+.imsk-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary, #1a1a1a);
+}
+.imsk-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 8px 7px;
+  background: linear-gradient(180deg, #0F4C3A 0%, #0B3D2E 100%);
+  color: #F6E7BC;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-align: center;
+}
+.imsk-table td {
+  padding: 7px;
+  text-align: center;
+  white-space: nowrap;
+  border-bottom: 1px solid rgba(127, 127, 127, 0.12);
+}
+.imsk-table tbody tr:nth-child(even) td { background: rgba(127, 127, 127, 0.045); }
+.imsk-table tbody tr.is-today td {
+  background: rgba(15, 118, 110, 0.13);
+  font-weight: 800;
+}
+.imsk-th-day, .imsk-td-day {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  background: var(--card-bg, #fff);
+  box-shadow: 1px 0 0 rgba(127, 127, 127, 0.16);
+}
+.imsk-table tbody tr:nth-child(even) .imsk-td-day { background: color-mix(in srgb, var(--card-bg, #fff) 95%, #7f7f7f); }
+.imsk-table tbody tr.is-today .imsk-td-day { background: color-mix(in srgb, var(--card-bg, #fff) 87%, #0F766E); }
+.imsk-th-day { z-index: 3; }
+.imsk-td-day { min-width: 46px; }
+.imsk-daynum { display: block; font-size: 13px; font-weight: 800; color: #0F4C3A; }
+[data-theme="dark"] .imsk-daynum { color: #D4AF37; }
+.imsk-wd { display: block; font-size: 9px; opacity: 0.6; }
+.imsk-today-badge {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #0F766E;
+  color: #fff;
+  font-size: 8px;
+  font-weight: 700;
+}
+.imsk-td-hijri { color: var(--text-secondary, #666); font-size: 11px; }
+.imsk-td-greg { color: var(--text-secondary, #666); font-size: 11px; }
+.imsk-th-imsak, .imsk-td-imsak { background: rgba(212, 175, 55, 0.14); font-weight: 700; }
+.imsk-table tbody tr:nth-child(even) .imsk-td-imsak { background: rgba(212, 175, 55, 0.20); }
+.imsk-table tbody tr.is-today .imsk-td-imsak { background: rgba(212, 175, 55, 0.30); }
+.imsk-th-iftar, .imsk-td-iftar { background: rgba(15, 118, 110, 0.12); font-weight: 700; }
+.imsk-table tbody tr:nth-child(even) .imsk-td-iftar { background: rgba(15, 118, 110, 0.17); }
+.imsk-table tbody tr.is-today .imsk-td-iftar { background: rgba(15, 118, 110, 0.26); }
+
+.imsk-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 12px 14px 0;
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: rgba(127, 127, 127, 0.08);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-secondary, #666);
+}
+.imsk-note i { font-size: 11px; color: #D4AF37; margin-top: 2px; }
+
+.imsk-loading, .imsk-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 45vh;
+  font-size: 13px;
+  color: var(--text-secondary, #666);
+}
+.imsk-spin {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0F4C3A 0%, #14795F 100%);
+  color: #D4AF37;
+  font-size: 18px;
+  animation: imskPulse 1.4s ease-in-out infinite;
+}
+@keyframes imskPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.92); opacity: 0.75; } }
+
+/* --- زر الإمساكية داخل بطاقة رمضان (الرئيسية) --- */
+.occ-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  margin-top: 10px;
+  height: 34px;
+  border: 1px solid rgba(212, 175, 55, 0.6);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.occ-cta i { font-size: 11px; color: #F6E7BC; }
+.occ-cta:active { transform: scale(0.98); }

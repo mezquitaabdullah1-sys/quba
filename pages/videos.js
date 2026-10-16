@@ -112,6 +112,7 @@ const ClipsPage = {
 
   _albumCard(p, extraClass) {
     const L = (k) => ClipsData.L(k);
+    const d = ClipsData.desc(p);
     return `
       <button class="clip-card clip-album ${extraClass || ''}" onclick="ClipsPage.openPlaylist('${p.id}')" aria-label="${escapeAttr(p.title)}">
         <span class="clip-thumb clip-album-thumb">
@@ -121,6 +122,7 @@ const ClipsPage = {
         <span class="clip-info">
           <span class="clip-title" dir="auto">${escapeHtml(p.title)}</span>
           <span class="clip-channel"><i class="fab fa-youtube"></i> YouTube</span>
+          ${d ? `<span class="clip-desc" dir="auto">${escapeHtml(d)}</span>` : ''}
           <span class="clip-watch"><i class="fas fa-circle-play"></i> ${L('clipsWatch')}</span>
         </span>
       </button>`;
@@ -159,15 +161,18 @@ const ClipsPage = {
 
     // 3) قوائم التشغيل
     if (this._tab === 'albums') {
-      return `<div class="clips-grid">${ClipsData.PLAYLISTS.map(p => this._albumCard(p)).join('')}</div>`;
+      const pls = ClipsData.playlistsFor(this._lang);
+      if (!pls.length) return `<div class="clips-empty"><i class="fas fa-list-video"></i><div>${L('clipsEmptyTopic')}</div></div>`;
+      return `<div class="clips-grid">${pls.map(p => this._albumCard(p)).join('')}</div>`;
     }
 
     // 4) تصنيف محدد → شبكة فيديوهاته
     if (this._topic !== 'all') {
       const list = ClipsData.topicList(this._lang, this._topic);
       // v91: «تلاوات قرآنية» (وتشمل القرآن المترجم) يبدأ بقوائم التشغيل ثم المقاطع
-      const albums = (!ClipsData.isLegacyTopic(this._topic) && this._topic === 'recitation' && this._lang === 'es')
-        ? ClipsData.PLAYLISTS.map(p => this._albumCard(p)).join('') : '';
+      // v99: قوائم القرآن المترجم تسبق التلاوات — بلغة العرض الحالية فقط (بلا سلاسل)
+      const albums = (!ClipsData.isLegacyTopic(this._topic) && this._topic === 'recitation')
+        ? ClipsData.playlistsFor(this._lang).filter(p => p.kind !== 'series').map(p => this._albumCard(p)).join('') : '';
       if (!list.length && !albums) {
         return `<div class="clips-empty"><i class="fas fa-film"></i><div>${L('clipsEmptyTopic')}</div></div>`;
       }
@@ -364,9 +369,10 @@ const ClipsPage = {
     const coreRows = row('all', L('clipsTopicAll'), ClipsData.byCat(lang).length, this._topic === 'all')
       + ClipsData.CORE_TOPICS.filter(t => ClipsData.topicCount(lang, t) > 0)
           .map(t => row(t, L(ClipsData.topicKey(t)), ClipsData.topicCount(lang, t), this._topic === t)).join('');
+    const plsN = ClipsData.playlistsFor(lang).length;   // v99: القوائم تظهر مع لغتها فقط
     const legacyRows = ClipsData.legacyTopicsFor(lang)
       .map(t => row(t, L(ClipsData.topicKey(t)), ClipsData.topicCount(lang, t), this._topic === t)).join('')
-      + row('albums', L('clipsAlbumsTab'), ClipsData.PLAYLISTS.length, this._tab === 'albums');
+      + (plsN ? row('albums', L('clipsAlbumsTab'), plsN, this._tab === 'albums') : '');
     return `
       <div class="clips-sheet" id="clips-sheet" hidden>
         <div class="clips-sheet-bg" onclick="ClipsPage.closeSheet()"></div>
@@ -387,6 +393,7 @@ const ClipsPage = {
 
   switchTab(tab) {
     if (tab === 'albums') {
+      if (!ClipsData.playlistsFor(this._lang).length) return;   // v99: لا قوائم لهذه اللغة
       this._tab = 'albums';
       this._fav = false;
       const c = document.getElementById('main-content');
@@ -487,7 +494,7 @@ const ClipsPage = {
     this._renderPlayer({
       embedSrc: `https://www.youtube-nocookie.com/embed/videoseries?list=${p.id}&autoplay=1&rel=0`,
       title: p.title,
-      channel: ClipsData.L(p.kind === 'written' ? 'clipsAlbumWritten' : 'clipsAlbumOral'),
+      channel: ClipsData.L(p.kind === 'written' ? 'clipsAlbumWritten' : (p.kind === 'oral' ? 'clipsAlbumOral' : 'clipsAlbumSeries')),
       externalUrl: ClipsData.playlistUrl(p.id),
     });
   },

@@ -151,7 +151,7 @@ const HomePage = {
 
     container.innerHTML = `
       <!-- v95: الرأس كتلة واحدة ثابتة، ومحتواها في عمود وسط الشاشة -->
-      <div class="home-header home-hero">
+      <div class="home-header home-hero" id="home-hero">
         <div class="hh-inner">
           <div class="hh-top">
             <div class="hh-title">
@@ -358,18 +358,20 @@ ${typeof DualTiming !== 'undefined' ? `<div class="hm-dual">${DualTiming.render(
 
         <!-- المناسبات: رمضان (مؤقت كامل) + الصيام + المناسبة القادمة + مناسبة اليوم -->
         <section class="hm-occ">
-          ${this._ramadanCountdownHtml()}
-          <div class="hm-occ-grid">
+          <div class="hm-occ-strip">
+            ${this._ramadanCountdownHtml()}
             ${this._nextFastHtml()}
             ${this._nextEventHtml()}
+            ${virtue ? this._virtueCardHtml(virtue) : ''}
           </div>
-          ${virtue ? this._virtueCardHtml(virtue) : ''}
         </section>
       </div>
     `;
 
     // v95: ضبط أسهم شريط الأيقونات بعد الرسم — السهم يظهر فقط عند وجود مزيد
     setTimeout(() => { try { this._syncQArrows(); } catch (e) {} }, 80);
+    // v98: تقليص الرأس عند النزول (وإرجاعه عند الصعود)
+    this._bindShrink();
   },
 
   // v26: marcar/desmarcar una oración como realizada (check-in diario).
@@ -436,6 +438,9 @@ ${typeof DualTiming !== 'undefined' ? `<div class="hm-dual">${DualTiming.render(
           <div class="ramadan-cd-date"><div class="ramadan-cd-date-lbl">${t('hijriDate')}</div><div>1 ${this._ramadanMonthName()} ${hijriYear} ${loc === 'ar' ? 'هـ' : 'AH'}</div></div>
           <div class="ramadan-cd-date"><div class="ramadan-cd-date-lbl">${t('gregDate')}</div><div>${gFmt}</div></div>
         </div>
+        <button class="occ-cta" onclick="Router.go('imsakiyah')">
+          <i class="fas fa-table-list"></i> ${t('imsakOpen') || ''}
+        </button>
       </div>
     `;
   },
@@ -924,7 +929,36 @@ ${typeof DualTiming !== 'undefined' ? `<div class="hm-dual">${DualTiming.render(
     if (b) b.classList.toggle('show', scrollable && !atEnd);
   },
 
+  // ============ v98: تقليص رأس الصفحة قليلًا عند النزول ============
+  _bindShrink() {
+    this._unbindShrink();
+    const sc = document.getElementById('main-content');
+    if (!sc) return;
+    this._scrollEl = sc;
+    this._shrunk = false;
+    this._onScroll = () => {
+      const hero = document.getElementById('home-hero');
+      if (!hero) return;
+      const on = (sc.scrollTop || 0) > 26;
+      if (on === this._shrunk) return;
+      this._shrunk = on;
+      hero.classList.toggle('hh-shrunk', on);
+    };
+    sc.addEventListener('scroll', this._onScroll, { passive: true });
+    this._onScroll();
+  },
+
+  _unbindShrink() {
+    if (this._scrollEl && this._onScroll) {
+      try { this._scrollEl.removeEventListener('scroll', this._onScroll); } catch (e) {}
+    }
+    this._scrollEl = null;
+    this._onScroll = null;
+    this._shrunk = false;
+  },
+
   cleanup() {
+    this._unbindShrink();
     if (this.countdownInterval) {
       clearInterval(this.countdownInterval);
       this.countdownInterval = null;
