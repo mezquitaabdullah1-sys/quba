@@ -463,3 +463,136 @@
   margin: 0 !important;
   scroll-snap-align: start;
 }
+
+
+/* ================= v100: الرأس كما في المرجع + شريط الصلوات بأعمدة ================= */
+.home-hero { transition: padding .22s cubic-bezier(.22,.61,.36,1); transform: translateZ(0); }
+.home-hero .hh-inner { transition: gap .22s cubic-bezier(.22,.61,.36,1); }
+.home-hero .hh-top { position: relative; display: flex; align-items: center; justify-content: center; }
+.home-hero .hh-city {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 78%;
+  margin: 0 auto; padding: 4px 10px; border: 0; border-radius: 999px;
+  background: transparent; color: var(--hd-ink, #fff); font: inherit;
+  font-size: 14.5px; font-weight: 700; line-height: 1.25; cursor: pointer;
+  transition: font-size .22s ease-out, padding .22s ease-out;
+}
+.home-hero .hh-city > i:first-child { color: var(--hd-gold, var(--gold-soft, #D4AF37)); font-size: .95em; }
+.home-hero .hh-city-txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-hero .hh-city-chev { font-size: .62em; opacity: .72; }
+.home-hero .hh-top .home-profile-btn { position: absolute; inset-inline-end: 0; top: 50%; transform: translateY(-50%); }
+.home-hero .hh-meta {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 11.5px; opacity: .9; transition: font-size .22s ease-out;
+}
+.home-hero .hh-meta .hh-date { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.home-hero .hh-sep { opacity: .5; }
+
+/* بطاقة الصلاة القادمة — جانبان: الاسم يمينًا والعدّاد يسارًا */
+.home-hero .hh-prayer-card {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 9px 14px; border-radius: 16px;
+  background: var(--hd-glass-2, var(--hd-glass, rgba(255,255,255,.08)));
+  border: 1px solid var(--hd-line, rgba(255,255,255,.14));
+  box-shadow: 0 8px 20px rgba(4,20,15,.18);
+  transition: padding .22s ease-out, gap .22s ease-out, border-radius .22s ease-out;
+}
+.home-hero .hh-pc-side { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.home-hero .hh-pc-r { align-items: flex-start; flex: 1 1 auto; }
+.home-hero .hh-pc-l { align-items: flex-end; text-align: end; flex: 0 0 auto; }
+.home-hero .hh-pc-div { width: 1px; align-self: stretch; background: var(--hd-line, rgba(255,255,255,.16)); }
+.home-hero .hh-pc-k {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10.5px; opacity: .85; white-space: nowrap; transition: font-size .22s ease-out;
+}
+.home-hero .hh-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--hd-gold, #D4AF37); display: inline-block; }
+.home-hero .hh-pc-n {
+  display: inline-flex; align-items: baseline; gap: 7px;
+  font-size: 17px; font-weight: 800; white-space: nowrap; transition: font-size .22s ease-out;
+}
+.home-hero .hh-pc-t { font-size: 11.5px; font-weight: 600; opacity: .8; font-variant-numeric: tabular-nums; }
+.home-hero .hh-pc-cd {
+  font-size: 22px; font-weight: 800; letter-spacing: .3px;
+  font-variant-numeric: tabular-nums; transition: font-size .22s ease-out;
+}
+
+/* شريط الصلوات: عمود لكل صلاة — الاسم أعلى، الأيقونة وسط، الوقت أسفل */
+.hm-prayer-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; align-items: stretch; }
+.hm-prayer-grid .prayer-row {
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 3px;
+  min-width: 0; padding: 8px 2px 7px; border-radius: 12px;
+  background: transparent; border: 0; box-shadow: none;
+  transition: background .18s ease-out;
+}
+.hm-prayer-grid .prayer-row + .prayer-row::before { content: none; }
+.hm-prayer-grid .hm-pc-nm {
+  max-width: 100%; font-size: 11.5px; font-weight: 700; color: var(--text, #1a1a1a);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hm-prayer-grid .hm-pc-ic { display: block; color: var(--primary, #0F766E); line-height: 0; }
+.hm-prayer-grid .hm-pc-ic svg { width: 22px; height: 22px; display: block; }
+.hm-prayer-grid .prayer-time-block { display: block; }
+.hm-prayer-grid .prayer-time {
+  font-size: 12px; font-weight: 700; color: var(--text-secondary, #4b5563); font-variant-numeric: tabular-nums;
+}
+.hm-prayer-grid .prayer-remaining {
+  display: block; margin-top: 2px; font-size: 9.5px; color: var(--primary, #0F766E); font-variant-numeric: tabular-nums;
+}
+.hm-prayer-grid .is-sunrise .hm-pc-nm, .hm-prayer-grid .is-sunrise .hm-pc-ic { opacity: .66; }
+.hm-prayer-grid .prayer-row.next {
+  background: var(--surface-alt, rgba(15,118,110,.09));
+  box-shadow: inset 0 -3px 0 var(--primary, #0F766E);
+}
+.hm-prayer-grid .prayer-row.next .hm-pc-nm { color: var(--primary, #0F766E); }
+.hm-prayer-grid .prayer-row.next .prayer-time { color: var(--text, #1a1a1a); }
+.hm-prayer-grid .prayer-row.next .hm-pc-ic {
+  color: #fff; background: var(--primary, #0F766E); border-radius: 50%; padding: 4px;
+  box-shadow: 0 3px 8px rgba(15,118,110,.30);
+}
+.hm-prayer-grid .prayer-row.next .hm-pc-ic svg { width: 17px; height: 17px; }
+.hm-prayer-grid .hm-chip-tools, .hm-prayer-grid .hm-check,
+.hm-prayer-grid .prayer-bell, .hm-prayer-grid .hm-check-spacer { display: none !important; }
+
+/* رأس أصغر بكثير عند النزول */
+.home-hero.hh-shrunk { padding: 3px 10px; }
+.home-hero.hh-shrunk .hh-inner { gap: 3px; }
+.home-hero.hh-shrunk .hh-city { font-size: 12.5px; padding: 2px 8px; }
+.home-hero.hh-shrunk .hh-meta { font-size: 9.5px; }
+.home-hero.hh-shrunk .hh-prayer-card { padding: 5px 10px; border-radius: 12px; gap: 8px; }
+.home-hero.hh-shrunk .hh-pc-k { font-size: 9px; }
+.home-hero.hh-shrunk .hh-pc-n { font-size: 13.5px; }
+.home-hero.hh-shrunk .hh-pc-t { font-size: 10px; }
+.home-hero.hh-shrunk .hh-pc-cd { font-size: 16.5px; }
+.home-hero.hh-shrunk .hh-quick { margin-top: 1px; }
+.home-hero.hh-shrunk .home-quick-grid .quick-access-btn { flex: 0 0 42px; }
+.home-hero.hh-shrunk .quick-access-icon img { width: 30px; height: 30px; }
+.home-hero.hh-shrunk .quick-access-label { font-size: 8.5px; }
+.home-hero.hh-shrunk .hh-arrow { display: none; }
+
+/* نص الآية والدعاء العربي أكبر قليلًا */
+.hm-card.hm-small .hm-verse-body .verse-arabic { font-size: 1.34rem; line-height: 2.15; }
+.hm-card.hm-small .hm-verse-body .dua-arabic { font-size: 1.48rem; line-height: 2.2; }
+
+/* صفحة الصلاة: القفل + رأس متابعة الإتمام */
+.prayer-check.locked { opacity: .45; }
+.prayer-check.locked i { font-size: 11px; }
+.prayers-checkin-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 10px 14px 2px; font-size: 12.5px; font-weight: 600; color: var(--text-secondary, #6b7280);
+}
+.prayers-checkin-head .prayer-checkin-progress { color: var(--primary, #0F766E); font-weight: 800; font-variant-numeric: tabular-nums; }
+
+@media (prefers-color-scheme: dark) {
+  .hm-prayer-grid .hm-pc-nm { color: var(--text, #f3f4f6); }
+}
+[data-theme="dark"] .hm-prayer-grid .hm-pc-nm { color: var(--text, #f3f4f6); }
+[data-theme="dark"] .hm-prayer-grid .prayer-row.next { background: rgba(212,175,55,.10); }
+
+@media (max-width: 380px) {
+  .hm-prayer-grid { gap: 2px; }
+  .hm-prayer-grid .prayer-row { padding: 6px 1px 5px; }
+  .hm-prayer-grid .hm-pc-nm { font-size: 10px; }
+  .hm-prayer-grid .prayer-time { font-size: 11px; }
+  .hm-prayer-grid .hm-pc-ic svg { width: 19px; height: 19px; }
+  .home-hero .hh-pc-n { font-size: 15px; }
+  .home-hero .hh-pc-cd { font-size: 19px; }
+}

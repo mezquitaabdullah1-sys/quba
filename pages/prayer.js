@@ -181,9 +181,15 @@ const PrayerPage = {
       ${isEstimated ? `<div class="estimated-badge" style="margin: 0 var(--sp-md) var(--sp-sm);"><i class="fas fa-wifi-slash"></i> ${t('estimatedTimes')}</div>` : ''}
       ${shiftBadge}
       <div class="card prayers-card">
+        <div class="prayers-checkin-head">
+          <span><i class="fas fa-circle-check"></i> ${t('prayerCheckinTitle') || ''}</span>
+          <span class="prayer-checkin-progress">${(typeof PrayerTracker !== 'undefined' && PrayerTracker.doneCount) ? (PrayerTracker.doneCount() + '/' + PrayerTracker.totalCount() + ' ✔') : ''}</span>
+        </div>
         ${prayers.map(p => {
           const canCheck = (typeof PrayerTracker !== 'undefined') && PrayerTracker.PRAYERS.includes(p.name);
           const isDone = canCheck && PrayerTracker.isDone(p.name);
+          // v100: القفل يظهر في المربّع ما دام وقت الأذان لم يدخل بعد
+          const passed = (typeof HomePage !== 'undefined' && HomePage.isAdhanPassed) ? HomePage.isAdhanPassed(p.name) : true;
           return `
           <div class="prayer-row ${next?.name === p.name ? 'next' : ''} ${isDone ? 'prayer-done' : ''}">
             <span class="prayer-emoji">${getPrayerEmoji(p.name)}</span>
@@ -194,15 +200,15 @@ const PrayerPage = {
             <div class="prayer-time-block">
               <div class="prayer-time">${formatTime12h(p.time)}</div>
               ${next?.name === p.name ? `<div class="prayer-remaining" data-prayer-remaining="${p.name}"><i class="fas fa-hourglass-half"></i> <span class="prayer-remaining-text">${formatCountdown(next.diffMs)}</span></div>` : ''}
-              ${p.iqamah ? `<div class="prayer-iqamah"><i class="fas fa-bell"></i> ${t('iqamah') || 'Iqamah'} ${formatTime12h(p.iqamah)} <span class="iqamah-off">+${p.iqamahOffset} ${t('minShort') || 'min'}</span></div>` : ''}
+              ${p.iqamah ? `<div class="prayer-iqamah"><i class="fas fa-clock"></i> ${t('iqamah') || 'Iqamah'} ${formatTime12h(p.iqamah)} <span class="iqamah-off">+${p.iqamahOffset} ${t('minShort') || 'min'}</span></div>` : ''}
             </div>
             ${(typeof HomePage !== 'undefined' && HomePage._prayerBellHtml) ? (HomePage._prayerBellHtml(p.name) || '<span class="prayer-bell-spacer" aria-hidden="true"></span>') : ''}
             ${canCheck ? `
-              <button class="prayer-check ${isDone ? 'checked' : ''}"
+              <button class="prayer-check ${isDone ? 'checked' : ''} ${passed ? '' : 'locked'}"
                       aria-label="${t('prayerCheckinTitle')}"
                       aria-pressed="${isDone}"
                       onclick="HomePage.toggleCheckin('${p.name}', this)">
-                <i class="fas fa-check"></i>
+                <i class="fas ${(isDone || passed) ? 'fa-check' : 'fa-lock'}"></i>
               </button>` : '<span class="prayer-check-spacer" aria-hidden="true"></span>'}
           </div>`;
         }).join('')}

@@ -149,32 +149,53 @@ const HomePage = {
     if (!clipList.length && typeof ClipsData !== 'undefined' && ClipsData.byCat) clipList = ClipsData.byCat('es');
     clipList = clipList.slice(0, 12);
 
+    // v100: سطر التاريخ (اسم الشهر) + تسمية «متبقٍ على الأذان» بلغة الواجهة
+    let hLineFull = '';
+    try {
+      if (hijri && hijri.month) {
+        hLineFull = hijri.day + ' ' + this._hijriMonthName(hijri.month.number, loc0) + ' ' + hijri.year + ' ' + (loc0 === 'ar' ? 'هـ' : 'AH');
+      }
+    } catch (e) { hLineFull = hLine; }
+    let gLineFull = gLine;
+    try {
+      gLineFull = now0.toLocaleDateString(loc0, { day: 'numeric', month: 'long', year: 'numeric' });
+    } catch (e) { gLineFull = gLine; }
+    const adhanLbl = ({ ar: 'متبقٍ على الأذان', es: 'Falta para el adhan', en: 'Time to adhan' })[loc0] || 'متبقٍ على الأذان';
+
     container.innerHTML = `
       <!-- v95: الرأس كتلة واحدة ثابتة، ومحتواها في عمود وسط الشاشة -->
       <div class="home-header home-hero" id="home-hero">
         <div class="hh-inner">
           <div class="hh-top">
-            <div class="hh-title">
-              <div class="home-greeting">${getGreetingByHour()}</div>
-              <div class="hh-meta">
-                ${hLine ? `<span class="hh-date"><i class="fas fa-moon"></i> ${hLine}</span><span class="hh-sep">/</span>` : ''}
-                <span class="hh-date"><i class="fas fa-calendar-day"></i> ${gLine}</span>
-              </div>
-            </div>
+            <button class="hh-city" onclick="ProfilePage.pickCity()" aria-label="${escapeAttr(t('changeCity') || '')}">
+              <i class="fas fa-location-dot"></i>
+              <span class="hh-city-txt">${escapeHtml(cityLine)}</span>
+              <i class="fas fa-chevron-down hh-city-chev"></i>
+            </button>
             <button class="home-profile-btn" onclick="Router.go('profile')" aria-label="Profile">
               <i class="fas fa-user-circle"></i>
             </button>
           </div>
 
+          <div class="hh-meta">
+            ${hLineFull ? `<span class="hh-date">${hLineFull}</span><span class="hh-sep">·</span>` : ''}
+            <span class="hh-date">${gLineFull}</span>
+          </div>
+
           ${nextPrayer ? `
-            <div class="hh-next">
-              <span class="hh-next-label">${t('nextPrayer')}</span>
-              <span class="hh-next-name" id="next-prayer-name">${t('prayers.' + nextPrayer.name)}</span>
-              <span class="hh-next-cd" id="countdown">${formatCountdown(nextPrayer.diffMs)}</span>
-              <span class="hh-next-time" id="next-prayer-time">${formatTime12h(nextPrayer.time)}</span>
-              ${isEstimated ? `<span class="estimated-badge"><i class="fas fa-wifi-slash"></i> ${t('estimatedTimes')}</span>` : ''}
+            <div class="hh-prayer-card" id="hh-prayer-card">
+              <div class="hh-pc-side hh-pc-r">
+                <span class="hh-pc-k"><span class="hh-dot"></span>${t('nextPrayer')}</span>
+                <span class="hh-pc-n"><span id="next-prayer-name">${t('prayers.' + nextPrayer.name)}</span><span class="hh-pc-t" id="next-prayer-time">${formatTime12h(nextPrayer.time)}</span></span>
+              </div>
+              <span class="hh-pc-div"></span>
+              <div class="hh-pc-side hh-pc-l">
+                <span class="hh-pc-k">${adhanLbl}</span>
+                <span class="hh-pc-cd" id="countdown">${formatCountdown(nextPrayer.diffMs)}</span>
+              </div>
             </div>
           ` : ''}
+          ${isEstimated ? `<span class="estimated-badge"><i class="fas fa-wifi-slash"></i> ${t('estimatedTimes')}</span>` : ''}
 
           <!-- v95: شريط الأيقونات + سهمان صغيران يدلّان على وجود مزيد من الأيقونات -->
           <div class="hh-quick">
@@ -227,8 +248,7 @@ const HomePage = {
         <section class="hm-card hm-prayers">
           <div class="hm-card-head">
             <h2 class="hm-title"><i class="fas fa-mosque"></i> ${t('todayPrayers')}
-              <span class="prayer-checkin-progress">${doneCount}/${totalCount} ✔</span>
-            </h2>
+                          </h2>
             <div class="hm-head-actions">
               <button class="prayers-location" onclick="ProfilePage.pickCity()" title="${escapeAttr(t('changeCity') || '')}" aria-label="${escapeAttr(t('changeCity') || '')}">
                 <i class="fas fa-location-dot"></i>
@@ -243,29 +263,15 @@ const HomePage = {
 
           <div class="hm-prayer-grid" id="hm-prayer-strip">
             ${six.map(p => {
-              const canCheck = (typeof PrayerTracker !== 'undefined') && PrayerTracker.PRAYERS.includes(p.name);
-              const isDone = canCheck && PrayerTracker.isDone(p.name);
-              const passed = canCheck && this.isAdhanPassed(p.name);
               const isNext = nextPrayer && nextPrayer.name === p.name;
               return `
-              <div class="prayer-row hm-prayer-cell ${isNext ? 'next' : ''} ${isDone ? 'prayer-done' : ''}" data-prayer="${p.name}">
-                <span class="hm-pc-ic">${this._prayerIcon(p.name, 20)}</span>
-                <span class="hm-chip-nm">${t('prayers.' + p.name)}</span>
+              <div class="prayer-row hm-prayer-cell ${isNext ? 'next' : ''} ${p.name === 'Sunrise' ? 'is-sunrise' : ''}" data-prayer="${p.name}">
+                <span class="hm-pc-nm">${t('prayers.' + p.name)}</span>
+                <span class="hm-pc-ic">${this._prayerIcon(p.name, 22)}</span>
                 <span class="prayer-time-block">
                   <span class="prayer-time">${formatTime12h(p.time)}</span>
                 </span>
                 ${isNext ? `<span class="prayer-remaining" data-prayer-remaining="${p.name}"><span class="prayer-remaining-text">${formatCountdown(nextPrayer.diffMs)}</span></span>` : ''}
-                <span class="hm-chip-tools">
-                  ${canCheck ? `
-                    <button class="hm-check ${isDone ? 'checked' : ''} ${passed ? '' : 'locked'}"
-                            aria-pressed="${isDone}"
-                            title="${escapeAttr(passed ? (t('prayerCheckinTitle') || '') : (t('prayerNotYetToast') || ''))}"
-                            onclick="HomePage.toggleCheckin('${p.name}', this)">
-                      <i class="fas ${passed ? 'fa-check' : 'fa-lock'}"></i>
-                    </button>`
-                  : '<span class="hm-check-spacer" aria-hidden="true"></span>'}
-                  ${this._prayerBellHtml(p.name) || '<span class="hm-check-spacer" aria-hidden="true"></span>'}
-                </span>
               </div>`;
             }).join('')}
           </div>
@@ -930,24 +936,34 @@ ${typeof DualTiming !== 'undefined' ? `<div class="hm-dual">${DualTiming.render(
   },
 
   // ============ v98: تقليص رأس الصفحة قليلًا عند النزول ============
+  // v100: تقليص الرأس — قراءة واحدة لكل إطار (rAF) + منطقة ميتة (يدخل عند 44px
+  //       ويخرج عند 6px) فلا يحدث اهتزاز/لاق إذا توقّف التمرير عند الحدّ.
   _bindShrink() {
-    this._unbindShrink();
-    const sc = document.getElementById('main-content');
-    if (!sc) return;
-    this._scrollEl = sc;
-    this._shrunk = false;
-    this._onScroll = () => {
-      const hero = document.getElementById('home-hero');
-      if (!hero) return;
-      const on = (sc.scrollTop || 0) > 26;
-      if (on === this._shrunk) return;
-      this._shrunk = on;
-      hero.classList.toggle('hh-shrunk', on);
+    const hero = document.getElementById('home-hero');
+    const cont = document.getElementById('main-content');
+    if (!hero || !cont) return;
+    let ticking = false;
+    const apply = () => {
+      ticking = false;
+      const y = Math.max(cont.scrollTop || 0, window.pageYOffset || 0);
+      const on = hero.classList.contains('hh-shrunk') ? (y > 6) : (y > 44);
+      if (hero.classList.contains('hh-shrunk') !== on) hero.classList.toggle('hh-shrunk', on);
     };
-    sc.addEventListener('scroll', this._onScroll, { passive: true });
-    this._onScroll();
+    this._shrinkH = () => { if (ticking) return; ticking = true; requestAnimationFrame(apply); };
+    this._shrinkSc = cont;
+    cont.addEventListener('scroll', this._shrinkH, { passive: true });
+    window.addEventListener('scroll', this._shrinkH, { passive: true });
+    apply();
   },
 
+  _unbindShrink() {
+    if (this._shrinkH) {
+      if (this._shrinkSc) this._shrinkSc.removeEventListener('scroll', this._shrinkH);
+      window.removeEventListener('scroll', this._shrinkH);
+    }
+    this._shrinkH = null;
+    this._shrinkSc = null;
+  },
   _unbindShrink() {
     if (this._scrollEl && this._onScroll) {
       try { this._scrollEl.removeEventListener('scroll', this._onScroll); } catch (e) {}
