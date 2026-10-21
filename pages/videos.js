@@ -17,6 +17,18 @@ const ClipsPage = {
 
   FAV_KEY: 'clips_favorites',
 
+  // v101: المشغّل — تكرار · تشغيل تلقائي · تتبّع موضع التشغيل
+  _auto: false,
+  _loop: false,
+  _curId: null,
+  _ct: 0,
+  _ytSeen: false,
+  _qIds: null,
+  _qi: 0,
+  _autoTimer: null,
+  _ytH: null,
+  _ytProbe: null,
+
   render(container, params = {}) {
     this._tab = (params && ['es', 'ar', 'en', 'albums'].includes(params.tab)) ? params.tab : 'es';
     if (ClipsData.LANGS.indexOf(this._tab) !== -1) this._lang = this._tab;
@@ -79,35 +91,48 @@ const ClipsPage = {
   },
 
   // ============ بطاقات ============
+  // v101: بطاقة مدمجة كما في المرجع — صورة 16:9 + العنوان + القناة فقط
+  //       (النبذة والمدّة أُزيلتا من البطاقة: النبذة تظهر أسفل الفيديو بعد فتحه)
   _videoCard(v, extraClass) {
-    const L = (k) => ClipsData.L(k);
     const fav = this.isFav(v.id);
-    const d = ClipsData.desc(v);
-    const du = ClipsData.fmtDur(ClipsData.durOf(v.id));
+    const lbl = ClipsData.L(fav ? 'clipsFavRemove' : 'clipsFavAdd');
     return `
       <div class="clip-card ${extraClass || ''}" role="button" tabindex="0"
            onclick="ClipsPage.openVideo('${v.id}')" aria-label="${escapeAttr(v.title)}">
         <span class="clip-thumb">
-          <img src="${ClipsData.thumb(v.id, true)}" alt="" loading="lazy" draggable="false"
-               onerror="this.onerror=()=>{this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/mqdefault.jpg';};this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg';">
+          <img src="${ClipsData.thumb(v.id)}" alt="" loading="lazy" draggable="false"
+               onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/mqdefault.jpg';">
           <span class="clip-play"><i class="fas fa-play"></i></span>
-          ${du ? `<span class="clip-dur">${du}</span>` : ''}
         </span>
         <span class="clip-info">
           <span class="clip-title" dir="auto">${escapeHtml(v.title)}</span>
           <span class="clip-channel"><i class="fab fa-youtube"></i> ${escapeHtml(v.channel)}</span>
-          ${d ? `<span class="clip-desc" dir="auto">${escapeHtml(d)}</span>` : ''}
           <span class="clip-foot">
-            <span class="clip-watch"><i class="fas fa-circle-play"></i> ${L('clipsWatch')}</span>
             <button type="button" class="clip-fav ${fav ? 'is-fav' : ''}"
                     onclick="event.stopPropagation();ClipsPage.toggleFav('${v.id}', this)"
-                    aria-label="${escapeAttr(L(fav ? 'clipsFavRemove' : 'clipsFavAdd'))}"
-                    title="${escapeAttr(L(fav ? 'clipsFavRemove' : 'clipsFavAdd'))}">
+                    aria-label="${escapeAttr(lbl)}" title="${escapeAttr(lbl)}">
               <i class="fas fa-heart"></i>
             </button>
           </span>
         </span>
       </div>`;
+  },
+
+  // v101: بطاقة مقترح — أفقية بعرض كامل (كتصميم المرجع)
+  _sugCard(v) {
+    return `
+      <button type="button" class="clip-sug" onclick="ClipsPage.openVideo('${v.id}')"
+              aria-label="${escapeAttr(v.title)}">
+        <span class="clip-thumb">
+          <img src="${ClipsData.thumb(v.id)}" alt="" loading="lazy" draggable="false"
+               onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/mqdefault.jpg';">
+          <span class="clip-play"><i class="fas fa-play"></i></span>
+        </span>
+        <span class="clip-info">
+          <span class="clip-title" dir="auto">${escapeHtml(v.title)}</span>
+          <span class="clip-channel"><i class="fab fa-youtube"></i> ${escapeHtml(v.channel)}</span>
+        </span>
+      </button>`;
   },
 
   _albumCard(p, extraClass) {
@@ -198,6 +223,8 @@ const ClipsPage = {
 
   // ============ عرض القائمة ============
   _renderList(container) {
+    this._unbindYT();
+    this._clearAutoTimer();
     const L = (k) => ClipsData.L(k);
     const isAr = document.documentElement.dir === 'rtl';
     const backIcon = isAr ? 'fa-arrow-right' : 'fa-arrow-left';
@@ -205,7 +232,7 @@ const ClipsPage = {
     const topicBtns = this._chipsHtml();
 
     container.innerHTML = `
-      <div class="clips-page ${this._search ? 'is-searching' : ''} ${this._fav ? 'is-fav' : ''}" id="clips-page">
+      <div class="clips-page clips-v2 ${this._search ? 'is-searching' : ''} ${this._fav ? 'is-fav' : ''}" id="clips-page">
         <div class="clips-header">
           <button class="clips-back" onclick="Router.back()" aria-label="${L('clipsBack')}">
             <i class="fas ${backIcon}"></i>
@@ -475,29 +502,139 @@ const ClipsPage = {
   },
 
   // ============ المشغّل الداخلي ============
+  // ============ v101: المشغّل — مقترحات · تكرار · تشغيل تلقائي ============
+  _langOf(v) { return (v && v.cats && v.cats.length) ? v.cats[0] : 'es'; },
+
+  // مقترحات من نفس لغة الفيديو، ويُقدَّم نفس التصنيف
+  suggestionsFor(id) {
+    const v = ClipsData.VIDEOS.find(x => x.id === id);
+    if (!v) return [];
+    const core = (ClipsData.topicsOf(v) || ['lectures'])[0];
+    return ClipsData.byCat(this._langOf(v))
+      .filter(x => x.id !== id)
+      .sort((a, b) => {
+        const sa = (ClipsData.topicsOf(a)[0] === core) ? 0 : 1;
+        const sb = (ClipsData.topicsOf(b)[0] === core) ? 0 : 1;
+        return sa - sb;
+      })
+      .slice(0, 10);
+  },
+
+  // رابط التضمين — وضع التكرار في يوتيوب يحتاج loop=1 مع playlist=<المعرّف نفسه>
+  _embedUrl(id, start) {
+    const q = ['autoplay=1', 'rel=0', 'playsinline=1', 'enablejsapi=1'];
+    if (this._loop) q.push('loop=1', 'playlist=' + id);
+    if (start && start > 3) q.push('start=' + Math.floor(start));
+    return 'https://www.youtube-nocookie.com/embed/' + id + '?' + q.join('&');
+  },
+
   openVideo(id) {
     const v = ClipsData.VIDEOS.find(x => x.id === id);
     if (!v) return;
+    // طابور التشغيل التلقائي: كل فيديوهات اللغة بترتيب ثابت
+    if (!this._qIds || this._qIds.indexOf(v.id) === -1) {
+      const ordered = ClipsData.byCat(this._langOf(v));
+      this._qIds = ordered.map(x => x.id);
+      this._qi = Math.max(0, ordered.findIndex(x => x.id === v.id));
+    }
+    this._curId = v.id;
+    this._ct = 0;
+    this._ytSeen = false;
     this._renderPlayer({
       id: v.id,
-      embedSrc: `https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&rel=0`,
+      embedSrc: this._embedUrl(v.id, 0),
       title: v.title,
       channel: v.channel,
       desc: ClipsData.desc(v),
       externalUrl: ClipsData.watchUrl(v.id),
+      sug: this.suggestionsFor(v.id),
     });
   },
 
   openPlaylist(id) {
     const p = ClipsData.PLAYLISTS.find(x => x.id === id);
     if (!p) return;
+    this._curId = null;
+    this._qIds = null;
     this._renderPlayer({
-      embedSrc: `https://www.youtube-nocookie.com/embed/videoseries?list=${p.id}&autoplay=1&rel=0`,
+      embedSrc: 'https://www.youtube-nocookie.com/embed/videoseries?list=' + p.id + '&autoplay=1&rel=0&enablejsapi=1',
       title: p.title,
       channel: ClipsData.L(p.kind === 'written' ? 'clipsAlbumWritten' : (p.kind === 'oral' ? 'clipsAlbumOral' : 'clipsAlbumSeries')),
+      desc: ClipsData.desc(p),
       externalUrl: ClipsData.playlistUrl(p.id),
+      sug: [],
     });
   },
+
+  // ── وضع التكرار: إعادة تحميل الإطار من الموضع الحالي نفسه ──
+  toggleLoop() {
+    this._loop = !this._loop;
+    const b = document.getElementById('clip-opt-loop');
+    if (b) { b.classList.toggle('on', this._loop); b.setAttribute('aria-pressed', String(this._loop)); }
+    if (typeof showToast === 'function') {
+      showToast((this._loop ? '🔁 ' : '▶️ ') + ClipsData.L(this._loop ? 'clipsLoopOn' : 'clipsLoopOff'));
+    }
+    const fr = document.getElementById('clip-iframe');
+    if (fr && this._curId) fr.src = this._embedUrl(this._curId, this._ct);
+  },
+
+  // ── التشغيل التلقائي: عند انتهاء المقطع ينتقل إلى التالي ──
+  toggleAuto() {
+    this._auto = !this._auto;
+    const root = document.getElementById('main-content') || document;
+    root.querySelectorAll('[data-clip-auto]').forEach(b => {
+      b.classList.toggle('on', this._auto);
+      b.setAttribute('aria-pressed', String(this._auto));
+    });
+    if (typeof showToast === 'function') {
+      showToast((this._auto ? '▶️ ' : '⏸️ ') + ClipsData.L('clipsAutoPlay'));
+    }
+    this._clearAutoTimer();
+    if (!this._auto) return;
+    if (this._ytSeen) return;
+    this._armAutoTimer();
+  },
+
+  _playNext() {
+    if (this._qIds && this._qIds.length > 1 && this._curId) {
+      this._qi = (this._qi + 1) % this._qIds.length;
+      const nid = this._qIds[this._qi];
+      if (nid && nid !== this._curId) { this.openVideo(nid); return; }
+    }
+    const sug = this.suggestionsFor(this._curId);
+    if (sug.length) this.openVideo(sug[0].id);
+  },
+
+  // إشارات مشغّل يوتيوب (postMessage) — تعمل مع enablejsapi=1
+  _bindYT() {
+    this._unbindYT();
+    this._ytH = (e) => {
+      let d;
+      try { d = (typeof e.data === 'string') ? JSON.parse(e.data) : e.data; } catch (err) { return; }
+      const info = d && d.info;
+      if (!info) return;
+      this._ytSeen = true;
+      this._clearAutoTimer();
+      if (typeof info.currentTime === 'number') this._ct = info.currentTime;
+      if (info.playerState === 0 && this._auto) this._playNext();   // 0 = انتهى المقطع
+    };
+    window.addEventListener('message', this._ytH);
+    // شبكة أمان: إن لم تصل إشارات (WebView بلا postMessage) نعتمد مدّة المقطع
+    this._ytProbe = setTimeout(() => { if (!this._ytSeen && this._auto) this._armAutoTimer(); }, 4000);
+  },
+
+  _unbindYT() {
+    if (this._ytH) { window.removeEventListener('message', this._ytH); this._ytH = null; }
+    if (this._ytProbe) { clearTimeout(this._ytProbe); this._ytProbe = null; }
+  },
+
+  _armAutoTimer() {
+    this._clearAutoTimer();
+    const d = ClipsData.durOf(this._curId);
+    if (!this._auto || !d) return;
+    this._autoTimer = setTimeout(() => { if (this._auto) this._playNext(); }, (d + 15) * 1000);
+  },
+  _clearAutoTimer() { if (this._autoTimer) { clearTimeout(this._autoTimer); this._autoTimer = null; } },
 
   _renderPlayer(cfg) {
     const L = (k) => ClipsData.L(k);
@@ -507,9 +644,11 @@ const ClipsPage = {
     if (!container) return;
     container.scrollTop = 0;
     const fav = cfg.id ? this.isFav(cfg.id) : false;
+    const favLbl = L(fav ? 'clipsFavRemove' : 'clipsFavAdd');
+    const sug = cfg.sug || [];
 
     container.innerHTML = `
-      <div class="clips-page clips-player-page">
+      <div class="clips-page clips-v2 clips-player-page">
         <div class="clips-header">
           <button class="clips-back" onclick="ClipsPage.closePlayer()" aria-label="${L('clipsBack')}">
             <i class="fas ${backIcon}"></i>
@@ -522,7 +661,7 @@ const ClipsPage = {
         </div>
 
         <div class="clip-player-frame">
-          <iframe src="${cfg.embedSrc}"
+          <iframe id="clip-iframe" src="${cfg.embedSrc}"
                   title="${escapeAttr(cfg.title)}"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
@@ -539,23 +678,51 @@ const ClipsPage = {
             ${cfg.id ? `
             <button type="button" class="clip-fav clip-fav--lg ${fav ? 'is-fav' : ''}"
                     onclick="ClipsPage.toggleFav('${cfg.id}', this)"
-                    aria-label="${escapeAttr(L(fav ? 'clipsFavRemove' : 'clipsFavAdd'))}"
-                    title="${escapeAttr(L(fav ? 'clipsFavRemove' : 'clipsFavAdd'))}">
+                    aria-label="${escapeAttr(favLbl)}" title="${escapeAttr(favLbl)}">
               <i class="fas fa-heart"></i>
             </button>` : ''}
           </div>
+          ${cfg.id ? `
+          <div class="clip-options">
+            <span class="clip-opt-lbl"><i class="fab fa-youtube"></i> ${L('clipsOptions')}</span>
+            <button type="button" class="clip-opt ${this._loop ? 'on' : ''}" id="clip-opt-loop"
+                    aria-pressed="${this._loop}" onclick="ClipsPage.toggleLoop()">
+              <i class="fas fa-repeat"></i> ${L('clipsLoop')}
+            </button>
+          </div>` : ''}
           <div class="clip-ads-note clip-ads-note--player"><i class="fas fa-circle-info"></i> <span>${L('clipsAdsNote')}</span></div>
         </div>
+
+        ${sug.length ? `
+        <section class="clips-sug">
+          <div class="clips-sug-head">
+            <span class="clips-sug-title">${L('clipsSuggest')}</span>
+            <button type="button" class="clip-auto ${this._auto ? 'on' : ''}" data-clip-auto aria-pressed="${this._auto}"
+                    onclick="ClipsPage.toggleAuto()">
+              <span class="clip-auto-t">${L('clipsAutoPlay')}</span>
+              <span class="clip-switch" aria-hidden="true"></span>
+            </button>
+          </div>
+          <div class="clip-sug-list">
+            ${sug.map(x => this._sugCard(x)).join('')}
+          </div>
+        </section>` : ''}
       </div>
     `;
+    this._bindYT();
   },
 
   closePlayer() {
+    this._unbindYT();
+    this._clearAutoTimer();
     const container = document.getElementById('main-content');
     if (container) this._renderList(container);
   },
 
-  cleanup() { /* iframe يُزال مع استبدال المحتوى تلقائيًا */ },
+  cleanup() {
+    this._unbindYT();
+    this._clearAutoTimer();
+  },
 };
 
 if (typeof module !== 'undefined') module.exports = ClipsPage;

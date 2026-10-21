@@ -596,3 +596,15 @@
   .home-hero .hh-pc-n { font-size: 15px; }
   .home-hero .hh-pc-cd { font-size: 19px; }
 }
+
+
+/* ================== v101: الرأس — إخفاء الأيقونات عند النزول + إزالة مستطيل أيقونة الحساب ================== */
+.home-hero .hh-top .home-profile-btn,
+.home-hero .home-profile-btn {
+  background: transparent !important; border: 0 !important; box-shadow: none !important;
+  outline: 0 !important; padding: 2px !important; border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+}
+/* إخفاء شريط الأيقونات كاملًا عند تقليص الرأس */
+.home-hero.hh-shrunk .hh-quick { display: none !important; }
+.home-hero.hh-shrunk .hh-arrow { display: none !important; }
