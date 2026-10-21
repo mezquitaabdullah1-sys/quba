@@ -166,15 +166,15 @@ const HomePage = {
     const hxl = {
       ar: { services: 'خدماتنا', ramadanIn: 'رمضان في {n} يومًا', nextOcc: 'المناسبة القادمة',
             qhint: 'حرّك هاتفك لتحديد اتجاه القبلة', qon: 'تشغيل البوصلة', qaligned: 'أنت متجه نحو القبلة',
-            settings: 'الإعدادات', language: 'اللغة', theme: 'المظهر', todayPrayers: 'صلوات اليوم',
+            settings: 'الإعدادات', allFeatures: 'كل الميزات', language: 'اللغة', theme: 'المظهر', todayPrayers: 'صلوات اليوم',
             prevLbl: 'مضى على', elapsed: 'الوقت الماضي', nextLbl: 'الصلاة القادمة' },
       es: { services: 'Nuestros servicios', ramadanIn: 'Ramadán en {n} días', nextOcc: 'Próxima ocasión',
             qhint: 'Mueve el teléfono para orientar la qibla', qon: 'Activar brújula', qaligned: 'Estás orientado a la qibla',
-            settings: 'Ajustes', language: 'Idioma', theme: 'Tema', todayPrayers: 'Oraciones de hoy',
+            settings: 'Ajustes', allFeatures: 'Todas las funciones', language: 'Idioma', theme: 'Tema', todayPrayers: 'Oraciones de hoy',
             prevLbl: 'Han pasado', elapsed: 'Tiempo transcurrido', nextLbl: 'Próxima oración' },
       en: { services: 'Our services', ramadanIn: 'Ramadan in {n} days', nextOcc: 'Next occasion',
             qhint: 'Move your phone to find the qibla', qon: 'Enable compass', qaligned: 'You are facing the qibla',
-            settings: 'Settings', language: 'Language', theme: 'Theme', todayPrayers: "Today's prayers",
+            settings: 'Settings', allFeatures: 'All features', language: 'Language', theme: 'Theme', todayPrayers: "Today's prayers",
             prevLbl: 'Elapsed', elapsed: 'Time elapsed', nextLbl: 'Next prayer' },
     }[loc0] || {};
     const skyKey = this._skyKey(timings);
@@ -215,8 +215,8 @@ const HomePage = {
           <!-- الصف الأول: الإعدادات · اللغة · المظهر · رمضان · المدينة والبلد -->
           <div class="hsx-top">
             <button class="hsx-ibtn" onclick="Router.go('profile')" aria-label="${escapeAttr(hxl.settings)}" title="${escapeAttr(hxl.settings)}"><i class="fas fa-gear"></i></button>
-            <button class="hsx-ibtn" onclick="ProfilePage.pickLanguage()" aria-label="${escapeAttr(hxl.language)}" title="${escapeAttr(hxl.language)}"><i class="fas fa-language"></i></button>
-            <button class="hsx-ibtn" onclick="ProfilePage.pickTheme()" aria-label="${escapeAttr(hxl.theme)}" title="${escapeAttr(hxl.theme)}"><i class="fas fa-palette"></i></button>
+            <button class="hsx-ibtn" onclick="HomePage.quickMenu('lang', event)" aria-label="${escapeAttr(hxl.language)}" title="${escapeAttr(hxl.language)}"><i class="fas fa-language"></i></button>
+            <button class="hsx-ibtn" onclick="HomePage.quickMenu('theme', event)" aria-label="${escapeAttr(hxl.theme)}" title="${escapeAttr(hxl.theme)}"><i class="fas fa-palette"></i></button>
             ${ramTxt ? `<button class="hsx-ram" onclick="Router.go('calendar')" title="${escapeAttr(t('ramadanCountdown') || '')}"><i class="fas fa-moon"></i><span>${escapeHtml(ramTxt)}</span></button>` : ''}
             <button class="hsx-city" onclick="ProfilePage.pickCity()" aria-label="${escapeAttr(t('changeCity') || '')}" title="${escapeAttr(t('changeCity') || '')}">
               <i class="fas fa-location-dot"></i><span>${escapeHtml(cityLine)}</span>
@@ -296,7 +296,7 @@ const HomePage = {
         <section class="hm-card hm-prayers hsx-services">
           <div class="hm-card-head">
             <h2 class="hm-title"><i class="fas fa-grip"></i> ${escapeHtml(hxl.services)}</h2>
-            <button class="hm-mini-btn" onclick="Router.go('profile')">${escapeHtml(hxl.settings)} <i class="fas fa-chevron-${isAr ? 'left' : 'right'}"></i></button>
+            <button class="hm-mini-btn" onclick="Router.go('features')"><i class="fas fa-layer-group"></i> ${escapeHtml(hxl.allFeatures || '')} <i class="fas fa-chevron-${isAr ? 'left' : 'right'}"></i></button>
           </div>
           <div class="hsx-serv-grid">
             <button class="hsx-serv" onclick="Router.go('quran')" aria-label="${escapeAttr(t('quickQuran'))}" title="${escapeAttr(t('quickQuran'))}">
@@ -1076,21 +1076,35 @@ const HomePage = {
     return 'noon';
   },
 
+  // v103: خط التقدّم دقيق — كل صلاة عند مركز خليّتها في الشريط تمامًا،
+  //       والحركة بين صلاة وأخرى تُوزَّع على المسافة بين الخليّتين فقط،
+  //       فدقائق قليلة بعد الأذان تحرّك الكرة قليلًا لا بعيدًا.
   _dayProgress(timings) {
-    const a = this._moment(timings, 'Fajr');
-    const b = this._moment(timings, 'Isha');
-    if (!a || !b || b <= a) return 0;
-    const p = ((Date.now() - a.getTime()) / (b.getTime() - a.getTime())) * 100;
-    return Math.min(100, Math.max(0, p));
+    const CELLS = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+    const N = CELLS.length;
+    const now = Date.now();
+    const pts = [];
+    for (const n of CELLS) {
+      const d = this._moment(timings, n);
+      if (d) pts.push(d.getTime());
+    }
+    if (pts.length < 2) return 0;
+    const c = (i) => ((i + 0.5) / N) * 100;
+    if (now <= pts[0]) return c(0);
+    for (let i = 0; i < pts.length - 1; i++) {
+      if (now >= pts[i] && now < pts[i + 1]) {
+        const f = (now - pts[i]) / (pts[i + 1] - pts[i]);
+        return c(i) + f * (c(i + 1) - c(i));
+      }
+    }
+    return c(pts.length - 1);
   },
 
+  // v103: موضع علامة الصلاة = مركز خليّتها (نفس مرجع الكرة تمامًا)
   _prayerPct(timings, name) {
-    const a = this._moment(timings, 'Fajr');
-    const b = this._moment(timings, 'Isha');
-    const p = this._moment(timings, name);
-    if (!a || !b || !p || b <= a) return 0;
-    const v = ((p.getTime() - a.getTime()) / (b.getTime() - a.getTime())) * 100;
-    return Math.min(100, Math.max(0, v));
+    const CELLS = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+    const i = CELLS.indexOf(name);
+    return i < 0 ? 0 : ((i + 0.5) / CELLS.length) * 100;
   },
 
   _prevPrayerText(timings, loc0) {
@@ -1145,6 +1159,101 @@ const HomePage = {
       const k = this._skyKey(AppState.timings);
       ['morning', 'noon', 'dusk', 'night'].forEach(x => hero.classList.toggle('hsx-' + x, x === k));
     }
+  },
+
+  // ============ v103: تغيير اللغة/المظهر فورًا من الرأس (بلا صفحة الإعدادات) ============
+  _popEl: null,
+
+  quickMenu(kind, ev) {
+    try { if (ev && ev.stopPropagation) ev.stopPropagation(); } catch (e) {}
+    this._closePop();
+    const anchorEl = (ev && (ev.currentTarget || ev.target)) ? (ev.currentTarget || ev.target).closest('.hsx-ibtn') : null;
+    const rect = anchorEl ? anchorEl.getBoundingClientRect() : { left: 20, right: 60, bottom: 80, top: 40 };
+    const loc = (typeof currentLocale !== 'undefined') ? currentLocale : 'es';
+    const LANG = [
+      { id: 'ar', label: 'العربية', sub: 'AR' },
+      { id: 'en', label: 'English', sub: 'EN' },
+      { id: 'es', label: 'Español', sub: 'ES' },
+    ];
+    const THEMES = [
+      { id: 'light', icon: 'fa-sun', label: { ar: 'فاتح', es: 'Claro', en: 'Light' }[loc] },
+      { id: 'dark', icon: 'fa-moon', label: { ar: 'داكن', es: 'Oscuro', en: 'Dark' }[loc] },
+      { id: 'emerald', icon: 'fa-mosque', label: { ar: 'زمردي', es: 'Esmeralda', en: 'Emerald' }[loc] },
+      { id: 'maroon', icon: 'fa-crown', label: { ar: 'عنابي', es: 'Granate', en: 'Maroon' }[loc] },
+      { id: 'brown', icon: 'fa-mug-hot', label: { ar: 'بنّي', es: 'Marrón', en: 'Brown' }[loc] },
+      { id: 'auto', icon: 'fa-arrows-rotate', label: { ar: 'تلقائي', es: 'Automático', en: 'Auto' }[loc] },
+    ];
+    const cur = kind === 'lang' ? (AppState.settings.locale || 'ar') : (AppState.settings.theme || 'light');
+    const items = (kind === 'lang' ? LANG : THEMES).map(it => {
+      const on = it.id === cur ? ' on' : '';
+      const ic = it.icon ? `<i class="fas ${it.icon}"></i>` : `<span class="hsx-pop-code">${it.sub}</span>`;
+      const act = kind === 'lang' ? `HomePage.applyLang('${it.id}')` : `HomePage.applyTheme('${it.id}')`;
+      return `<button class="hsx-pop-i${on}" onclick="${act}">${ic}<span>${escapeHtml(it.label)}</span>${on ? '<i class="fas fa-check hsx-pop-ok"></i>' : ''}</button>`;
+    }).join('');
+    const pop = document.createElement('div');
+    pop.className = 'hsx-pop';
+    pop.innerHTML = `<div class="hsx-pop-t">${kind === 'lang' ? escapeHtml({ ar: 'اللغة', es: 'Idioma', en: 'Language' }[loc]) : escapeHtml({ ar: 'المظهر', es: 'Tema', en: 'Theme' }[loc])}</div>${items}`;
+    document.body.appendChild(pop);
+    const w = pop.offsetWidth || 190, h = pop.offsetHeight || 200;
+    let left = Math.min(Math.max(8, rect.left), window.innerWidth - w - 8);
+    if (document.documentElement.dir === 'rtl') left = Math.min(Math.max(8, rect.left), window.innerWidth - w - 8);
+    let top = rect.bottom + 8;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, rect.top - h - 8);
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+    this._popEl = pop;
+    this._popClose = (e) => { if (!pop.contains(e.target)) this._closePop(); };
+    setTimeout(() => {
+      document.addEventListener('pointerdown', this._popClose, true);
+      window.addEventListener('scroll', this._popClose, true);
+    }, 30);
+  },
+
+  _closePop() {
+    try {
+      if (this._popClose) {
+        document.removeEventListener('pointerdown', this._popClose, true);
+        window.removeEventListener('scroll', this._popClose, true);
+      }
+    } catch (e) {}
+    this._popClose = null;
+    if (this._popEl && this._popEl.parentNode) this._popEl.parentNode.removeChild(this._popEl);
+    this._popEl = null;
+  },
+
+  applyLang(id) {
+    try {
+      if (!['ar', 'es', 'en'].includes(id)) return;
+      AppState.settings.locale = id;
+      if (typeof API !== 'undefined' && API.resolveTranslationForLocale) {
+        AppState.settings.translation = API.resolveTranslationForLocale(AppState.settings.translation, id);
+      }
+      Storage.saveSettings();
+      setLocale(id);
+      try {
+        const rs = Storage.get('reader_settings');
+        if (rs) {
+          const auto = { ar: 'local.ar', en: 'local.en', es: 'local.garcia' }[id] || 'local.garcia';
+          if (rs.tafsir === 'local.auto' || (['local.garcia', 'local.es'].includes(rs.tafsir) && id !== 'es')) {
+            rs.tafsir = auto;
+            Storage.set('reader_settings', rs);
+          }
+        }
+      } catch (e) {}
+      this._closePop();
+      Router.go('home', {}, { force: true });
+    } catch (e) { console.warn('applyLang', e); }
+  },
+
+  applyTheme(id) {
+    try {
+      AppState.settings.theme = id;
+      Storage.saveSettings();
+      applyTheme();
+      this._closePop();
+      // إعادة رسم الرأس بالخلفية/الألوان الجديدة فورًا
+      Router.go('home', {}, { force: true });
+    } catch (e) { console.warn('applyTheme', e); }
   },
 
   // ---------- شريط القبلة ----------
@@ -1277,5 +1386,6 @@ const HomePage = {
     }
     this._ramadanTarget = null; // v60
     try { this._qiblaStop(); } catch (e) {} // v102
+    try { this._closePop(); } catch (e) {} // v103
   },
 };

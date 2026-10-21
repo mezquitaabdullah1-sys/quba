@@ -22,6 +22,8 @@ const Router = {
     videos: { page: ClipsPage, tabId: 'wisdom' },
     // v73: المكتبة الإسلامية — كتب دينية تُنزَّل وتُقرأ داخل التطبيق
     'wisdom/library': { page: LibraryPage, tabId: 'wisdom' },
+    // v103: فهرس كل ميزات التطبيق
+    features: { page: FeaturesPage, tabId: null },
   },
 
   current: null,

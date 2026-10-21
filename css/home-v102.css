@@ -12,27 +12,36 @@
   background: #08211b !important;
   border: 0 !important;
   border-bottom: 1px solid rgba(255, 255, 255, .07) !important;
-  border-radius: 0 0 26px 26px;
+  border-radius: 0 0 24px 24px;
   overflow: hidden;
   box-shadow: 0 14px 34px -18px rgba(0, 0, 0, .55);
   color: #fff;
+  background-image: linear-gradient(160deg, #1d4b52 0%, #12403a 45%, #061d18 100%);
 }
+.hsx-hero.hsx-noon { background-image: linear-gradient(160deg, #2b6f9b 0%, #1c577a 42%, #073028 100%); }
+.hsx-hero.hsx-dusk { background-image: linear-gradient(160deg, #a4552a 0%, #5c2f44 45%, #170f1c 100%); }
+.hsx-hero.hsx-night { background-image: linear-gradient(160deg, #0a2038 0%, #06182c 45%, #030c16 100%); }
 .hsx-bg {
   position: absolute;
   inset: 0;
-  background-size: cover;
-  background-position: center 28%;
-  transform: scale(1.03);
+  width: 100%;
+  height: 100%;
+  background-size: cover !important;
+  background-position: center center !important;
+  background-repeat: no-repeat;
+  transform: scale(1.02);
   transition: opacity .5s ease;
+  z-index: 0;
 }
 .hsx-veil {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(3, 20, 16, .58) 0%, rgba(3, 20, 16, .30) 38%, rgba(3, 20, 16, .78) 78%, rgba(3, 18, 14, .93) 100%);
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(3, 20, 16, .24) 0%, rgba(3, 20, 16, .06) 34%, rgba(3, 20, 16, .20) 68%, rgba(3, 18, 14, .38) 100%);
 }
-.hsx-hero.hsx-noon .hsx-veil { background: linear-gradient(180deg, rgba(6, 34, 58, .46) 0%, rgba(4, 26, 44, .26) 40%, rgba(3, 18, 14, .80) 78%, rgba(3, 18, 14, .94) 100%); }
-.hsx-hero.hsx-dusk .hsx-veil { background: linear-gradient(180deg, rgba(48, 20, 10, .42) 0%, rgba(30, 14, 20, .28) 40%, rgba(12, 8, 16, .80) 78%, rgba(8, 6, 14, .94) 100%); }
-.hsx-hero.hsx-night .hsx-veil { background: linear-gradient(180deg, rgba(2, 10, 20, .60) 0%, rgba(2, 10, 20, .34) 38%, rgba(2, 9, 16, .84) 78%, rgba(2, 8, 14, .95) 100%); }
+.hsx-hero.hsx-noon .hsx-veil { background: linear-gradient(180deg, rgba(4, 26, 44, .20) 0%, rgba(4, 26, 44, .05) 36%, rgba(3, 18, 24, .20) 68%, rgba(3, 18, 14, .38) 100%); }
+.hsx-hero.hsx-dusk .hsx-veil { background: linear-gradient(180deg, rgba(48, 20, 10, .18) 0%, rgba(30, 14, 20, .08) 36%, rgba(12, 8, 16, .22) 68%, rgba(8, 6, 14, .40) 100%); }
+.hsx-hero.hsx-night .hsx-veil { background: linear-gradient(180deg, rgba(2, 10, 20, .28) 0%, rgba(2, 10, 20, .10) 36%, rgba(2, 9, 16, .22) 68%, rgba(2, 8, 14, .42) 100%); }
 .hsx-inner {
   position: relative;
   z-index: 2;
@@ -110,8 +119,8 @@
   margin-top: 10px;
   padding: 9px 13px 10px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, .12);
-  border: 1px solid rgba(255, 255, 255, .22);
+  background: rgba(255, 255, 255, .10);
+  border: 1px solid rgba(255, 255, 255, .24);
   -webkit-backdrop-filter: blur(9px);
   backdrop-filter: blur(9px);
 }
@@ -180,8 +189,8 @@
   margin-top: 8px;
   padding: 7px 12px 8px;
   border-radius: 16px;
-  background: rgba(0, 0, 0, .26);
-  border: 1px solid rgba(255, 255, 255, .13);
+  background: rgba(0, 0, 0, .13);
+  border: 1px solid rgba(255, 255, 255, .16);
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -215,8 +224,8 @@
   margin-top: 10px;
   padding: 8px 8px 10px;
   border-radius: 18px;
-  background: rgba(4, 26, 21, .40);
-  border: 1px solid rgba(255, 255, 255, .16);
+  background: rgba(4, 26, 21, .10);
+  border: 1px solid rgba(255, 255, 255, .18);
   -webkit-backdrop-filter: blur(7px);
   backdrop-filter: blur(7px);
 }
@@ -472,3 +481,62 @@
   .hsx-serv img { width: 34px; height: 34px; }
   .hsx-serv span { font-size: .5rem; }
 }
+
+
+/* ---------- v103: قائمة اللغة/المظهر السريعة ---------- */
+.hsx-pop {
+  position: fixed;
+  z-index: 9999;
+  min-width: 168px;
+  padding: 7px;
+  border-radius: 16px;
+  background: var(--card, #16241f);
+  border: 1px solid var(--border, rgba(255, 255, 255, .12));
+  box-shadow: 0 18px 40px -14px rgba(0, 0, 0, .55), 0 0 0 1px rgba(0, 0, 0, .04);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  animation: hsxPop .14s ease-out;
+}
+@keyframes hsxPop { from { opacity: 0; transform: translateY(-5px) scale(.97); } to { opacity: 1; transform: none; } }
+.hsx-pop-t {
+  font-size: .6rem;
+  color: var(--text-secondary);
+  padding: 3px 8px 5px;
+  font-weight: 600;
+}
+.hsx-pop-i {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font-size: .76rem;
+  font-family: inherit;
+  text-align: start;
+  width: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+.hsx-pop-i i { width: 15px; text-align: center; font-size: .74rem; opacity: .8; }
+.hsx-pop-i:active { background: rgba(127, 127, 127, .14); }
+.hsx-pop-i.on { background: rgba(212, 175, 55, .16); color: var(--primary); font-weight: 700; }
+.hsx-pop-i.on i { opacity: 1; }
+.hsx-pop-code {
+  width: 15px;
+  text-align: center;
+  font-size: .52rem;
+  font-weight: 800;
+  letter-spacing: .3px;
+  opacity: .7;
+}
+.hsx-pop-ok { margin-inline-start: auto; font-size: .62rem !important; }
+
+/* v103: وضوح النص فوق الصورة بدل تعتيمها */
+.hsx-top, .hsx-date-main, .hsx-greg, .hsx-occ, .hsx-cn, .hsx-ct, .hsx-mlbl, .hsx-k, .hsx-np {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .55);
+}
+.hsx-ct, .hsx-cn { text-shadow: 0 1px 4px rgba(0, 0, 0, .7); }
+.hsx-prayers { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .10); }
