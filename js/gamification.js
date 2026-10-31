@@ -51,10 +51,6 @@ const Gamification = {
     { id: 'level_5', name: { es: 'Conocedor', ar: 'عارف', en: 'Knowledgeable' }, desc: { es: 'Alcanza el nivel 5', ar: 'اصل إلى المستوى 5', en: 'Reach level 5' }, icon: '<i class="fas fa-star"></i>' },
     { id: 'level_10', name: { es: 'Imam', ar: 'إمام', en: 'Imam' }, desc: { es: 'Alcanza el nivel 10', ar: 'اصل إلى المستوى 10', en: 'Reach level 10' }, icon: '<i class="fas fa-mosque"></i>' },
     { id: 'xp_1000', name: { es: 'Mil XP', ar: 'ألف نقطة', en: 'A thousand XP' }, desc: { es: 'Acumula 1000 XP', ar: 'اجمع 1000 نقطة خبرة', en: 'Accumulate 1000 XP' }, icon: '<i class="fas fa-bolt"></i>' },
-    // أوسمة كورس اللغة العربية (تُعرَّف هنا لتظهر في سجلّ الإنجازات وتُفتح من محرّك الكورس)
-    { id: 'cx_flawless_station', name: { es: 'Estación sin errores', ar: 'محطة بلا أخطاء', en: 'Flawless station' }, desc: { es: 'Termina una estación sin errores', ar: 'أكمل محطة بلا خطأ واحد', en: 'Finish a station with no mistakes' }, icon: '<i class="fas fa-gem"></i>' },
-    { id: 'cx_review_7', name: { es: 'Repasador constante', ar: 'مراجِع مواظب', en: 'Steady reviewer' }, desc: { es: 'Repasa 7 días distintos', ar: 'راجع في 7 أيام مختلفة', en: 'Review on 7 different days' }, icon: '<i class="fas fa-rotate"></i>' },
-    { id: 'cx_gold_cert', name: { es: 'Certificado de oro', ar: 'شهادة ذهبية', en: 'Gold certificate' }, desc: { es: 'Aprueba el examen final con 90% o más', ar: 'انجح في الامتحان النهائي بنسبة 90% فأكثر', en: 'Pass the final exam with 90% or more' }, icon: '<i class="fas fa-medal"></i>' },
   ],
 
   // ============ Estado ============
@@ -187,9 +183,11 @@ const Gamification = {
       xp: state.xp,
       level: levelInfo.level,
       lives: this.getLives(),
-      streak: state.streak || 0,
+      streak: this.getStreak(),
+      bestStreak: Math.max(state.bestStreak || 0, this.getStreak()),
       achievements: state.achievements || [],
-      totalAnswered: state.stats?.totalAnswered || 0,
+      // البنية المخزَّنة تستخدم questionsAnswered (كانت الواجهة تقرأ totalAnswered فتعرض 0 دائمًا)
+      totalAnswered: state.stats?.questionsAnswered || state.stats?.totalAnswered || 0,
       categoryStats: state.stats?.categoryStats || {},
     };
   },
@@ -212,23 +210,53 @@ const Gamification = {
   },
 
   // ============ Racha (streak) ============
+  // الـstreak = عدد الأيام المتتالية التي كان فيها المستخدم نشطًا (فتح التطبيق، تأشير صلاة،
+  // اختبار، درس…). تُخزَّن مع آخر يوم نشاط بمفتاح محلي yyyy-mm-dd (لا toDateString المعتمد
+  // على اللغة، ولا طرح 24 ساعة الذي يخطئ في أيام تغيير التوقيت الصيفي).
+  _dayKey(d = new Date()) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  },
+
+  _yesterdayKey() {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return this._dayKey(d);
+  },
+
+  // يقبل الصيغة الجديدة وصيغة toDateString القديمة (ترحيل البيانات المحفوظة سابقًا)
+  _normDay(v) {
+    if (!v) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : this._dayKey(d);
+  },
+
+  // الرقم الصحيح للعرض: إن انقطعت السلسلة (آخر نشاط قبل أمس) يُعرض 0 بدل رقم قديم عالق
+  getStreak() {
+    const state = this.getState();
+    const last = this._normDay(state.lastActiveDay);
+    if (!last) return 0;
+    if (last === this._dayKey() || last === this._yesterdayKey()) return state.streak || 1;
+    return 0;
+  },
+
   updateStreak() {
     const state = this.getState();
-    const today = new Date().toDateString();
-    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    const today = this._dayKey();
+    const last = this._normDay(state.lastActiveDay);
 
-    if (state.lastActiveDay === today) {
-      // Ya activo hoy, no hacer nada
+    if (last === today) {
+      // نشط اليوم أصلًا — نتأكد فقط أن الرقم ≥ 1 (حالات بيانات تالفة)
+      if (!state.streak || state.streak < 1) { state.streak = 1; this.saveState(state); }
       return state.streak;
     }
-    if (state.lastActiveDay === yesterday) {
-      // Continuar racha
-      state.streak++;
+    if (last === this._yesterdayKey()) {
+      state.streak = (state.streak || 0) + 1;   // استمرار السلسلة
     } else {
-      // Romper racha
-      state.streak = 1;
+      state.streak = 1;                          // انقطعت: نبدأ من جديد
     }
     state.lastActiveDay = today;
+    state.bestStreak = Math.max(state.bestStreak || 0, state.streak);
     this.saveState(state);
 
     // Logros por racha
@@ -242,6 +270,7 @@ const Gamification = {
       this.unlockAchievement('streak_30');
     }
 
+    try { window.dispatchEvent(new CustomEvent('quba-streak', { detail: state.streak })); } catch (e) {}
     return state.streak;
   },
 

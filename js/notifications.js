@@ -14,12 +14,26 @@ const PrayerNotifications = {
   PRAYERS: ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'],
   REMINDER_MINUTES: 15, // recordatorio 15 min antes del adhan
 
+  // v1.0.71: تنبيه الأذان مفعّل افتراضيًا — يُعطَّل فقط إذا أطفأه المستخدم صراحة
+  // (المفتاح المخزَّن === false). يبقى مشروطًا بإذن الإشعارات.
   isEnabled() {
-    return Storage.get(this.enabledKey) === true && Notification.permission === 'granted';
+    return Storage.get(this.enabledKey) !== false && NotifPerm.isGranted();
   },
 
   isReminderEnabled() {
-    return Storage.get(this.reminderKey) === true && Notification.permission === 'granted';
+    return Storage.get(this.reminderKey) !== false && NotifPerm.isGranted();
+  },
+
+  /** هل توجد أي ميزة إشعارات مفعّلة تستحق الجدولة؟ (أذان / اقتربت / صلاة على النبي / أذكار / إشعار ثابت) */
+  wantsSchedule() {
+    if (this.isEnabled() || this.isReminderEnabled()) return true;
+    if (!NotifPerm.isGranted()) return false;
+    try {
+      if (typeof NotifCenter !== 'undefined') {
+        return ['salawat', 'duaMorning', 'duaEvening', 'persistent'].some(k => NotifCenter.isOn(k));
+      }
+    } catch (e) {}
+    return false;
   },
 
   // ============ v57: جرس لكل صلاة (تفعيل/إطفاء إشعارها وأذانها) ============
@@ -43,25 +57,14 @@ const PrayerNotifications = {
   },
 
   async requestPermission() {
-    if (!('Notification' in window)) {
-      showToast(t('notifNotSupported') || 'Notificaciones no soportadas');
-      return false;
-    }
-    if (Notification.permission === 'granted') return true;
-    if (Notification.permission === 'denied') {
-      showToast(t('notifDenied') || 'Permiso denegado. Actívalo en ajustes del navegador.');
-      return false;
-    }
-    const result = await Notification.requestPermission();
-    return result === 'granted';
+    return NotifPerm.request();
   },
 
   async enable() {
     const ok = await this.requestPermission();
     if (!ok) return false;
     Storage.set(this.enabledKey, true);
-    showToast(t('notifEnabled') || '✅ Notificaciones activadas');
-    return true;
+    return true;   // الرسالة تعرضها ToggleFeedback (أخضر)
   },
 
   disable() {
@@ -71,7 +74,6 @@ const PrayerNotifications = {
     if (this.isReminderEnabled() && typeof AppState !== 'undefined' && AppState.timings) {
       this.scheduleDay(AppState.timings, AppState.settings.locale || 'es');
     }
-    showToast(t('notifDisabled') || 'Notificaciones desactivadas');
   },
 
   // ============ v24: RECORDATORIO 15 MIN ANTES ============
@@ -79,7 +81,6 @@ const PrayerNotifications = {
     const ok = await this.requestPermission();
     if (!ok) return false;
     Storage.set(this.reminderKey, true);
-    showToast(t('reminderEnabled') || '✅ Recordatorios activados');
     return true;
   },
 
@@ -90,7 +91,6 @@ const PrayerNotifications = {
     if (this.isEnabled() && typeof AppState !== 'undefined' && AppState.timings) {
       this.scheduleDay(AppState.timings, AppState.settings.locale || 'es');
     }
-    showToast(t('reminderDisabled') || 'Recordatorios desactivados');
   },
 
   clearAll() {
@@ -266,7 +266,7 @@ const PrayerNotifications = {
     // Vibrate
     if ('vibrate' in navigator) navigator.vibrate([300, 100, 300, 100, 500]);
 
-    // Play adhan via AdhanService if available (respeta modo full/takbeer y mute)
+    // Play adhan via AdhanService if available (adhan completo; respeta la voz elegida y mute)
     if (typeof AdhanService !== 'undefined' && AdhanService.playFullAdhan) {
       try { AdhanService.playFullAdhan(null, tag); } catch(e) { console.warn('Adhan play failed:', e); } // v57: tag=مفتاح الصلاة — الفجر يرن بأذانه الخاص (تثويب)
     }
@@ -307,3 +307,12 @@ const PrayerNotifications = {
 if (typeof window !== 'undefined') {
   window.PrayerNotifications = PrayerNotifications;
 }
+
+/* v122: تهيئة افتراضية — تنبيه الأذان وتنبيه قبل الصلاة والإقامة مفعّلة تلقائيًا */
+try {
+  if (typeof Storage !== 'undefined' && !Storage.get('v122_alert_defaults')) {
+    if (Storage.get('prayer_reminder_enabled') === undefined) Storage.set('prayer_reminder_enabled', true);
+    if (Storage.get('prayer_notif_enabled') === undefined) Storage.set('prayer_notif_enabled', true);
+    Storage.set('v122_alert_defaults', 1);
+  }
+} catch (e) {}

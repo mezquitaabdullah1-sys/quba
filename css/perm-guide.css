@@ -1,0 +1,127 @@
+/* ============================================================
+   PermGuide — لوحة «حتى يصلك الأذان في وقته» + بطاقة الدخول
+   ألوان الهوية: أخضر #0F4C3A · تحذير برتقالي #D97706 · نجاح فيروزي #0F7B6C
+   ============================================================ */
+:root {
+  --pg-brand: #0F4C3A;
+  --pg-warn: #D97706;
+  --pg-warn-bg: #FBF3E7;
+  --pg-warn-border: #EFD5AF;
+  --pg-ok: #0F7B6C;
+  --pg-ok-bg: #EDF3F2;
+  --pg-ok-border: #D8E5E2;
+  --pg-ink: #1B2B24;
+  --pg-muted: #5C6B64;
+}
+
+/* ---------- بطاقة الدخول (p1) ---------- */
+.pg-nav-card {
+  display: flex; align-items: center; gap: 12px;
+  background: #fff; border-radius: 18px; padding: 14px 14px;
+  box-shadow: 0 2px 10px rgba(15, 76, 58, .10);
+  cursor: pointer; margin: 4px 0 12px;
+  border: 1px solid rgba(15, 76, 58, .06);
+}
+.pg-nav-icon {
+  position: relative; flex: 0 0 auto;
+  width: 46px; height: 46px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  background: #E7E9FB; color: var(--pg-ok); font-size: 20px;
+}
+.pg-nav-plus {
+  position: absolute; right: 7px; bottom: 7px; font-size: 10px;
+  color: #fff; background: var(--pg-ok); border-radius: 50%;
+  width: 15px; height: 15px; display: flex; align-items: center; justify-content: center;
+}
+.pg-nav-info { flex: 1 1 auto; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pg-nav-title { font-weight: 800; font-size: 15px; color: var(--pg-ink); }
+.pg-nav-desc { font-size: 12.5px; color: var(--pg-muted); }
+.pg-nav-chevron { color: #B7C1BC; font-size: 15px; flex: 0 0 auto; }
+
+/* ---------- اللوحة السفلية (p3) ---------- */
+.pg-overlay {
+  position: fixed; inset: 0; z-index: 99990;
+  background: rgba(12, 26, 21, .48);
+  display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; transition: opacity .26s ease;
+}
+.pg-overlay.show { opacity: 1; }
+.pg-sheet {
+  width: 100%; max-width: 620px; max-height: 92vh; overflow-y: auto;
+  background: #fff; border-radius: 22px 22px 0 0;
+  padding: 10px 18px calc(20px + env(safe-area-inset-bottom, 0px));
+  transform: translateY(100%); transition: transform .3s cubic-bezier(.22, 1, .36, 1);
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .22);
+}
+.pg-overlay.show .pg-sheet { transform: translateY(0); }
+.pg-handle {
+  width: 44px; height: 5px; border-radius: 3px; background: #D9DFDC;
+  margin: 4px auto 14px;
+}
+.pg-title {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 18px; font-weight: 800; color: var(--pg-ink); margin-bottom: 8px;
+}
+.pg-title i { color: var(--pg-brand); font-size: 17px; }
+.pg-intro { font-size: 13.5px; line-height: 1.85; color: var(--pg-muted); margin-bottom: 14px; }
+
+.pg-status-title,
+.pg-steps-title { font-size: 15px; font-weight: 800; color: var(--pg-ink); margin: 16px 0 10px; }
+
+/* بطاقة حالة */
+.pg-card {
+  border-radius: 16px; padding: 13px 14px; margin-bottom: 10px;
+  border: 1.5px solid transparent;
+}
+.pg-card.warn { background: var(--pg-warn-bg); border-color: var(--pg-warn-border); }
+.pg-card.ok { background: var(--pg-ok-bg); border-color: var(--pg-ok-border); }
+.pg-card-head { display: flex; align-items: center; gap: 9px; }
+.pg-badge {
+  flex: 0 0 auto; width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff;
+}
+.pg-badge.warn { background: var(--pg-warn); }
+.pg-badge.ok { background: var(--pg-ok); }
+.pg-card-title { font-size: 14.5px; font-weight: 800; }
+.pg-card-title.warn { color: var(--pg-warn); }
+.pg-card-title.ok { color: var(--pg-ok); }
+.pg-card-desc { font-size: 12.5px; line-height: 1.7; color: var(--pg-muted); margin: 7px 2px 0; }
+.pg-btn {
+  display: block; width: 100%; margin-top: 11px;
+  padding: 11px 14px; border: none; border-radius: 12px;
+  background: var(--pg-warn); color: #fff;
+  font-family: inherit; font-size: 14px; font-weight: 800; cursor: pointer;
+}
+.pg-btn:active { filter: brightness(.94); }
+
+/* الخطوات المرقّمة */
+.pg-step { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 11px; }
+.pg-step-num {
+  flex: 0 0 auto; width: 30px; height: 30px; border-radius: 9px;
+  background: #E9EEF3; color: #4A5A63;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 14px;
+}
+.pg-step-text { font-size: 13px; line-height: 1.8; color: var(--pg-ink); padding-top: 4px; }
+
+.pg-gotit {
+  display: block; width: 100%; margin-top: 8px;
+  padding: 12px; border: none; background: transparent;
+  color: var(--pg-brand); font-family: inherit; font-size: 15px; font-weight: 800; cursor: pointer;
+}
+.pg-note { text-align: center; font-size: 12px; color: #8A9691; margin-top: 4px; }
+
+/* الوضع الليلي */
+html[data-theme="dark"] .pg-nav-card,
+html[data-theme="dark"] .pg-sheet { background: #16241F; }
+html[data-theme="dark"] .pg-nav-title,
+html[data-theme="dark"] .pg-title,
+html[data-theme="dark"] .pg-status-title,
+html[data-theme="dark"] .pg-steps-title,
+html[data-theme="dark"] .pg-step-text { color: #E8F0ED; }
+html[data-theme="dark"] .pg-card.warn { background: #2A2114; border-color: #4A3A20; }
+html[data-theme="dark"] .pg-card.ok { background: #16261F; border-color: #234037; }
+html[data-theme="dark"] .pg-step-num { background: #23332C; color: #C6D3CE; }
+
+/* v1.0.76: تلميح الخطوة أسفل زر شاشة النظام */
+.pg-card-hint { font-size: 11px; line-height: 1.5; opacity: .7; margin-top: 8px; }

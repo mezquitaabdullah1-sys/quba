@@ -38,17 +38,28 @@ const ProfilePage = {
         ${groupCard('mosque', '#2e8b57', t('prayerSettings'), t('prayerSettingsDesc'), "ProfilePage.renderGroup('prayer')")}
         ${groupCard('bullhorn', '#b8860b', t('adhanSettings'), t('adhanGroupDesc'), "ProfilePage.renderGroup('adhan')")}
         ${groupCard('database', '#c0392b', t('dataZone'), t('dataZoneGroupDesc'), "ProfilePage.renderGroup('data')")}
+        ${window.Android ? groupCard('shield-halved', '#0f4c3a', (t('permSettings') || 'الأذونات والصلاحيات'), (t('permSettingsDesc') || 'الإشعارات والموقع والمنبّهات الدقيقة'), "ProfilePage.renderPermsGroup(document.getElementById('main-content'))") : ''}
+
+        <!-- v1.0.70: بطاقة «الأذان لا يصل في وقته؟» ← لوحة الحالة والخطوات -->
+        ${window.Android && typeof PermGuide !== 'undefined' ? PermGuide.card() : ''}
 
         <!-- ===== Funciones de la app ===== -->
         <div class="section-label"><i class="fas fa-grip"></i> ${t('appFeatures')}</div>
         <div class="card" style="padding:12px;margin-bottom:12px;">
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;">
             ${this._featureBtn('book-quran', '#2e8b57', t('tabQuran'), "Router.go('quran')")}
-            ${this._featureBtn('mosque', '#b8860b', t('tabPrayer'), "Router.go('prayer')")}
-            ${this._featureBtn('compass', '#1e88e5', t('qibla'), "Router.go('prayer',{tab:'qibla'})")}
-            ${this._featureBtn('lightbulb', '#8e44ad', t('tabWisdom'), "Router.go('wisdom')")}
-            ${this._featureBtn('calendar-days', '#c0392b', t('hijriCalendar'), "Router.go('calendar')")}
-            ${this._featureBtn('graduation-cap', '#d35400', t('coursesTitle'), "Router.go('wisdom/courses')")}
+            ${this._featureBtn('compass', '#1e88e5', t('quickQibla'), "Router.go('prayer',{tab:'qibla'})")}
+            ${this._featureBtn('calendar-days', '#c0392b', t('quickCalendar'), "Router.go('calendar')")}
+            ${this._featureBtn('tower-broadcast', '#8e44ad', t('quickRadio'), "Router.go('radio')")}
+            ${this._featureBtn('book', '#b8860b', t('quickLibrary'), "Router.go('wisdom/library')")}
+            ${this._featureBtn('circle-nodes', '#0f9b8e', t('quickTasbih'), "Router.go('wisdom/tasbih')")}
+            ${this._featureBtn('circle-play', '#d35400', t('quickClips'), "Router.go('videos')")}
+            ${this._featureBtn('hands-praying', '#7b5ea7', t('quickDuas'), "Router.go('wisdom/duas')")}
+            ${this._featureBtn('graduation-cap', '#2e6da4', t('quickCourses'), "Router.go('wisdom/courses')")}
+            ${this._featureBtn('mosque', '#1f7a5a', t('tabPrayer'), "Router.go('prayer')")}
+            ${this._featureBtn('lightbulb', '#c9a227', t('tabWisdom'), "Router.go('wisdom')")}
+            ${this._featureBtn('list-check', '#0f7a6a', 'يومي', "Router.go('daily')")}
+            ${this._featureBtn('layer-group', '#5a6b7b', t('allFeatures') || '', "Router.go('features')")}
           </div>
         </div>
 
@@ -171,19 +182,13 @@ const ProfilePage = {
         <!-- Ubicación y ciudad -->
         <div class="section-label"><i class="fas fa-location-dot"></i> ${t('location')}</div>
         <div class="card" style="padding:0;overflow:hidden;">
-          <div class="list-row" onclick="ProfilePage.requestLocation()">
-            <div class="list-row-icon"><i class="fas fa-map-marker-alt"></i></div>
-            <div class="list-row-info">
-              <div class="list-row-label">${loc ? (loc.city || t('unknownCity') || 'Desconocido') : t('noLocation') || 'Sin ubicación'}</div>
-              <div class="list-row-value">${loc ? ((loc.country || '') + (loc.isDefault ? ' · ' + (t('defaultLocation') || 'por defecto') : '') + (loc.manual ? ' · ' + (t('manual') || 'manual') : '')) : ''}</div>
-            </div>
-            <i class="fas fa-sync-alt list-row-chevron"></i>
-          </div>
+          <!-- v122: خانة واحدة للموقع — GPS أو بحث عن مدينة من نفس النافذة -->
           <div class="list-row" onclick="ProfilePage.pickCity()">
-            <div class="list-row-icon"><i class="fas fa-city"></i></div>
+            <div class="list-row-icon"><i class="fas fa-location-crosshairs"></i></div>
             <div class="list-row-info">
-              <div class="list-row-label">${t('changeCity') || 'Cambiar ciudad'}</div>
-              <div class="list-row-value">${t('manualLocation') || 'Ubicación manual'}</div>
+              <div class="list-row-label">${loc ? escapeHtml(loc.city || t('unknownCity') || '') : (t('noLocation') || '')}</div>
+              <div class="list-row-value">${loc ? [loc.country || '', (loc.manual ? (t('modeManual') || 'يدوي') : (t('modeGps') || 'GPS تلقائي'))].filter(Boolean).join(' · ') : (t('chooseCityOrLocation') || '')}</div>
+              <div class="list-row-value" style="opacity:.7;">${t('locationOneField') || ''}</div>
             </div>
             <i class="fas fa-chevron-${chevron} list-row-chevron"></i>
           </div>
@@ -295,189 +300,275 @@ const ProfilePage = {
 
   // ================= GRUPO: ADHAN Y NOTIFICACIONES =================
   renderAdhanGroup(container) {
-    // Ajustes de adhan (con defaults)
-    if (!AppState.settings.adhan) {
-      AppState.settings.adhan = {
-        voice1: 'makkah',
-        voice2: 'madinah',
-        volume: 0.8,
-        muted: false,
-        mode: 'full',
-        takbeerDuration: 16, // v59: antes 12 — se cortaba antes de terminar la 2ª takbeer en varias voces
-      };
-    } else {
-      if (!AppState.settings.adhan.mode) AppState.settings.adhan.mode = 'full';
-      // v59: 12s cortaba la 2ª takbeer a mitad en varias voces; ya no se
-      // fuerza el valor antiguo, solo se rellena si no existe ninguno.
-      if (!AppState.settings.adhan.takbeerDuration) AppState.settings.adhan.takbeerDuration = 16;
-      if (!AppState.settings.adhan.fajrVoice) AppState.settings.adhan.fajrVoice = 'fajr_makkah'; // v57
-    }
-    const adhanVoice1 = AdhanService.VOICES.find(v => v.id === AppState.settings.adhan.voice1) || AdhanService.VOICES[0];
-    const adhanVoice2 = AdhanService.VOICES.find(v => v.id === AppState.settings.adhan.voice2) || AdhanService.VOICES[1];
-    const adhanFajrVoice = AdhanService.VOICES.find(v => v.id === (AppState.settings.adhan.fajrVoice || 'fajr_makkah')) || AdhanService.VOICES[0]; // v57
+    AdhanService.normalizeSettings();
+    const A = AdhanService.getSettings();
+    const adhanVoice = AdhanService._resolveVoice(A.voice, false);
+    const adhanFajrVoice = AdhanService._resolveVoice(A.fajrVoice, true);
     const chevron = currentLocale === 'ar' ? 'left' : 'right';
+    const PN = (typeof PrayerNotifications !== 'undefined') ? PrayerNotifications : null;
+    const alertsOn = PN ? PN.isEnabled() : true;
+    const remindOn = PN ? PN.isReminderEnabled() : true;
+    const iq = AdhanService.iqamaSettings();
+    const custom = AdhanService.customItems();
 
+    const toggleRow = (icon, label, desc, on, handler, attr) => `
+      <div class="list-row">
+        <div class="list-row-icon"><i class="fas fa-${icon}"></i></div>
+        <div class="list-row-info">
+          <div class="list-row-label">${label}</div>
+          ${desc ? `<div class="list-row-value">${desc}</div>` : ''}
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" ${attr || ''} ${on ? 'checked' : ''} onchange="${handler}">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>`;
+
+    // ---------- 1) الأذان ----------
+    const adhanBody = `
+      <div class="list-row" onclick="ProfilePage.pickAdhanVoice()">
+        <div class="list-row-icon">🕌</div>
+        <div class="list-row-info">
+          <div class="list-row-label">${t('adhanChoose') || 'اختيار الأذان'}</div>
+          <div class="list-row-value">${AdhanService.voiceName(adhanVoice)}</div>
+          <div class="list-row-value" style="opacity:.72;">${t('adhanChooseDesc') || ''}</div>
+        </div>
+        <button class="list-row-btn" onclick="event.stopPropagation(); AdhanService.preview('${adhanVoice.id}')"><i class="fas fa-play"></i></button>
+        <i class="fas fa-chevron-${chevron} list-row-chevron"></i>
+      </div>
+      <div class="list-row" onclick="ProfilePage.pickAdhanFajrVoice()">
+        <div class="list-row-icon">🌅</div>
+        <div class="list-row-info">
+          <div class="list-row-label">${t('adhanFajrVoice') || 'أذان الفجر'}</div>
+          <div class="list-row-value">${AdhanService.voiceName(adhanFajrVoice)}</div>
+          <div class="list-row-value" style="opacity:.72;">${t('adhanFajrVoiceDesc') || ''}</div>
+        </div>
+        <button class="list-row-btn" onclick="event.stopPropagation(); AdhanService.preview('${adhanFajrVoice.id}')"><i class="fas fa-play"></i></button>
+        <i class="fas fa-chevron-${chevron} list-row-chevron"></i>
+      </div>
+      <div class="list-row" style="flex-direction:column;align-items:stretch;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="list-row-icon">📁</div>
+          <div class="list-row-info">
+            <div class="list-row-label">${t('myAdhans') || 'أذانات من الملفات'}</div>
+            <div class="list-row-value">${t('myAdhansDesc') || ''}</div>
+          </div>
+        </div>
+        ${custom.length ? `<div class="my-adhan-list">
+          ${custom.map(i => `<div class="my-adhan-item">
+            <span class="my-adhan-badge">${i.type === 'fajr' ? '🌅' : '🕌'}</span>
+            <span class="my-adhan-name">${escapeHtml(i.name || i.id)}</span>
+            <button class="list-row-btn" onclick="event.stopPropagation(); AdhanService.preview('${i.id}')"><i class="fas fa-play"></i></button>
+            <button class="list-row-btn" onclick="event.stopPropagation(); ProfilePage.deleteMyAdhan('${i.id}')"><i class="fas fa-trash"></i></button>
+          </div>`).join('')}
+        </div>` : `<div class="list-row-value" style="opacity:.7;padding-top:6px;">${t('noMyAdhans') || ''}</div>`}
+        <div class="my-adhan-add">
+          <button class="btn-soft" onclick="event.stopPropagation(); ProfilePage.addMyAdhan(false)">➕ ${t('addAdhanRegular') || 'أذان عادي'}</button>
+          <button class="btn-soft" onclick="event.stopPropagation(); ProfilePage.addMyAdhan(true)">➕ ${t('addAdhanFajr') || 'أذان فجر'}</button>
+        </div>
+      </div>
+      <div class="list-row" style="flex-direction:column;align-items:stretch;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="list-row-icon"><i class="fas fa-volume-down"></i></div>
+          <div class="list-row-info">
+            <div class="list-row-label">${t('adhanVolumeStrength') || 'شدة صوت الأذان'}</div>
+            <div class="list-row-value" id="volume-value">${Math.round(A.volume * 100)}%</div>
+          </div>
+        </div>
+        <input type="range" min="0" max="100" value="${Math.round(A.volume * 100)}" class="volume-slider"
+          oninput="ProfilePage.setAdhanVolume(this.value)" onchange="ProfilePage.setAdhanVolume(this.value)"
+          style="width:100%;margin-top:12px;">
+      </div>
+      ${toggleRow('hands-praying', t('duaAfterAdhan') || 'دعاء بعد الأذان', t('duaAfterAdhanDesc') || '', A.duaAfterAdhan, 'ProfilePage.setDuaAfterAdhan(this.checked)')}
+      <div class="list-row" style="flex-direction:column;align-items:stretch;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="list-row-icon"><i class="fas fa-bell-concierge"></i></div>
+          <div class="list-row-info">
+            <div class="list-row-label">${t('perPrayerSound') || 'صوت كل صلاة على حدة'}</div>
+            <div class="list-row-value">${t('perPrayerSoundDesc') || ''}</div>
+          </div>
+        </div>
+        <div class="prayer-bells-row">
+          ${['Fajr','Dhuhr','Asr','Maghrib','Isha'].map(pn => {
+            const on = PN && PN.isPrayerOn ? PN.isPrayerOn(pn) : true;
+            return `<button class="prayer-bell ${on ? '' : 'off'}" data-prayer-bell="${pn}" aria-pressed="${on}" onclick="ProfilePage.toggleBellNotif('${pn}')"><i class="fas ${on ? 'fa-bell' : 'fa-bell-slash'}"></i><span class="pb-name">${t('prayers.' + pn)}</span></button>`;
+          }).join('')}
+        </div>
+      </div>
+      ${this._ncRow('snooze', 'clock-rotate-left', t('didYouPrayBtn') || 'تذكير: هل صليت؟', t('didYouPrayBtnDesc') || '')}
+    `;
+
+    // ---------- 2) الإقامة ----------
+    const iqamaBody = `
+      ${toggleRow('person-praying', t('iqamaToggle') || 'إشعار الإقامة', t('iqamaToggleDesc') || '', iq.enabled, 'ProfilePage.setIqamaEnabled(this.checked)')}
+      <div class="list-row" style="flex-direction:column;align-items:stretch;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="list-row-icon"><i class="fas fa-hourglass-half"></i></div>
+          <div class="list-row-info">
+            <div class="list-row-label">${t('iqamaMinutes') || 'الدقائق بين الأذان والإقامة'}</div>
+            <div class="list-row-value">${t('iqamaMinutesDesc') || ''}</div>
+          </div>
+        </div>
+        <div class="iqama-grid">
+          ${['Fajr','Dhuhr','Asr','Maghrib','Isha'].map(pn => {
+            const mins = iq.minutes[pn] || 0;
+            return `<div class="iqama-cell">
+              <div class="iqama-cell-name">${t('prayers.' + pn)}</div>
+              <div class="iqama-stepper">
+                <button onclick="event.stopPropagation(); ProfilePage.stepIqama('${pn}',-5)">−</button>
+                <span>${mins}</span>
+                <button onclick="event.stopPropagation(); ProfilePage.stepIqama('${pn}',5)">+</button>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    `;
+
+    // ---------- 3) الإشعارات الدقيقة ----------
+    const salawatBlock = `<details class="acc acc2">
+      <summary><span class="acc-ico">🌹</span><span class="acc-title">${t('ncSalawat') || 'إشعارات الصلاة على النبي'}</span><i class="fas fa-chevron-down acc-chev"></i></summary>
+      <div class="acc-body">
+        ${this._ncRow('salawat', 'heart', t('ncEnable') || 'تفعيل', t('ncSalawatDesc') || '')}
+        ${this._salawatFreqRow()}
+        ${this._ncRow('salawatVoice', 'microphone', t('ncSalawatVoice') || 'نطق صوتي', '')}
+      </div>
+    </details>`;
+    const adhkarBlock = `<details class="acc acc2">
+      <summary><span class="acc-ico">📖</span><span class="acc-title">${t('ncAdhkarGroup') || 'إشعارات الأذكار'}</span><i class="fas fa-chevron-down acc-chev"></i></summary>
+      <div class="acc-body">
+        ${this._ncRow('adhkar', 'book-open', t('ncEnable') || 'تفعيل', t('ncAdhkarDesc') || '')}
+        ${this._ncRow('duaMorning', 'sun', t('ncDuaMorning') || 'دعاء الصباح', '')}
+        ${this._ncRow('duaEvening', 'moon', t('ncDuaEvening') || 'دعاء المساء', '')}
+      </div>
+    </details>`;
+    const stopBlock = `<details class="acc acc2">
+      <summary><span class="acc-ico">🔇</span><span class="acc-title">${t('ncStopGroup') || 'إشعارات إيقاف الأذان'}</span><i class="fas fa-chevron-down acc-chev"></i></summary>
+      <div class="acc-body">
+        ${this._ncRow('flipToStop', 'mobile-screen', t('ncStopFlip') || 'إيقاف الأذان بقلب الهاتف', '')}
+        ${this._ncRow('powerToStop', 'power-off', t('ncStopPower') || 'إيقاف الأذان بزر التشغيل', '')}
+      </div>
+    </details>`;
+
+    const denied = (typeof Notification !== 'undefined' && Notification.permission === 'denied');
     container.innerHTML = `
-      ${this._subHeader('bullhorn', t('adhanSettings'))}
+      ${this._subHeader('bell-concierge', t('adhanSettings') || 'الأذان والإشعارات')}
       <div style="padding: 0 var(--sp-md);">
 
-        <div class="section-label"><i class="fas fa-bell"></i> ${t('adhanAlerts') || 'تنبيهات الصلاة'}</div>
+        <div class="section-label"><i class="fas fa-bell"></i> ${t('mainAlerts') || 'التنبيهات الرئيسية'}</div>
         <div class="card" style="padding:0;overflow:hidden;">
-          <!-- v57: «إشعارات الصلاة» و«تنبيه الأذان» ميزة واحدة — مفتاح رئيسي أولاً -->
-          <div class="list-row">
-            <div class="list-row-icon"><i class="fas fa-bell"></i></div>
-            <div class="list-row-info">
-              <div class="list-row-label">${t('adhanAlertToggle') || 'تنبيه الأذان'}</div>
-              <div class="list-row-value">${t('adhanAlertToggleDesc') || 'تنبيه عند دخول وقت كل صلاة مع صوت الأذان'}</div>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" ${(typeof PrayerNotifications !== 'undefined' && PrayerNotifications.isEnabled()) ? 'checked' : ''} onchange="ProfilePage.setPrayerNotifEnabled(this.checked)">
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-          <div class="list-row" onclick="ProfilePage.pickAdhanMode()">
-            <div class="list-row-icon"><i class="fas fa-sliders"></i></div>
-            <div class="list-row-info">
-              <div class="list-row-label">${t('adhanMode') || 'Tipo de adhan'}</div>
-              <div class="list-row-value">${AppState.settings.adhan.mode === 'takbeer' ? (t('adhanModeTakbeer') || 'Solo las dos primeras Takbeer') : (t('adhanModeFull') || 'Adhan completo')}</div>
-            </div>
-            <button class="list-row-btn" onclick="event.stopPropagation(); ProfilePage.previewTakbeer()">
-              <i class="fas fa-play"></i>
-            </button>
-            <i class="fas fa-chevron-${chevron} list-row-chevron"></i>
-          </div>
-          ${AppState.settings.adhan.mode === 'takbeer' ? `
-          <!-- v59: duración del corte ajustable — 12s fijos cortaban la 2ª
-               takbeer a mitad en varias voces; cada reciter tarda distinto. -->
-          <div class="list-row" style="flex-direction:column;align-items:stretch;">
-            <div style="display:flex;align-items:center;gap:14px;">
-              <div class="list-row-icon"><i class="fas fa-stopwatch"></i></div>
-              <div class="list-row-info">
-                <div class="list-row-label">${t('adhanTakbeerDuration') || 'Duración del corte'}</div>
-                <div class="list-row-value" id="takbeer-duration-value">${AppState.settings.adhan.takbeerDuration}${t('secondsShort') || 's'}</div>
-              </div>
-            </div>
-            <input type="range" min="8" max="25" value="${AppState.settings.adhan.takbeerDuration}"
-              class="volume-slider"
-              oninput="ProfilePage.setTakbeerDuration(this.value)"
-              onchange="ProfilePage.setTakbeerDuration(this.value)"
-              style="width:100%;margin-top:12px;">
-            <div style="padding-top:8px;font-size:12px;color:var(--text-secondary);line-height:1.5;">
-              <i class="fas fa-circle-info"></i> ${t('adhanTakbeerDurationDesc') || 'Si la 2ª takbeer se corta antes de terminar, sube este valor. Pulsa ▶ arriba para probarlo.'}
-            </div>
-          </div>` : ''}
-          <div class="list-row" onclick="ProfilePage.pickAdhanVoice(1)">
-            <div class="list-row-icon">1️⃣</div>
-            <div class="list-row-info">
-              <div class="list-row-label">${t('adhanFirstTakbeer') || 'Primer Takbeer'}</div>
-              <div class="list-row-value">${AdhanService.voiceName(adhanVoice1)}</div>
-            </div>
-            <button class="list-row-btn" onclick="event.stopPropagation(); AdhanService.preview('${adhanVoice1.id}')">
-              <i class="fas fa-play"></i>
-            </button>
-            <i class="fas fa-chevron-${chevron} list-row-chevron"></i>
-          </div>
-          <div class="list-row" onclick="ProfilePage.pickAdhanVoice(2)">
-            <div class="list-row-icon">2️⃣</div>
-            <div class="list-row-info">
-              <div class="list-row-label">${t('adhanSecondTakbeer') || 'Segundo Takbeer'}</div>
-              <div class="list-row-value">${AdhanService.voiceName(adhanVoice2)}</div>
-            </div>
-            <button class="list-row-btn" onclick="event.stopPropagation(); AdhanService.preview('${adhanVoice2.id}')">
-              <i class="fas fa-play"></i>
-            </button>
-            <i class="fas fa-chevron-${chevron} list-row-chevron"></i>
-          </div>
-          <!-- v57: صوت أذان الفجر — نسخ التثويب «الصلاة خير من النوم» -->
-          <div class="list-row" onclick="ProfilePage.pickAdhanFajrVoice()">
-            <div class="list-row-icon">🌅</div>
-            <div class="list-row-info">
-              <div class="list-row-label">${t('adhanFajrVoice') || 'صوت أذان الفجر'}</div>
-              <div class="list-row-value">${AdhanService.voiceName(adhanFajrVoice)}</div>
-              <div class="list-row-value" style="opacity:.75;">${t('adhanFajrVoiceDesc') || 'أذان خاص بالفجر مع التثويب: «الصلاة خير من النوم»'}</div>
-            </div>
-            <button class="list-row-btn" onclick="event.stopPropagation(); AdhanService.preview('${adhanFajrVoice.id}')">
-              <i class="fas fa-play"></i>
-            </button>
-            <i class="fas fa-chevron-${chevron} list-row-chevron"></i>
-          </div>
-          <div class="list-row">
-            <div class="list-row-icon"><i class="fas fa-${AppState.settings.adhan.muted ? 'volume-mute' : 'volume-up'}"></i></div>
-            <div class="list-row-info">
-              <div class="list-row-label">${t('adhanMute') || 'Silenciar Adhan'}</div>
-              <div class="list-row-value">${AppState.settings.adhan.muted ? (t('muted') || 'Silenciado') : (t('active') || 'Activo')}</div>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" ${AppState.settings.adhan.muted ? 'checked' : ''} onchange="ProfilePage.setAdhanMuted(this.checked)">
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-          <div class="list-row" style="flex-direction:column;align-items:stretch;">
-            <div style="display:flex;align-items:center;gap:14px;">
-              <div class="list-row-icon"><i class="fas fa-volume-down"></i></div>
-              <div class="list-row-info">
-                <div class="list-row-label">${t('adhanVolume') || 'Volumen'}</div>
-                <div class="list-row-value" id="volume-value">${Math.round(AppState.settings.adhan.volume * 100)}%</div>
-              </div>
-            </div>
-            <input type="range" min="0" max="100" value="${Math.round(AppState.settings.adhan.volume * 100)}"
-              class="volume-slider"
-              oninput="ProfilePage.setAdhanVolume(this.value)"
-              onchange="ProfilePage.setAdhanVolume(this.value)"
-              style="width:100%;margin-top:12px;">
-          </div>
-
-          <!-- v57: صوت مستقل لكل صلاة — جرس لكل صلاة يطفئ/يشغّل إشعارها وأذانها -->
-          <div class="list-row" style="flex-direction:column;align-items:stretch;">
-            <div style="display:flex;align-items:center;gap:14px;">
-              <div class="list-row-icon"><i class="fas fa-bell-concierge"></i></div>
-              <div class="list-row-info">
-                <div class="list-row-label">${t('perPrayerSound') || 'صوت مستقل لكل صلاة'}</div>
-                <div class="list-row-value">${t('perPrayerSoundDesc') || 'فعّل أو أطفئ الأذان والإشعار لكل صلاة على حدة'}</div>
-              </div>
-            </div>
-            <div class="prayer-bells-row">
-              ${['Fajr','Dhuhr','Asr','Maghrib','Isha'].map(pn => {
-                const on = (typeof PrayerNotifications !== 'undefined' && PrayerNotifications.isPrayerOn) ? PrayerNotifications.isPrayerOn(pn) : true;
-                return `<button class="prayer-bell ${on ? '' : 'off'}" data-prayer-bell="${pn}" aria-pressed="${on}" title="${t('prayers.' + pn)}" onclick="HomePage.togglePrayerNotif('${pn}')"><i class="fas ${on ? 'fa-bell' : 'fa-bell-slash'}"></i><span class="pb-name">${t('prayers.' + pn)}</span></button>`;
-              }).join('')}
-            </div>
-          </div>
-
-          <!-- v57: تنبيه قبل الصلاة والإقامة (١٥ دقيقة) -->
-          <div class="list-row">
-            <div class="list-row-icon"><i class="fas fa-hourglass-half"></i></div>
-            <div class="list-row-info">
-              <div class="list-row-label">${t('prePrayerAlert') || 'تنبيه قبل الصلاة والإقامة'}</div>
-              <div class="list-row-value">${(typeof PrayerNotifications !== 'undefined' && PrayerNotifications.isReminderEnabled()) ? (t('active') || 'Activo') : (t('inactive') || 'Inactivo')} · ${t('reminderHint') || '15 minutos antes'}</div>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" ${(typeof PrayerNotifications !== 'undefined' && PrayerNotifications.isReminderEnabled()) ? 'checked' : ''} onchange="ProfilePage.setPrayerReminderEnabled(this.checked)">
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <!-- v57: الوقت المتبقي في شريط الإشعارات (تصميم جديد مع موعد الصلاة) -->
-          ${this._ncRow('persistent', 'hourglass-half', t('persistentBar') || 'الوقت المتبقي في شريط الإشعارات', t('persistentBarDesc') || 'إشعار ثابت: الصلاة القادمة وموعدها والوقت المتبقي')}
+          ${toggleRow('bell', t('adhanAlertToggle') || 'تنبيه الأذان', t('adhanAlertToggleDesc') || '', alertsOn, 'ProfilePage.setPrayerNotifEnabled(this.checked)', 'data-alert="adhan"')}
+          ${toggleRow('hourglass-half', t('prePrayerAlert') || 'تنبيه قبل الصلاة', t('prePrayerAlertDesc') || '', remindOn, 'ProfilePage.setPrayerReminderEnabled(this.checked)', 'data-alert="pre"')}
+          ${this._ncRow('persistent', 'thumbtack', t('persistentBar') || 'الإشعار الثابت للوقت المتبقي', t('persistentBarDesc') || '')}
         </div>
+        ${denied ? `<button class="alert-denied" onclick="Router.go('profile')"><i class="fas fa-triangle-exclamation"></i> ${t('notifDeniedNote') || 'الإشعارات غير مسموحة في النظام — اضغط للتفعيل'}</button>` : ''}
 
-        <!-- v55: إعدادات مركز الإشعارات — كل ميزة بمفتاح مستقل -->
-        <div class="section-label"><i class="fas fa-bell"></i> ${t('ncSection') || 'المزيد من الإشعارات'}</div>
-        <div class="card" style="padding:0;overflow:hidden;">
-          <!-- v59: «بطاقة تنبيه الأذان» (حديث + زر إيقاف) دُمجت في مفتاح
-               «تنبيه الأذان» الرئيسي أعلاه — لم تعد تفعَّل/تُطفأ بشكل مستقل. -->
-          ${this._ncRow('snooze', 'hourglass-half', t('ncSnooze') || 'زر «تذكير بعد ١٥ دقيقة» (هل صليت؟)', '')}
-          ${this._ncRow('salawat', 'heart', t('ncSalawat') || 'الصلاة على النبي ﷺ', t('ncSalawatDesc') || 'كل ٣ ساعات من ٩ صباحاً إلى ٩ مساءً، مع صوت')}
-          ${this._ncRow('salawatVoice', 'microphone', t('ncSalawatVoice') || 'نطق الصلاة على النبي صوتياً', '')}
-          ${this._ncRow('duaMorning', 'sun', t('ncDuaMorning') || 'دعاء الصباح (٧:٠٠ صباحاً)', '')}
-          ${this._ncRow('duaEvening', 'moon', t('ncDuaEvening') || 'دعاء المساء (٧:٠٠ مساءً)', '')}
-          ${this._ncRow('flipToStop', 'mobile-screen', t('ncStopFlip') || 'إيقاف الأذان عند قلب الهاتف', '')}
-          ${this._ncRow('volumeToStop', 'volume-low', t('ncStopVolume') || 'إيقاف الأذان بأزرار الصوت', '')}
-          ${this._ncRow('powerToStop', 'power-off', t('ncStopPower') || 'إيقاف الأذان بزر التشغيل (إطفاء الشاشة)', '')}
-        </div>
+        ${this._acc('bullhorn', t('adhanSection') || 'الأذان', adhanBody)}
+        ${this._acc('hourglass-half', t('iqamaSection') || 'الإقامة', iqamaBody)}
+        ${this._acc('sliders', t('fineNotifs') || 'الإشعارات الدقيقة', salawatBlock + adhkarBlock + stopBlock)}
 
       </div>
     `;
+    this._syncAlertToggles();
+    requestAnimationFrame(() => this._syncAlertToggles());
+  },
+
+  // v127: مزامنة المفاتيح مع الحالة الحقيقية (تصلح رجوعها للرمادي)
+  _syncAlertToggles() {
+    const set = (sel, v) => { const el = document.querySelector(sel); if (el) el.checked = !!v; };
+    try {
+      if (typeof PrayerNotifications !== 'undefined') {
+        set('[data-alert="adhan"]', PrayerNotifications.isEnabled());
+        set('[data-alert="pre"]', PrayerNotifications.isReminderEnabled());
+        document.querySelectorAll('[data-prayer-bell]').forEach(b => {
+          const n = b.getAttribute('data-prayer-bell');
+          const on = PrayerNotifications.isPrayerOn ? PrayerNotifications.isPrayerOn(n) : true;
+          b.classList.toggle('off', !on);
+          b.setAttribute('aria-pressed', on ? 'true' : 'false');
+          const ic = b.querySelector('i');
+          if (ic) ic.className = 'fas ' + (on ? 'fa-bell' : 'fa-bell-slash');
+        });
+      }
+      if (typeof NotifCenter !== 'undefined') set('[data-nc="persistent"]', NotifCenter.isOn('persistent'));
+    } catch (e) {}
+  },
+
+  // v127: تشغيل/إطفاء صوت صلاة واحدة — يُشغّل تنبيه الأذان الرئيسي تلقائيًا
+  async toggleBellNotif(name) {
+    if (typeof PrayerNotifications === 'undefined') return;
+    try {
+      const on = PrayerNotifications.isPrayerOn ? PrayerNotifications.isPrayerOn(name) : true;
+      const next = !on;
+      if (next && PrayerNotifications.isEnabled && !PrayerNotifications.isEnabled()) {
+        const ok = await PrayerNotifications.enable();
+        if (!ok) { this.renderGroup('adhan'); return; }
+      }
+      if (PrayerNotifications.setPrayerOn) PrayerNotifications.setPrayerOn(name, next);
+      else if (typeof HomePage !== 'undefined' && HomePage.togglePrayerNotif) { HomePage.togglePrayerNotif(name); return; }
+      try { if (AppState.timings) PrayerNotifications.scheduleDay(AppState.timings, AppState.settings.locale || 'es'); } catch (e) {}
+    } catch (e) {}
+    this.renderGroup('adhan');
+  },
+
+  // v122: قسم قابل للطيّ (details/summary) بنفس شكل البطاقات
+  _acc(icon, title, body, open) {
+    return `<details class="acc"${open ? ' open' : ''}>
+      <summary><span class="acc-ico"><i class="fas fa-${icon}"></i></span><span class="acc-title">${title}</span><i class="fas fa-chevron-down acc-chev"></i></summary>
+      <div class="acc-body">${body}</div>
+    </details>`;
+  },
+
+  // v122: تفعيل/إطفاء صوت الأذان (muted معكوس)
+  toggleAdhanSound(on) {
+    try {
+      AppState.settings.adhan = AppState.settings.adhan || {};
+      AppState.settings.adhan.muted = !on;
+      Storage.saveSettings();
+      if (typeof AdhanService !== 'undefined' && AdhanService.syncNative) AdhanService.syncNative();
+    } catch (e) {}
+    showToast((on ? '🔊 ' : '🔇 ') + (t(on ? 'adhanEnableSoundOn' : 'adhanEnableSoundOff') || ''), 2000);
+    this.renderGroup('adhan');
+  },
+
+  // منتقي فترة تذكير الصلاة على النبي ﷺ: كل نصف ساعة / ساعة / ساعتين /
+  // ٣ ساعات / إطفاء — ضمن النافذة ٩ صباحًا → ٩ مساءً. يُخزَّن بالدقائق في
+  // notif_center.salawatFrequency (0 = إطفاء)، ويعيد الجدولة فورًا.
+  _salawatFreqRow() {
+    const freq = (typeof NotifCenter !== 'undefined') ? Number(NotifCenter.getSettings().salawatFrequency ?? 180) : 180;
+    const label = { 30: t('freq30') || 'كل نصف ساعة', 60: t('freq60') || 'كل ساعة', 120: t('freq120') || 'كل ساعتين', 180: t('freq180') || 'كل ٣ ساعات', 0: t('freqOff') || 'إطفاء الإشعار' }[freq] || (t('freq180') || 'كل ٣ ساعات');
+    const chevron = currentLocale === 'ar' ? 'left' : 'right';
+    return `
+      <div class="list-row" onclick="ProfilePage.pickSalawatFrequency()">
+        <div class="list-row-icon"><i class="fas fa-clock"></i></div>
+        <div class="list-row-info">
+          <div class="list-row-label">${t('ncSalawatFreq') || 'فترة تذكير الصلاة على النبي'}</div>
+          <div class="list-row-value">${label}</div>
+        </div>
+        <i class="fas fa-chevron-${chevron} list-row-chevron"></i>
+      </div>`;
+  },
+
+  pickSalawatFrequency() {
+    if (typeof NotifCenter === 'undefined') return;
+    const options = [
+      { id: '30',  label: '⏱️ ' + (t('freq30') || 'كل نصف ساعة') },
+      { id: '60',  label: '🕐 ' + (t('freq60') || 'كل ساعة') },
+      { id: '120', label: '🕑 ' + (t('freq120') || 'كل ساعتين') },
+      { id: '180', label: '🕒 ' + (t('freq180') || 'كل ٣ ساعات') },
+      { id: '0',   label: '🔕 ' + (t('freqOff') || 'إطفاء الإشعار') },
+    ];
+    const current = String(Number(NotifCenter.getSettings().salawatFrequency ?? 180));
+    showModal(t('ncSalawatFreq') || 'فترة تذكير الصلاة على النبي', options, current, id => {
+      const s = NotifCenter.getSettings();
+      s.salawatFrequency = parseInt(id, 10);
+      Storage.set(NotifCenter.storageKey, s);
+      NotifCenter.init(); // إعادة الجدولة فورًا (واجهة)
+      // إعادة جدولة المنبّهات الأصلية ليعمل التذكير والتطبيق مغلق
+      if (typeof PrayerNotifications !== 'undefined' && typeof AppState !== 'undefined' && AppState.timings) {
+        try { PrayerNotifications.scheduleDay(AppState.timings, (AppState.settings && AppState.settings.locale) || 'ar'); } catch (e) {}
+      }
+      this.renderGroup('adhan');
+    });
   },
 
   // v55: صف مفتاح تفعيل لميزة من مركز الإشعارات
@@ -491,7 +582,7 @@ const ProfilePage = {
           ${desc ? `<div class="list-row-value">${desc}</div>` : ''}
         </div>
         <label class="toggle-switch">
-          <input type="checkbox" ${on ? 'checked' : ''} onchange="ProfilePage.setNotifCenter('${key}', this.checked)">
+          <input type="checkbox" data-nc="${key}" ${on ? 'checked' : ''} onchange="ProfilePage.setNotifCenter('${key}', this.checked, this)">
           <span class="toggle-slider"></span>
         </label>
       </div>`;
@@ -504,6 +595,8 @@ const ProfilePage = {
       light: '<i class="fas fa-sun"></i> ' + t('themeLight'),
       dark: '<i class="fas fa-moon"></i> ' + t('themeDark'),
       auto: '<i class="fas fa-arrows-rotate"></i> ' + t('themeAuto'),
+      nightAuto: '<i class="fas fa-circle-half-stroke"></i> ' + t('themeNightAuto') +
+        (typeof NightMode !== 'undefined' ? ' — ' + NightMode.statusText() : ''),
       maroon: '<i class="fas fa-crown"></i> ' + t('themeMaroon'),
       brown: '<i class="fas fa-mug-hot"></i> ' + t('themeBrown'),
       emerald: '<i class="fas fa-mosque"></i> ' + t('themeEmerald'),
@@ -579,6 +672,62 @@ const ProfilePage = {
   toggleVoiceTranslation() {
     this.setVoiceTranslation(!AppState.settings.quranVoiceTranslation);
     this.renderGeneralGroup(document.getElementById('main-content'));
+  },
+
+  // ================= الأذونات والصلاحيات (Android فقط) =================
+  renderPermsGroup(container) {
+    if (!window.Android || !Android.getPermissionsState) return;
+    let st = { notifications: false, location: false, exactAlarms: true, alarmSound: true, batteryUnrestricted: false };
+    try { Object.assign(st, JSON.parse(Android.getPermissionsState())); } catch (e) {}
+    const S = (typeof PermGuide !== 'undefined') ? PermGuide.S() : { grant: 'طلب الإذن', enabled: 'مفعّل', location: 'الموقع', locationDesc: '', notifSettings: 'إعدادات الإشعارات في النظام', notifSettingsDesc: '', appSettings: 'إعدادات التطبيق في النظام', appSettingsDesc: '', refresh: 'تحديث الحالة' };
+    const okBadge = '<span style="color:#2e8b57;font-weight:700;font-size:13px;white-space:nowrap;">✓ ' + S.enabled + '</span>';
+    const btn = (label, action) => '<button style="padding:8px 14px;font-size:13px;border:none;border-radius:10px;background:#0f4c3a;color:#fff;white-space:nowrap;cursor:pointer;" onclick="' + action + '">' + label + '</button>';
+    const row = (icon, label, desc, ok, btnLabel, action) => `
+          <div class="list-row">
+            <div class="list-row-icon"><i class="fas ${icon}"></i></div>
+            <div class="list-row-info">
+              <div class="list-row-label">${label}</div>
+              <div class="list-row-value">${desc}</div>
+            </div>
+            ${ok ? okBadge : btn(btnLabel, action)}
+          </div>`;
+    const linkRow = (icon, label, desc, action) => `
+          <div class="list-row" onclick="${action}" style="cursor:pointer;">
+            <div class="list-row-icon"><i class="fas ${icon}"></i></div>
+            <div class="list-row-info">
+              <div class="list-row-label">${label}</div>
+              <div class="list-row-value">${desc}</div>
+            </div>
+            <i class="fas fa-chevron-${document.documentElement.dir === 'rtl' ? 'left' : 'right'} list-row-chevron"></i>
+          </div>`;
+    container.innerHTML = `
+      ${this._subHeader('shield-halved', (typeof t === 'function' && t('permSettings')) || 'الأذونات والصلاحيات')}
+      <div style="padding: 0 var(--sp-md);">
+        ${(typeof PermGuide !== 'undefined') ? PermGuide.card() : ''}
+        <div id="perm-inline-status">${(typeof PermGuide !== 'undefined') ? PermGuide.statusHtml(st) : ''}</div>
+        <div class="card" style="padding:0;overflow:hidden;margin-top:12px;">
+          ${row('fa-location-dot', S.location, S.locationDesc, st.location, S.grant, "ProfilePage.askPerm('location')")}
+        </div>
+        <div class="card" style="padding:0;overflow:hidden;margin-top:12px;">
+          ${linkRow('fa-gear', S.notifSettings, S.notifSettingsDesc, "Android.openNotificationSettings()")}
+          ${linkRow('fa-sliders', S.appSettings, S.appSettingsDesc, "Android.openAppSettings()")}
+        </div>
+        <div style="text-align:center;margin:14px 0;">
+          <button style="padding:10px 18px;font-size:14px;border:none;border-radius:12px;background:#0f4c3a;color:#fff;cursor:pointer;" onclick="ProfilePage.renderPermsGroup(document.getElementById('main-content'))"><i class="fas fa-arrows-rotate"></i> ${S.refresh}</button>
+        </div>
+      </div>
+    `;
+  },
+
+  askPerm(which) {
+    const refresh = () => {
+      const c = document.getElementById('main-content');
+      if (c) this.renderPermsGroup(c);
+    };
+    // الغلاف الأصلي يبثّ 'quba-perms' بعد نتيجة الحوار؛ المؤقّت احتياط
+    window.addEventListener('quba-perms', refresh, { once: true });
+    try { Android.requestPermissions(JSON.stringify([which])); } catch (e) {}
+    setTimeout(refresh, 1200);
   },
 
   // ================= GRUPO: DATOS Y PROGRESO =================
@@ -720,6 +869,7 @@ const ProfilePage = {
         }
       },
       onSelect: async (city) => {
+        if (city && city.online && typeof Cities !== 'undefined' && Cities._ensureListed) Cities._ensureListed(city);
         LocationService.setManual(city.lat, city.lon, Cities.plainName(city), Cities.plainCountry(city));
         if (typeof Storage !== 'undefined' && Storage.clearPrayerCache) {
           Storage.clearPrayerCache();
@@ -788,12 +938,15 @@ const ProfilePage = {
       { id: 'maroon', label: '<i class="fas fa-crown"></i> ' + t('themeMaroon') },
       { id: 'brown', label: '<i class="fas fa-mug-hot"></i> ' + t('themeBrown') },
       { id: 'auto', label: '<i class="fas fa-arrows-rotate"></i> ' + t('themeAuto') },
+      { id: 'nightAuto', label: '<i class="fas fa-circle-half-stroke"></i> ' + t('themeNightAuto') },
     ];
     showModal(t('theme'), options, AppState.settings.theme, id => {
       AppState.settings.theme = id;
       Storage.saveSettings();
       applyTheme();
+      if (typeof NightMode !== 'undefined') NightMode.refresh(); // v1.0.73
       this.renderGroup('general');
+      if (id === 'nightAuto') showToast('🌙 ' + t('nightAutoHint'), 4200);
     });
   },
 
@@ -892,79 +1045,171 @@ const ProfilePage = {
   },
 
   // ============ ADHAN ============
-  pickAdhanVoice(takbeerNum) {
-    const options = AdhanService.VOICES.map(v => ({
+  // اختيار أذان — الأذان العادي (لباقي الصلوات)
+  // v1.0.76: «أذان مخصص (من ملفات الجهاز)» هو آخر خيارات القائمة، واختياره يفتح
+  // منتقي ملفات النظام مباشرة (سابقًا كان الاختيار يُحفظ بلا ملف فلا يعمل الأذان).
+  _pickAdhanVoiceOf(isFajr) {
+    const type = isFajr ? 'fajr' : 'regular';
+    const key = isFajr ? 'fajrVoice' : 'voice';
+    const options = AdhanService.voicesOf(type).map(v => ({
       id: v.id,
-      label: `${v.flag || '<i class="fas fa-mosque"></i>'} ${AdhanService.voiceName(v)} · ${AdhanService.voiceCountry(v)}`,
+      label: v.id === 'custom'
+        ? (t('adhanCustomLast') || '📁 أذان مخصص (من ملفات الجهاز)')
+        : (v.custom ? ('📁 ' + AdhanService.voiceName(v)) : AdhanService.voiceLabel(v)),
     }));
-    const currentId = takbeerNum === 1 ? AppState.settings.adhan.voice1 : AppState.settings.adhan.voice2;
-    const title = takbeerNum === 1
-      ? (t('adhanFirstTakbeer') || 'Primer Takbeer')
-      : (t('adhanSecondTakbeer') || 'Segundo Takbeer');
-    showModal(title, options, currentId, id => {
-      if (takbeerNum === 1) AppState.settings.adhan.voice1 = id;
-      else AppState.settings.adhan.voice2 = id;
+    const title = isFajr ? (t('adhanFajrVoice') || 'اختيار أذان الفجر') : (t('adhanChoose') || 'اختيار أذان');
+    showModal(title, options, AppState.settings.adhan[key], id => {
+      if (id === 'custom') {
+        // آخر الخيارات: منتقي ملفات الجهاز — الحفظ يتم بعد اختيار الملف فعلاً
+        this.pickCustomAdhan(isFajr);
+        return;
+      }
+      AppState.settings.adhan[key] = id;
       Storage.saveSettings();
+      AdhanService.syncNative();
       this.renderGroup('adhan');
       AdhanService.preview(id);
     });
   },
 
-  // v57: اختيار صوت أذان الفجر (نسخ التثويب: «الصلاة خير من النوم»)
-  pickAdhanFajrVoice() {
-    const fajrVoices = AdhanService.VOICES.filter(v => v.id.indexOf('fajr_') === 0);
-    const options = fajrVoices.map(v => ({
-      id: v.id,
-      label: `${v.flag || '🌅'} ${AdhanService.voiceName(v)} · ${AdhanService.voiceCountry(v)}`,
-    }));
-    const currentId = (AppState.settings.adhan && AppState.settings.adhan.fajrVoice) || 'fajr_makkah';
-    showModal(t('adhanFajrVoice') || 'صوت أذان الفجر', options, currentId, id => {
-      AppState.settings.adhan.fajrVoice = id;
-      Storage.saveSettings();
-      this.renderGroup('adhan');
-      AdhanService.preview(id);
-    });
-  },
+  // اختيار أذان — الأذان العادي (لباقي الصلوات)
+  pickAdhanVoice() { this._pickAdhanVoiceOf(false); },
 
-  // Selector de modo del adhan (completo / solo 2 primeras takbeer)
-  pickAdhanMode() {
-    const options = [
-      { id: 'full',    label: '🕌 ' + (t('adhanModeFull') || 'Adhan completo') },
-      { id: 'takbeer', label: '⏩ ' + (t('adhanModeTakbeer') || 'Solo las dos primeras Takbeer') },
-    ];
-    showModal(t('adhanMode') || 'Tipo de adhan', options, AppState.settings.adhan.mode, id => {
-      AppState.settings.adhan.mode = id;
-      Storage.saveSettings();
-      this.renderGroup('adhan');
-      if (id === 'takbeer') this.previewTakbeer();
-    });
-  },
-
-  // Vista previa del modo «solo las dos primeras takbeer» (1ª voz con corte)
-  previewTakbeer() {
-    if (typeof AdhanService === 'undefined') return;
-    const s = AppState.settings.adhan;
-    const voice = AdhanService.VOICES.find(v => v.id === s.voice1) || AdhanService.VOICES[0];
-    AdhanService.stopPreview();
-    const wasMuted = s.muted;
-    s.muted = false;
-    AdhanService._playVoice(voice, s.volume, null, (s.takbeerDuration || 16) * 1000)
-      .finally(() => { s.muted = wasMuted; });
-    showToast('🔊 ' + (t('adhanModeTakbeer') || 'Solo las dos primeras Takbeer'), 2000);
-  },
+  // اختيار أذان الفجر — يعمل لصلاة الفجر فقط
+  pickAdhanFajrVoice() { this._pickAdhanVoiceOf(true); },
 
   // Interruptores con estado explícito (checked)
-  setAdhanMuted(checked) {
-    AppState.settings.adhan.muted = !!checked;
-    if (checked && typeof AdhanService !== 'undefined') AdhanService.stop();
+  // ============ v1.0.72: الأذان المخصص (ملف صوتي من الجهاز) ============
+  pickCustomAdhan(isFajr) {
+    if (typeof AdhanService === 'undefined' || !AdhanService.pickCustom) return;
+    // Native يبثّ quba-custom-adhan بعد اختيار الملف (أو إلغائه)
+    const apply = () => {
+      const f = AdhanService.customFileName(isFajr);
+      if (f) {
+        if (isFajr) AppState.settings.adhan.fajrVoice = 'custom';
+        else AppState.settings.adhan.voice = 'custom';
+        Storage.saveSettings();
+        AdhanService.syncNative();
+        showToast('📁 ' + f, 2500);
+      }
+      this.renderGroup('adhan');
+    };
+    window.addEventListener('quba-custom-adhan', apply, { once: true });
+    AdhanService.pickCustom(isFajr);
+  },
+
+  // ============ v1.0.81: إدارة «ملفاتي» والأذان المخصص المتعدد ============
+  addMyAdhan(isFajr) {
+    if (typeof AdhanService === 'undefined') return;
+    const type = isFajr ? 'fajr' : 'regular';
+    const before = AdhanService.customItems().map(i => i.id);
+    const apply = () => {
+      const added = AdhanService.customItems().find(i => before.indexOf(i.id) === -1);
+      if (added) {
+        AppState.settings.adhan[isFajr ? 'fajrVoice' : 'voice'] = added.id;
+        Storage.saveSettings();
+        AdhanService.syncNative();
+        showToast('📁 ' + (added.name || added.id), 2500);
+      }
+      this.renderGroup('adhan');
+    };
+    window.addEventListener('quba-custom-adhan', apply, { once: true });
+    AdhanService.pickCustom(isFajr);
+  },
+
+  deleteMyAdhan(id) {
+    if (typeof AdhanService === 'undefined') return;
+    const item = AdhanService.customById(id);
+    if (!item) return;
+    AdhanService.deleteCustom(id);
+    const key = item.type === 'fajr' ? 'fajrVoice' : 'voice';
+    if (AppState.settings.adhan[key] === id) {
+      AppState.settings.adhan[key] = item.type === 'fajr'
+        ? AdhanService.DEFAULT_FAJR_VOICE : AdhanService.DEFAULT_VOICE;
+      Storage.saveSettings();
+    }
+    AdhanService.syncNative();
+    showToast('🗑️ ' + (item.name || id), 1800);
+    setTimeout(() => this.renderGroup('adhan'), 120);
+  },
+
+  /** v1.0.81: مفتاح «دعاء ما بعد الأذان». */
+  setDuaAfterAdhan(on) {
+    AppState.settings.adhan.duaAfterAdhan = !!on;
     Storage.saveSettings();
+    AdhanService.syncNative();
+    // v1.0.87: تأكيد صريح للمستخدم (كان التبديل صامتًا فلا يدري أمُفعَّل هو أم لا)
+    const st = document.getElementById('dua-state');
+    if (st) st.textContent = on ? (t('duaToggleOn') || 'مُفعَّل') : (t('duaToggleOff') || 'مُعطَّل');
+    if (typeof showToast === 'function') {
+      showToast(on ? (t('duaToastOn') || '🤲 دعاء ما بعد الأذان: مُفعَّل')
+                   : (t('duaToastOff') || '🤲 دعاء ما بعد الأذان: مُعطَّل'), 2800);
+    }
+  },
+
+  _saveIqama(next) {
+    AppState.settings.iqama = next;
+    Storage.saveSettings();
+    try { if (typeof IQAMAH_OFFSETS !== 'undefined') Object.assign(IQAMAH_OFFSETS, next.minutes); } catch (e) {}
+    // إعادة الجدولة فورًا: منبّهات الإقامة + الإشعار الثابت
+    try {
+      if (typeof AppState !== 'undefined' && AppState.timings) {
+        PrayerNotifications.scheduleDay(AppState.timings, AppState.settings.locale || 'es');
+      }
+    } catch (e) {}
+  },
+
+  setIqamaEnabled(on) {
+    const cur = AdhanService.iqamaSettings();
+    this._saveIqama({ enabled: !!on, minutes: cur.minutes });
+    showToast(on ? '🕌 ' + (t('iqamaToggle') || '') : '🔕', 1500);
+  },
+
+  stepIqama(prayer, delta) {
+    const cur = AdhanService.iqamaSettings();
+    const mins = Object.assign({}, cur.minutes);
+    mins[prayer] = Math.max(0, Math.min(90, (Number(mins[prayer]) || 0) + delta));
+    this._saveIqama({ enabled: cur.enabled, minutes: mins });
     this.renderGroup('adhan');
-    // v59 FIX: showToast() escribe el mensaje con textContent (no innerHTML),
-    // así que un <i class="..."></i> aparecía como texto literal en el toast
-    // en vez de un icono. Se usan emojis, que sí se muestran correctamente.
-    showToast(checked
-      ? '🔇 ' + (t('adhanMuted') || 'Adhan silenciado')
-      : '🔊 ' + (t('adhanUnmuted') || 'Adhan activo'), 1500);
+  },
+
+  deleteCustomAdhan(isFajr) {
+    if (typeof AdhanService === 'undefined' || !AdhanService.deleteCustom) return;
+    AdhanService.deleteCustom(isFajr ? 'fajr' : 'regular');
+    // إن كان الصوت الحالي هو المخصص نعود للافتراضي المضمّن
+    if (isFajr && AppState.settings.adhan.fajrVoice === 'custom') {
+      AppState.settings.adhan.fajrVoice = AdhanService.DEFAULT_FAJR_VOICE;
+    } else if (!isFajr && AppState.settings.adhan.voice === 'custom') {
+      AppState.settings.adhan.voice = AdhanService.DEFAULT_VOICE;
+    }
+    Storage.saveSettings();
+    AdhanService.syncNative();
+    showToast('🗑️ ' + (t('adhanCustomNone') || ''), 1800);
+    setTimeout(() => this.renderGroup('adhan'), 120);
+  },
+
+  // ============ v1.0.72: تعيين مدينة من البحث العالمي ============
+  setWorldCity(city) {
+    if (!city) return;
+    LocationService.setManual(city.lat, city.lon, city.name, city.country);
+    if (typeof Storage !== 'undefined' && Storage.clearPrayerCache) Storage.clearPrayerCache();
+    AppState.timings = null;
+    showToast((city.flag || '🌍') + ' ' + city.name + (city.country ? ', ' + city.country : ''), 2200);
+    const container = document.getElementById('main-content');
+    const cur = (typeof Router !== 'undefined' && Router.current) ? Router.current.name : 'profile';
+    if (cur === 'home' && typeof HomePage !== 'undefined') {
+      HomePage.render(container);
+    } else if (cur !== 'profile' && Router.current && Router.current.route) {
+      const r = Router.current.route;
+      const m = r.method || 'render';
+      if (typeof r.page[m] === 'function') r.page[m](container, Router.current.params || {});
+    } else {
+      this.renderGroup('prayer');
+    }
+  },
+
+  openWorldTime() {
+    if (typeof Cities !== 'undefined' && Cities.openWorldSearch) Cities.openWorldSearch();
   },
 
   setAdhanVolume(val) {
@@ -974,18 +1219,54 @@ const ProfilePage = {
     const el = document.getElementById('volume-value');
     if (el) el.textContent = Math.round(v * 100) + '%';
     AdhanService.setVolume(v);
+    AdhanService.syncNative();
+    // v1.0.87: تحذير صريح عند الصفر — مستوى 0 يعني أذانًا ودعاءً صامتين تمامًا
+    if (v === 0 && typeof showToast === 'function') {
+      showToast(t('adhanVolumeZeroWarn') || '🔇 المستوى 0%: لن يُسمع الأذان ولا دعاء ما بعد الأذان', 3200);
+    }
   },
 
-  // v59: duración (segundos) del corte en modo "solo las dos primeras takbeer"
-  setTakbeerDuration(val) {
-    const s = Math.max(8, Math.min(25, parseInt(val, 10) || 16));
-    AppState.settings.adhan.takbeerDuration = s;
-    Storage.saveSettings();
-    const el = document.getElementById('takbeer-duration-value');
-    if (el) el.textContent = s + (t('secondsShort') || 's');
+  // ============ v1.0.74: نافذة تأكيد/تراجع موحّدة ============
+  // بدل كتابة كلمة «حذف» يدويًا للتأكيد، تظهر نافذة بخيارين واضحين:
+  // «تأكيد» أو «تراجع» — تُستخدم لحذف البيانات وتصديرها معًا.
+  _confirmDialog(opts) {
+    const overlay = document.getElementById('modal-overlay');
+    const content = document.getElementById('modal-content');
+    if (!overlay || !content) { if (opts && opts.onConfirm) opts.onConfirm(); return; }
+    const icon = (opts && opts.icon) || 'fa-circle-question';
+    content.innerHTML = `
+      <div class="modal-header">
+        <div class="modal-title">${(opts && opts.title) || ''}</div>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="confirm-sheet">
+        <div class="confirm-icon ${opts && opts.danger ? 'danger' : ''}"><i class="fas ${icon}"></i></div>
+        <p class="confirm-msg">${(opts && opts.message) || ''}</p>
+        ${opts && opts.note ? `<p class="confirm-note">${opts.note}</p>` : ''}
+      </div>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-cancel" onclick="closeModal()">${(opts && opts.cancelLabel) || ''}</button>
+        <button class="confirm-btn confirm-ok ${opts && opts.danger ? 'danger' : ''}" id="confirm-ok-btn">${(opts && opts.confirmLabel) || ''}</button>
+      </div>
+    `;
+    overlay.classList.remove('hidden');
+    const ok = document.getElementById('confirm-ok-btn');
+    if (ok) ok.onclick = () => { closeModal(); try { if (opts && opts.onConfirm) opts.onConfirm(); } catch (e) {} };
   },
 
   exportData() {
+    this._confirmDialog({
+      title: t('exportData') || 'Exportar datos',
+      icon: 'fa-download',
+      message: t('exportConfirm') || '¿Exportar una copia de tus datos?',
+      note: t('exportConfirmNote') || 'Se descargará un archivo JSON con tus ajustes y progreso.',
+      confirmLabel: t('confirmExport') || 'Exportar',
+      cancelLabel: t('cancelAction') || 'Cancelar',
+      onConfirm: () => this._doExportData(),
+    });
+  },
+
+  _doExportData() {
     try {
       const data = { version: (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '1.0.0'), exportedAt: new Date().toISOString(), storage: {} };
       for (let i = 0; i < localStorage.length; i++) {
@@ -1007,14 +1288,19 @@ const ProfilePage = {
   },
 
   confirmResetProgress() {
-    const msg = t('confirmReset') || '¿Borrar TODO tu progreso (XP, marcadores, ajustes, caché)? Esta acción no se puede deshacer.';
-    if (!confirm(msg)) return;
-    const confirmText = t('resetTypeConfirm') || 'BORRAR';
-    const input = prompt((t('resetTypeQuestion') || 'Escribe') + ` "${confirmText}" ` + (t('resetTypeToConfirm') || 'para confirmar:'));
-    if (input !== confirmText) {
-      showToast(t('resetCancelled') || 'Cancelado');
-      return;
-    }
+    this._confirmDialog({
+      title: t('resetProgress') || 'Reiniciar progreso',
+      icon: 'fa-triangle-exclamation',
+      danger: true,
+      message: t('confirmReset') || '¿Borrar TODO tu progreso (XP, marcadores, ajustes, caché)?',
+      note: t('resetUndoWarning') || 'Esta acción no se puede deshacer.',
+      confirmLabel: t('confirmDelete') || 'Borrar',
+      cancelLabel: t('cancelAction') || 'Cancelar',
+      onConfirm: () => this._doResetProgress(),
+    });
+  },
+
+  _doResetProgress() {
     const keysToRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
@@ -1028,39 +1314,65 @@ const ProfilePage = {
     setTimeout(() => location.reload(), 1500);
   },
 
+  _permDeniedNote() {
+    return NotifPerm._msg('لم يُفعَّل — الإشعارات غير مسموحة للتطبيق', 'No activado — las notificaciones no están permitidas', 'Not enabled — notifications are not allowed');
+  },
+
   async setPrayerNotifEnabled(checked) {
     if (typeof PrayerNotifications === 'undefined') return;
+    const label = t('adhanAlertToggle') || 'تنبيه الأذان';
     if (!checked) {
       PrayerNotifications.disable();
+      ToggleFeedback.announce(label, false);
     } else {
       const ok = await PrayerNotifications.enable();
       if (ok && AppState.timings) {
         PrayerNotifications.scheduleDay(AppState.timings, AppState.settings.locale || 'es');
       }
+      if (ok) ToggleFeedback.announce(label, true);
+      else ToggleFeedback.announce(label, false, this._permDeniedNote());
+      try { this.toggleAdhanSound(!!checked); } catch (e) {}
     }
     this.renderGroup('adhan');
+    setTimeout(() => this._syncAlertToggles(), 300);
   },
 
   // Interruptor del recordatorio «اقتربت صلاة الظهر» (15 min antes)
   async setPrayerReminderEnabled(checked) {
     if (typeof PrayerNotifications === 'undefined') return;
+    const label = t('prePrayerAlert') || 'تنبيه قبل الصلاة والإقامة';
     if (!checked) {
       PrayerNotifications.disableReminder();
+      ToggleFeedback.announce(label, false);
     } else {
       const ok = await PrayerNotifications.enableReminder();
       if (ok && AppState.timings) {
         PrayerNotifications.scheduleDay(AppState.timings, AppState.settings.locale || 'es');
       }
+      if (ok) ToggleFeedback.announce(label, true);
+      else ToggleFeedback.announce(label, false, this._permDeniedNote());
     }
     this.renderGroup('adhan');
+    setTimeout(() => this._syncAlertToggles(), 300);
   },
 
   // v55: مفاتيح مركز الإشعارات (تفعيل/إيقاف لكل ميزة)
-  async setNotifCenter(key, checked) {
+  async setNotifCenter(key, checked, inputEl) {
     if (typeof NotifCenter === 'undefined') return;
-    if (checked) await NotifCenter.ensurePermission().catch(() => {});
+    const label = inputEl ? ToggleFeedback.labelFor(inputEl) : '';
+    if (checked) {
+      const ok = await NotifCenter.ensurePermission().catch(() => false);
+      // مفاتيح الحساسات (قلب الهاتف/أزرار الصوت…) لا تحتاج إذن إشعارات
+      const needsPerm = !['flipToStop', 'powerToStop', 'salawatVoice', 'snooze'].includes(key);
+      if (!ok && needsPerm) {
+        NotifCenter.set(key, false);
+        if (inputEl) inputEl.checked = false;
+        ToggleFeedback.announce(label, false, this._permDeniedNote());
+        return;
+      }
+    }
     NotifCenter.set(key, checked);
-    showToast('✅ ' + (t('ncSaved') || 'تم حفظ إعدادات الإشعارات'), 1500);
+    ToggleFeedback.announce(label, checked);
   },
 
   cleanup() {

@@ -1,0 +1,400 @@
+/* ============================================================
+   مفاتيح التفعيل (كل التطبيق): مفعّل = أخضر، غير مفعّل = أبيض
+   + حركة نابضة + رسالة عائمة (js/toggle-feedback.js)
+   يوحّد التعريفات المتضاربة في main.css / screens.css / quran-reader.css
+   ومظاهر الثيمات التي كانت تلوّن المفتاح بالذهبي/البني.
+   ============================================================ */
+:root { --tgl-on: #1E9E6A; --tgl-on-glow: rgba(30,158,106,.38); --tgl-off-border: #C9D3CE; }
+
+.toggle-switch,
+.settings-toggle .toggle-slider { flex-shrink: 0; }
+.toggle-switch { position: relative; display: inline-block; width: 52px; height: 30px; }
+.toggle-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.settings-toggle input[type="checkbox"] { position: absolute; opacity: 0; pointer-events: none; }
+
+.toggle-switch .toggle-slider,
+.settings-toggle .toggle-slider {
+  position: absolute; inset: 0; cursor: pointer;
+  width: auto; height: auto;
+  background: #fff !important;                 /* غير مفعّل: أبيض */
+  border: 2px solid var(--tgl-off-border);
+  border-radius: 30px; box-sizing: border-box;
+  transition: background .28s ease, border-color .28s ease, box-shadow .28s ease;
+}
+.settings-toggle .toggle-slider { position: relative; width: 52px; height: 30px; display: inline-block; }
+
+.toggle-switch .toggle-slider::before,
+.settings-toggle .toggle-slider::before {
+  content: ''; position: absolute; top: 50%; width: 20px; height: 20px; margin-top: -10px;
+  inset-inline-start: 3px; left: auto; right: auto; bottom: auto;
+  background: #AEB9B3; border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0,0,0,.25);
+  transition: transform .38s cubic-bezier(.34,1.56,.64,1), background .25s ease, width .2s ease;
+}
+[dir="rtl"] .toggle-switch .toggle-slider::before,
+[dir="rtl"] .settings-toggle .toggle-slider::before { left: auto; right: 3px; inset-inline-start: auto; }
+
+/* مفعّل: أخضر (يتغلّب على ألوان الثيمات) */
+html .toggle-switch input:checked + .toggle-slider,
+html .settings-toggle input:checked ~ .toggle-slider {
+  background: var(--tgl-on) !important;
+  border-color: var(--tgl-on);
+  box-shadow: 0 0 0 4px var(--tgl-on-glow);
+}
+html .toggle-switch input:checked + .toggle-slider::before,
+html .settings-toggle input:checked ~ .toggle-slider::before {
+  background: #fff; transform: translateX(22px);
+}
+[dir="rtl"] html .toggle-switch input:checked + .toggle-slider::before,
+html[dir="rtl"] .toggle-switch input:checked + .toggle-slider::before,
+html[dir="rtl"] .settings-toggle input:checked ~ .toggle-slider::before { transform: translateX(-22px); }
+
+/* حركة الضغط: الإبهام يتمدّد ثم ينبض الإطار */
+.toggle-switch:active .toggle-slider::before,
+.settings-toggle:active .toggle-slider::before { width: 26px; }
+.toggle-slider.tgl-pop { animation: tglPop .45s ease; }
+@keyframes tglPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.toggle-switch input:focus-visible + .toggle-slider { outline: 2px solid var(--gold, #D4AF37); outline-offset: 2px; }
+
+/* ---------- الرسالة العائمة ---------- */
+.tgl-toast {
+  position: fixed; top: 14px; left: 50%; z-index: 100000;
+  display: flex; align-items: center; gap: 10px;
+  max-width: min(92vw, 420px); padding: 11px 18px; border-radius: 999px;
+  font-size: 14px; font-weight: 700; line-height: 1.4; font-family: inherit;
+  box-shadow: 0 8px 24px rgba(0,0,0,.28);
+  transform: translate(-50%, -140%); opacity: 0; pointer-events: none;
+  transition: transform .42s cubic-bezier(.34,1.56,.64,1), opacity .25s ease;
+}
+.tgl-toast.show { transform: translate(-50%, 0); opacity: 1; }
+.tgl-toast i { font-size: 16px; }
+.tgl-toast.on  { background: var(--tgl-on); color: #fff; }
+.tgl-toast.off { background: #fff; color: #1b2b24; border: 1.5px solid var(--tgl-off-border); }
+.tgl-toast.off i { color: #8a9a92; }
+
+/* ---------- شارة الـstreak في الشريط العلوي ---------- */
+.home-top-actions { display: flex; align-items: center; gap: 10px; }
+.streak-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 11px; border-radius: 999px; border: 0; cursor: pointer;
+  background: rgba(255,255,255,.14); color: rgba(255,255,255,.75);
+  font-family: inherit; font-size: 15px; font-weight: 800; line-height: 1;
+}
+.streak-pill i { font-size: 15px; }
+.streak-pill.on { color: #fff; }
+.streak-pill.on i { color: #FF8A3D; filter: drop-shadow(0 0 4px rgba(255,138,61,.6)); }
+
+
+/* ==== v95: أنماط المسبحة (خرزات/أشكال) — من wisdom.css ==== */
+/* 🎯 Estilos Phase 2: Wisdom (Quiz, Tasbih, Adhkar, Courses) */
+
+/* ============ HUB ============ */
+.wisdom-header {
+  background: linear-gradient(135deg, var(--emerald-deep) 0%, var(--emerald-light) 50%, var(--emerald-bright) 100%);
+  color: white;
+  padding: calc(var(--sp-lg) + env(safe-area-inset-top, 0)) var(--sp-md) var(--sp-lg);
+  border-radius: 0 0 32px 32px;
+  position: relative;
+  overflow: hidden;
+}
+/* ============ TASBIH ============ */
+.tasbih-container {
+  padding: var(--sp-md);
+  text-align: center;
+}
+.tasbih-counter {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  margin: var(--sp-md) 0;
+  transition: transform 0.1s;
+}
+.tasbih-counter:active { transform: scale(0.95); }
+.tasbih-counter.complete .tasbih-count { color: var(--success); }
+.tasbih-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.tasbih-count {
+  font-size: 56px;
+  font-weight: 700;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.tasbih-target { font-size: 18px; color: var(--text-secondary); margin-top: 4px; }
+.tasbih-hint { font-size: 11px; color: var(--text-secondary); margin-top: 12px; }
+.tasbih-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: var(--sp-md) 0;
+}
+.tasbih-stat {
+  background: var(--card);
+  border-radius: var(--r-md);
+  padding: 12px;
+  box-shadow: var(--shadow);
+}
+.tasbih-stat-value { font-size: 20px; font-weight: 700; color: var(--primary); }
+.tasbih-stat-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.tasbih-buttons { margin-top: var(--sp-md); }
+.tasbih-btn-secondary { flex: 1; }
+.tasbih-buttons { display: flex; gap: 8px; }
+/* ============================================================
+   v50: Tasbih — diseño de UNA sola pantalla (sin scroll en móvil)
+   ============================================================ */
+.tasbih-container {
+  padding: 0 var(--sp-sm) var(--sp-sm);
+  gap: 8px;
+  max-width: 460px;
+  margin: 0 auto;
+}
+/* --- Contador 220px para que TODO quepa sin scroll --- */
+.tasbih-counter { width: 220px; height: 220px; margin: 0 auto; }
+.tasbih-count { font-size: 44px; }
+.tasbih-target { font-size: 14px; }
+.tasbih-hint { font-size: 10px; margin-top: 8px; }
+/* --- Mini tarjeta hoy / semana (pulsable) --- */
+.tasbih-daily-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 2px auto 0;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: var(--card-bg, #fff);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  box-shadow: 0 2px 8px rgba(15, 76, 58, 0.08);
+  cursor: pointer;
+  width: fit-content;
+  min-width: 200px;
+}
+.tasbih-daily-item { text-align: center; }
+.tasbih-daily-value { font-size: 17px; font-weight: 700; color: var(--primary); line-height: 1.1; }
+.tasbih-daily-label { font-size: 10px; color: var(--text-secondary); }
+.tasbih-daily-label i { font-size: 9px; margin-inline-end: 2px; }
+.tasbih-daily-sep { width: 1px; height: 22px; background: rgba(15, 76, 58, 0.15); }
+.tasbih-daily-caret { font-size: 10px; color: var(--text-secondary); transition: transform 0.2s ease; }
+[data-theme="dark"] .tasbih-daily-card { background: #1f2937; }
+/* --- Panel de estadísticas desplegable (día / semana) --- */
+.tasbih-stats-panel {
+  margin-top: 6px;
+  border-radius: 14px;
+  background: var(--card-bg, #fff);
+  border: 1px solid rgba(15, 76, 58, 0.12);
+  padding: 8px;
+  overflow: hidden;
+}
+.tasbih-stats-panel.hidden { display: none; }
+[data-theme="dark"] .tasbih-stats-panel { background: #1f2937; }
+.tasbih-stats-toggle { display: flex; gap: 6px; margin-bottom: 8px; }
+.tasbih-stats-tab {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 76, 58, 0.18);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tasbih-stats-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.tasbih-stats-panel .tasbih-stats { margin-top: 0; }
+.tasbih-stats-panel .tasbih-stat { padding: 6px 4px; }
+.tasbih-stats-panel .tasbih-stat-value { font-size: 16px; }
+.tasbih-stats-panel .tasbih-stat-label { font-size: 10px; }
+/* --- Botones compactos --- */
+.tasbih-buttons { margin-top: 6px; gap: 6px; }
+.tasbih-buttons .tasbih-btn-secondary { padding: 7px 10px; font-size: 12px; }
+/* ============================================================
+   v60: Tasbih — rediseño + misbaha real (cuentas arrastrables)
+   ============================================================ */
+.tasbih-goal-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 2px 10px 4px;
+}
+.tasbih-goal-line b { color: var(--gold, #D4AF37); }
+.tasbih-goal-line i { opacity: .8; margin-inline-end: 3px; }
+.tasbih-hint-line {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 2px 10px 6px;
+}
+.misbaha-beads {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+/* خرزات سوداء لامعة، منفصلة تمامًا، تتحرك بـ transform فقط */
+.misbaha-bead {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform;
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255,255,255,.5) 0, rgba(255,255,255,0) 20%),
+    radial-gradient(circle at 36% 32%, #55595c 0%, #1b1d1e 46%, #050606 82%);
+  box-shadow:
+    inset -4px -6px 9px rgba(0,0,0,.6),
+    inset 2px 3px 5px rgba(255,255,255,.1),
+    0 4px 8px rgba(0,0,0,.45);
+}
+/* --- Hoja de ajustes del tasbih --- */
+.tasbih-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  z-index: 900;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.tasbih-sheet-overlay.hidden { display: none; }
+.tasbih-sheet {
+  width: 100%;
+  max-width: 520px;
+  background: var(--surface, var(--bg-card, #15211b));
+  border: 1px solid var(--border, rgba(255,255,255,.08));
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  padding: 10px 18px calc(24px + env(safe-area-inset-bottom, 0px));
+  max-height: 82vh;
+  overflow-y: auto;
+  animation: tsheet-up .25s ease;
+}
+.tasbih-sheet-handle {
+  width: 44px; height: 4px; border-radius: 2px;
+  background: rgba(255,255,255,.22);
+  margin: 2px auto 10px;
+}
+.tasbih-sheet-title { font-weight: 700; text-align: center; margin-bottom: 8px; }
+/* ============ v1.0.78: زر القلم لتعديل هدف التسبيح ============ */
+.tasbih-target-edit,
+.misbaha-target-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(212, 175, 55, 0.18);
+  color: var(--gold-soft, #D4AF37);
+  font-size: 11px;
+  cursor: pointer;
+  vertical-align: middle;
+  margin-inline-end: 6px;
+  -webkit-tap-highlight-color: transparent;
+}
+.tasbih-target-edit:active,
+.misbaha-target-edit:active { transform: scale(0.92); }
+.tasbih-target { display: inline-flex; align-items: center; justify-content: center; gap: 2px; }
+/* ============ v1.0.80: أشكال الخرزات + شريط اختيارها أسفل الصفحة ============ */
+.misbaha-bead.shape-round { border-radius: 50%; }
+.misbaha-bead.shape-pearl {
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 26%, #ffffff 0, #f7ecd2 20%, #e0c893 58%, #b79c5f 100%);
+  box-shadow: inset -3px -5px 9px rgba(120, 95, 40, .45), 0 4px 8px rgba(0, 0, 0, .35);
+}
+.misbaha-bead.shape-oval { border-radius: 50%; }
+.misbaha-bead.shape-diamond { border-radius: 8%; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.misbaha-bead.shape-hex { border-radius: 8%; clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%); }
+.misbaha-bead.shape-square { border-radius: 24%; }
+.misbaha-bead.shape-ring {
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,0,0,0) 0 40%, #1b1d1e 45% 72%, #55595c 90%, #050606 100%);
+  box-shadow: 0 3px 7px rgba(0, 0, 0, .4);
+}
+/* ================= v122: أكورديون الإعدادات ================= */
+.acc {
+  margin: 10px 0;
+  border-radius: 16px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, rgba(0,0,0,.08));
+  overflow: hidden;
+}
+.acc > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text, #1a1a1a);
+  -webkit-tap-highlight-color: transparent;
+}
+.acc > summary::-webkit-details-marker { display: none; }
+.acc .acc-ico {
+  width: 30px; height: 30px; border-radius: 10px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(15,76,58,.10); color: #0f4c3a; font-size: 13px;
+}
+.acc .acc-title { flex: 1 1 auto; min-width: 0; }
+.acc .acc-chev { color: var(--text-secondary, #777); font-size: 12px; transition: transform .2s ease; }
+.acc[open] > summary .acc-chev { transform: rotate(180deg); }
+.acc .acc-body { border-top: 1px solid rgba(127,127,127,.14); }
+.acc.acc2 { margin: 0; border-radius: 0; border: none; border-top: 1px solid rgba(127,127,127,.14); background: transparent; }
+.acc.acc2 > summary { padding: 12px 16px; font-size: 13px; font-weight: 600; }
+.acc.acc2 .acc-ico { width: 26px; height: 26px; font-size: 12px; background: rgba(127,127,127,.12); color: inherit; }
+
+/* الإقامة: صفّان مرتّبان (٣ + ٢) */
+.iqama-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 8px !important;
+  padding: 4px 14px 14px !important;
+}
+.iqama-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 8px 4px; border-radius: 12px;
+  background: rgba(127,127,127,.08);
+}
+.iqama-cell-name { font-size: 11px; font-weight: 600; opacity: .85; }
+.iqama-stepper { display: flex; align-items: center; gap: 8px; }
+.iqama-stepper button {
+  width: 26px; height: 26px; border-radius: 8px; border: 1px solid rgba(127,127,127,.30);
+  background: transparent; color: inherit; font-size: 14px; line-height: 1; cursor: pointer;
+}
+.iqama-stepper span { min-width: 20px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* بحث المدن العالمي */
+.city-world-hint { font-size: 11px; opacity: .7; padding: 6px 4px 2px; }
+.city-remote-hint { padding: 12px; text-align: center; font-size: 12.5px; opacity: .75; }
+.city-online-option { border-inline-start: 3px solid rgba(15,76,58,.55); }
+
+/* v130 — منتقي المدينة: قائمة قابلة للتمرير + مجموعات نتائج */
+.city-picker-list { max-height: 54vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.city-group-label {
+  padding: 9px 12px 5px; font-size: .58rem; font-weight: 900;
+  letter-spacing: .3px; color: var(--text-secondary, #66736F);
+  display: flex; align-items: center; gap: 6px;
+}
+.city-group-world { border-top: 1px solid rgba(127,127,127,.16); margin-top: 5px; }
+.city-remote-hint { padding: 9px 12px; font-size: .62rem; color: var(--text-secondary, #66736F); display: flex; gap: 7px; align-items: center; }
+.city-online-option { border-bottom: 1px dashed rgba(127,127,127,.14); }
+.city-empty-note { padding: 14px 12px; text-align: center; font-size: .64rem; color: var(--text-secondary, #66736F); }

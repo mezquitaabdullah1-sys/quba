@@ -17,8 +17,12 @@ const NotifCenter = {
   // مفتاح «تنبيه الأذان» الرئيسي (PrayerNotifications)، فلم تعد بحاجة
   // لمفتاح تفعيل خاص بها هنا.
   defaults: {
-    snooze: true,        // تذكير «هل صليت؟» بعد 15 دقيقة
-    salawat: true,       // الصلاة على النبي كل 3 ساعات (9ص–9م)
+    snooze: true,        // تذكير «لا يزال موعد الصلاة» بعد 10 دقائق
+    salawat: true,       // الصلاة على النبي ﷺ (من 9ص إلى 9م)
+    salawatFrequency: 180, // الفترة بالدقائق: 30 / 60 / 120 / 180 / 0=إيقاف
+    // v1.0.79: إشعارات الأذكار الحقيقية (الصباح/المساء/النوم) + فترتها بالدقائق
+    adhkar: true,
+    adhkarFrequency: 120,
     salawatVoice: true,  // نطق الصلاة على النبي صوتياً (TTS عربي) + نغمة
     duaMorning: true,    // دعاء الصباح 07:00
     duaEvening: true,    // دعاء المساء 19:00
@@ -55,12 +59,12 @@ const NotifCenter = {
 
   // ============ نصوص ثلاثية اللغة ============
   STR: {
-    adhanTitle:   { ar: 'حان وقت أذان صلاة {p}', es: 'Es la hora del adhan de {p}', en: 'It is time for {p} prayer' },
+    adhanTitle:   { ar: 'حان الآن موعد صلاة {p}', es: 'Es la hora del adhan de {p}', en: 'It is time for {p} prayer' },
     stopAdhan:    { ar: 'إيقاف الأذان', es: 'Apagar el adhan', en: 'Stop adhan' },
-    snooze15:     { ar: '⏰ تذكير بعد ١٥ دقيقة', es: '⏰ Recordar en 15 minutos', en: '⏰ Remind me in 15 minutes' },
+    snooze15:     { ar: '⏰ تذكير بعد ١٠ دقائق', es: '⏰ Recordar en 10 minutos', en: '⏰ Remind me in 10 minutes' },
     close:        { ar: 'إغلاق', es: 'Cerrar', en: 'Close' },
-    didYouPray:   { ar: 'هل صليت صلاة {p}؟ 🤲', es: '¿Ya rezaste {p}? 🤲', en: 'Did you pray {p}? 🤲' },
-    didYouPrayB:  { ar: 'لا تنسَ صلاتك — «إن الصلاة كانت على المؤمنين كتاباً موقوتاً»', es: 'No olvides tu oración — «La oración es un precepto en momentos determinados» (4:103)', en: "Don't forget your prayer — 'Prayer is decreed at specified times' (4:103)" },
+    didYouPray:   { ar: 'لا يزال موعد صلاة {p} ⏰', es: 'Aún es tiempo de {p} ⏰', en: 'It is still time for {p} ⏰' },
+    didYouPrayB:  { ar: 'لا تنسَ صلاتك — «إنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَوْقُوتًا» (النساء: 103)', es: 'No olvides tu oración — «La oración es un precepto en momentos determinados» (4:103)', en: "Don't forget your prayer — 'Prayer is decreed at specified times' (4:103)" },
     salawatTitle: { ar: '🌹 الصلاة على النبي ﷺ', es: '🌹 Salawat sobre el Profeta ﷺ', en: '🌹 Salawat upon the Prophet ﷺ' },
     salawatBody:  { ar: 'اللَّهُمَّ صَلِّ وَسَلِّمْ وَبَارِكْ عَلَى نَبِيِّنَا مُحَمَّدٍ ﷺ — «مَنْ صَلَّى عَلَيَّ صَلَاةً وَاحِدَةً صَلَّى اللهُ عَلَيْهِ بِهَا عَشْرًا» (رواه مسلم)', es: 'Oh Allah, envía Tu paz y bendiciones sobre nuestro Profeta Muhammad ﷺ — «Quien me envía una salawat, Allah le envía diez» (Muslim)', en: 'O Allah, send peace and blessings upon our Prophet Muhammad ﷺ — "Whoever sends one salawat upon me, Allah sends ten upon him" (Muslim)' },
     duaMorTitle:  { ar: '☀️ أذكار الصباح', es: '☀️ Du\'a de la mañana', en: '☀️ Morning dua' },
@@ -95,9 +99,9 @@ const NotifCenter = {
       en: '"Indeed, prayer has been decreed upon the believers at specified times" — Quran 4:103',
     },
     Isha: {
-      ar: '«مَنْ صَلَّى الْعِشَاءَ فِي جَمَاعَةٍ فَكَأَنَّمَا قَامَ نِصْفَ اللَّيْلِ» — رواه مسلم',
-      es: '«Quien rece Al-Isha en congregación es como si hubiera rezado media noche» — Muslim',
-      en: '"Whoever prays Isha in congregation, it is as if he prayed half the night" — Muslim',
+      ar: '«مَنْ نَسِيَ صَلَاةً فَلْيُصَلِّ إِذَا ذَكَرَهَا، لَا كَفَّارَةَ لَهَا إِلَّا ذَلِكَ» — متفق عليه (البخاري 597، مسلم 684) ﴿وَأَقِمِ الصَّلَاةَ لِذِكْرِي﴾ (طه: 14)',
+      es: '«Quien olvide una oración, que la rece cuando la recuerde; no hay otra expiación» — Bujari y Muslim ﴾y realiza la oración para recordarme﴿ (20:14)',
+      en: '"Whoever forgets a prayer should pray it when he remembers; there is no other expiation" — Bukhari & Muslim, "and establish prayer for My remembrance" (20:14)',
     },
   },
 
@@ -158,11 +162,7 @@ const NotifCenter = {
 
   // ============ إذن الإشعارات ============
   async ensurePermission() {
-    if (typeof PrayerNotifications !== 'undefined') return PrayerNotifications.requestPermission();
-    if (!('Notification' in window)) return false;
-    if (Notification.permission === 'granted') return true;
-    if (Notification.permission === 'denied') return false;
-    return (await Notification.requestPermission()) === 'granted';
+    return NotifPerm.request();
   },
 
   _notify(title, body, tag, silent = false) {
@@ -192,7 +192,7 @@ const NotifCenter = {
     if (this.isOn('snooze')) actions.push({ action: 'snooze', title: this._t('snooze15') });
     const shown = await this._notifyActions('🕌 ' + title, hadith, 'quba-adhan-' + prayerKey, actions);
     // البطاقة داخل التطبيق تظهر فقط إن رفض المستخدم إذن الإشعارات كلياً
-    if (!shown && (typeof Notification === 'undefined' || Notification.permission !== 'granted')) {
+    if (!shown && !NotifPerm.isGranted()) {
       this._renderOverlay(prayerKey, title, hadith);
     }
   },
@@ -277,7 +277,7 @@ const NotifCenter = {
     if (reason && typeof showToast === 'function') showToast(this._t('adhanStopped'), 2000);
   },
 
-  // ============ زر «تذكير بعد ١٥ دقيقة» → إشعار «هل صليت؟» ============
+  // ============ زر «تذكير بعد ١٠ دقائق» → إشعار «لا يزال موعد صلاة X» ============
   snoozePrayer(prayerKey) {
     if (typeof AdhanService !== 'undefined') AdhanService.stop();
     this._removeOverlay();
@@ -287,10 +287,10 @@ const NotifCenter = {
       this.chimeSnooze();
       if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
       this._notify('⏰ ' + this._t('didYouPray', name), this._t('didYouPrayB'), 'quba-snooze-' + prayerKey);
-    }, 15 * 60 * 1000);
+    }, 10 * 60 * 1000);
     this.timers.push(t);
     if (typeof showToast === 'function') {
-      showToast(this._loc() === 'ar' ? '⏰ سنذكّرك بعد ١٥ دقيقة' : (this._loc() === 'en' ? '⏰ We will remind you in 15 minutes' : '⏰ Te recordaremos en 15 minutos'), 2500);
+      showToast(this._loc() === 'ar' ? '⏰ سنذكّرك بعد ١٠ دقائق' : (this._loc() === 'en' ? '⏰ We will remind you in 10 minutes' : '⏰ Te recordaremos en 10 minutos'), 2500);
     }
   },
 
@@ -313,9 +313,17 @@ const NotifCenter = {
       }, delay));
     };
 
-    // 🌹 الصلاة على النبي: 9:00، 12:00، 15:00، 18:00، 21:00 (كل 3 ساعات 9ص–9م)
-    if (this.isOn('salawat')) {
-      [9, 12, 15, 18, 21].forEach(h => at(h, 0, () => this.fireSalawat()));
+    // 🌹 الصلاة على النبي: من 9:00 صباحًا حتى 9:00 مساءً، بالفترة المضبوطة
+    // في الإعدادات (30/60/120/180 دقيقة — الافتراضي كل 3 ساعات). في تطبيق
+    // Android المجدول الأصلي (native-bridge.js) يتولى الجدولة الدقيقة وهذه
+    // مؤقتات واجهة احتياطية للمتصفح.
+    const freq = Number(this.getSettings().salawatFrequency) || 180;
+    if (this.isOn('salawat') && freq > 0) {
+      const times = [];
+      for (let min = 9 * 60; min <= 21 * 60; min += freq) {
+        times.push([Math.floor(min / 60), min % 60]);
+      }
+      times.forEach(([h, m]) => at(h, m, () => this.fireSalawat()));
     }
     // ☀️ دعاء الصباح 07:00 — 🌙 دعاء المساء 19:00
     if (this.isOn('duaMorning')) at(7, 0, () => this.fireDua('morning'));

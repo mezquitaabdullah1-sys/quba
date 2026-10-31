@@ -829,3 +829,129 @@ CoursesPage._afterRenderLesson = function (lesson) {
   if (lesson.type === 'word_builder') this._wbRefresh();
   if (lesson.type === 'write_trace') this._wtSetup();
 };
+
+// ============ قائمة تحقّق تفاعلية (v106) ============
+// بنود قابلة للنقر تُحفظ في localStorage لكل (كورس · محطة · درس).
+Object.assign(CoursesPage, {
+  render_checklist(lesson) {
+    const st = this.state || {};
+    const key = 'cxChk:' + (st.course && st.course.id ? st.course.id : 'c') + ':' + (st.stationId || '') + ':' + (st.lessonIdx || 0);
+    let done = {};
+    try { done = JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (_) { done = {}; }
+    const items = lesson.items || [];
+    const n = items.filter((_, i) => done[i]).length;
+    return `
+      <div class="lesson-card cx-checklist">
+        ${Mascot.render('encourage', 'medium', 'lesson-mascot')}
+        <h2 class="lesson-card-title">${this.X(lesson.title)}</h2>
+        ${lesson.intro ? `<div class="cx-chk-intro">${this.X(lesson.intro)}</div>` : ''}
+        <div class="cx-chk-progress"><i class="fas fa-list-check"></i> <span id="cx-chk-count">${n}</span> / ${items.length}</div>
+        <div class="cx-chk-list" data-key="${key}">
+          ${items.map((it, i) => `
+            <button type="button" class="cx-chk-item ${done[i] ? 'done' : ''}" onclick="CoursesPage.toggleCheck(this)">
+              <span class="cx-chk-box"><i class="fas fa-check"></i></span>
+              <span class="cx-chk-text">${this.X(it.t)}</span>
+            </button>`).join('')}
+        </div>
+        <button class="btn-primary lesson-continue-btn" onclick="CoursesPage.advanceContent()">${t('continue') || 'Continuar'} →</button>
+      </div>`;
+  },
+
+  toggleCheck(el) {
+    if (!el) return;
+    el.classList.toggle('done');
+    const list = el.parentElement;
+    if (!list) return;
+    const boxes = Array.prototype.slice.call(list.querySelectorAll('.cx-chk-item'));
+    const done = {};
+    boxes.forEach((b, i) => { if (b.classList.contains('done')) done[i] = 1; });
+    try { localStorage.setItem(list.getAttribute('data-key') || 'cxChk', JSON.stringify(done)); } catch (_) {}
+    const cnt = document.getElementById('cx-chk-count');
+    if (cnt) cnt.textContent = String(Object.keys(done).length);
+  },
+});
+
+// ============ صورة / إنفوجرافيك (v108) ============
+Object.assign(CoursesPage, {
+  render_image(lesson) {
+    const src = lesson.img || lesson.src || '';
+    if (!src) return this._skipCard();
+    return `
+      <div class="lesson-card cx-figure">
+        ${Mascot.render('idle', 'medium', 'lesson-mascot')}
+        ${lesson.title ? `<h2 class="lesson-card-title">${this.X(lesson.title)}</h2>` : ''}
+        <figure class="cx-fig">
+          <img src="${src}" alt="${this.X(lesson.title) || ''}" loading="lazy" onclick="CoursesPage.openFigure(this.src)">
+        </figure>
+        ${lesson.caption ? `<div class="cx-fig-cap"><i class="fas fa-magnifying-glass-plus"></i> ${this.X(lesson.caption)}</div>` : ''}
+        <button class="btn-primary lesson-continue-btn" onclick="CoursesPage.advanceContent()">${t('continue') || 'Continuar'} →</button>
+      </div>`;
+  },
+
+  openFigure(src) {
+    if (!src) return;
+    const old = document.getElementById('cx-fig-overlay');
+    if (old) old.remove();
+    const box = document.createElement('div');
+    box.id = 'cx-fig-overlay';
+    box.className = 'cx-fig-overlay';
+    box.innerHTML = '<img src="' + src + '" alt="">';
+    box.addEventListener('click', () => box.remove());
+    document.body.appendChild(box);
+  },
+});
+
+// ============ عجلة تفاعلية (v111) ============
+Object.assign(CoursesPage, {
+  render_wheel(lesson) {
+    const items = lesson.items || [];
+    this._wheelLesson = lesson;
+    this._wheelSel = -1;
+    const n = items.length || 1;
+    const nodes = items.map((it, i) => {
+      const ang = (-90 + i * (360 / n)) * Math.PI / 180;
+      const x = 50 + Math.cos(ang) * 37;
+      const y = 50 + Math.sin(ang) * 37;
+      return `<button class="cx-wnode" data-i="${i}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%" onclick="CoursesPage.wheelPick(${i})">
+        <span class="cx-wnode-ic"><img src="${it.icon || ''}" alt="" loading="lazy"></span>
+        <span class="cx-wnode-lb">${this.X(it.short || it.title)}</span>
+      </button>`;
+    }).join('');
+    return `
+      <div class="lesson-card cx-wheel-lesson">
+        <h2 class="lesson-card-title">${this.X(lesson.title)}</h2>
+        ${lesson.intro ? `<div class="cx-info-intro">${this.X(lesson.intro)}</div>` : ''}
+        <div class="cx-wheel">
+          <div class="cx-wheel-ring"></div>
+          <div class="cx-wheel-hub"><span dir="rtl">${lesson.hub || ''}</span></div>
+          ${nodes}
+        </div>
+        <div class="cx-wheel-panel" id="cx-wheel-panel">
+          <p class="cx-wheel-hint">${this.X(lesson.hint) || ''}</p>
+        </div>
+        ${lesson.source ? `<div class="lesson-source"><i class="fas fa-book"></i> ${this.X(lesson.source)}</div>` : ''}
+        <button class="btn-primary lesson-continue-btn" onclick="CoursesPage.advanceContent()">${t('continue') || 'Continuar'} →</button>
+      </div>`;
+  },
+
+  wheelPick(i) {
+    const lesson = this._wheelLesson;
+    if (!lesson || !lesson.items || !lesson.items[i]) return;
+    const it = lesson.items[i];
+    const same = this._wheelSel === i;
+    this._wheelSel = same ? -1 : i;
+    document.querySelectorAll('.cx-wnode').forEach((b, bi) => b.classList.toggle('active', bi === i && !same));
+    const panel = document.getElementById('cx-wheel-panel');
+    if (!panel) return;
+    if (same) {
+      panel.innerHTML = '<p class="cx-wheel-hint">' + (this.X(lesson.hint) || '') + '</p>';
+      return;
+    }
+    panel.innerHTML = `
+      <div class="cx-wp-head">
+        <img src="${it.icon || ''}" alt="">
+        <div><div class="cx-wp-t">${this.X(it.title)}</div><div class="cx-wp-s">${this.X(it.sub) || ''}</div></div>
+      </div>
+      <p class="cx-wheel-text">${this.X(it.text)}</p>`;
+  },
+});

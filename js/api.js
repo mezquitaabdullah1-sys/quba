@@ -839,8 +839,14 @@ const API = {
   // pueda reutilizar exactamente la misma llamada de red durante la
   // descarga masiva (mismo shape de datos, una sola fuente de la verdad).
   async _fetchSurahFromNetwork(surahNumber, translation, audio) {
+    // v1.0.74: قرّاء MP3Quran/everyayah (mp3q.*) ليسوا في AlQuran Cloud — نطلب النص فقط
+    // ونبني روابط الصوت محلياً (everyayah آية/آية، أو ملف السورة الكاملة + رقم الآية).
+    const custom = (typeof QuranOfflineService !== 'undefined' && QuranOfflineService.customReciter)
+      ? QuranOfflineService.customReciter(audio) : null;
     // Always include transliteration as 4th edition
-    const editions = `quran-uthmani,${translation},${audio},en.transliteration`;
+    const editions = custom
+      ? `quran-uthmani,${translation},en.transliteration`
+      : `quran-uthmani,${translation},${audio},en.transliteration`;
     const url = `${CONFIG.API.QURAN}/surah/${surahNumber}/editions/${editions}`;
     const res = await this._fetchWithTimeout(url, 15000);
     if (!res.ok) throw new Error('Surah error');
@@ -876,7 +882,7 @@ const API = {
       }
     }
 
-    const aud = byId[audio] || editionsData.find(e => e.edition && e.edition.type === 'audio');
+    const aud = custom ? null : (byId[audio] || editionsData.find(e => e.edition && e.edition.type === 'audio'));
     const translit = byId['en.transliteration'];
 
     const ayahs = arabic.ayahs.map((a, idx) => ({
@@ -888,7 +894,7 @@ const API = {
         && QURAN_TRANSLITERATION[arabic.number]
         && QURAN_TRANSLITERATION[arabic.number][a.numberInSurah])
         || translit?.ayahs?.[idx]?.text || '',
-      audio: aud?.ayahs?.[idx]?.audio || null,
+      audio: custom ? QuranOfflineService.customAyahUrl(custom, arabic.number, a.numberInSurah) : (aud?.ayahs?.[idx]?.audio || null),
       audioSecondary: aud?.ayahs?.[idx]?.audioSecondary || [],
       juz: a.juz,
       page: a.page,

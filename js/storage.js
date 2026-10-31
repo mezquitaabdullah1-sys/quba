@@ -5,6 +5,46 @@
 const Storage = {
   _mem: new Map(),
 
+  // 🛡️ نسخة احتياطية أصلية (Android) للبيانات المهمة: تقدّم الصلوات، الـstreak، النقاط،
+  // الإعدادات… سبب فقدانها سابقًا: localStorage في WebView تُكتب للقرص بتأخير، وإغلاق
+  // التطبيق من الخلفية بعد التعديل مباشرة كان يُضيّع آخر تغيير. الجسر الأصلي يحفظها
+  // في SharedPreferences فورًا ويحقنها عند التشغيل (window.__qubaMirror).
+  MIRROR_KEYS: [
+    'prayer_checkin', 'gamification', 'settings',
+    'prayer_notif_enabled', 'prayer_reminder_enabled', 'prayer_notif_prayers', 'notif_center',
+    'onboardingDone', 'last_location', 'reader_settings',
+    'mushaf_last_page', 'mushaf_font', 'mushaf_tajweed', 'quran_bookmarks_v2', 'quran_last_read',
+    'quran_repeat_cfg', 'dua_bookmarks', 'tasbih_settings', 'tasbih_log', 'tasbih', 'srs',
+  ],
+
+  _mirror(key, itemJson) {
+    try {
+      if (!window.Android || typeof window.Android.persistState !== 'function') return;
+      if (this.MIRROR_KEYS.indexOf(key) < 0) return;
+      window.Android.persistState('quba_' + key, itemJson);
+    } catch (e) { /* صامت */ }
+  },
+
+  // يُستدعى مرة عند التحميل: يعيد ما فقدته localStorage (أو ما كان أقدم منه) من النسخة الأصلية
+  _restoreFromMirror() {
+    try {
+      const m = window.__qubaMirror;
+      if (!m || typeof m !== 'object') return;
+      Object.keys(m).forEach((lsKey) => {
+        try {
+          const mirrored = JSON.parse(m[lsKey]);
+          const rawLocal = localStorage.getItem(lsKey);
+          let useMirror = !rawLocal;
+          if (rawLocal && !useMirror) {
+            const local = JSON.parse(rawLocal);
+            useMirror = (mirrored.timestamp || 0) > (local.timestamp || 0);
+          }
+          if (useMirror) localStorage.setItem(lsKey, m[lsKey]);
+        } catch (e) { /* عنصر تالف: نتجاهله */ }
+      });
+    } catch (e) { /* صامت */ }
+  },
+
   set(key, value, ttl = null) {
     const item = {
       value,
@@ -12,11 +52,14 @@ const Storage = {
       ttl,
     };
     this._mem.set(key, item);
+    let json = null;
     try {
-      localStorage.setItem('quba_' + key, JSON.stringify(item));
+      json = JSON.stringify(item);
+      localStorage.setItem('quba_' + key, json);
     } catch (e) {
       console.warn('Storage full:', e);
     }
+    if (json) this._mirror(key, json);
   },
 
   get(key) {
@@ -48,6 +91,7 @@ const Storage = {
   remove(key) {
     this._mem.delete(key);
     localStorage.removeItem('quba_' + key);
+    this._mirror(key, '');
   },
 
   // v38: borra TODA la caché de horarios de oración (`prayer_*`,
@@ -56,7 +100,11 @@ const Storage = {
   // tapando los horarios exactos ni el ajuste manual del usuario.
   clearPrayerCache() {
     try {
-      const isPrayerKey = (k) => /^prayer_/.test(k) || /^prayer_month_/.test(k);
+      // ⚠️ كان يحذف كل مفتاح يبدأ بـ prayer_ — فيمسح معه تقدّم الصلوات (prayer_checkin)
+      // ومفاتيح الإشعارات وأعلام الترحيل نفسها عند كل تغيير مدينة. نستثني بيانات المستخدم.
+      const PROTECTED = ['prayer_checkin', 'prayer_notif_enabled', 'prayer_reminder_enabled',
+        'prayer_notif_prayers', 'prayer_cache_v38_purged', 'prayer_cache_v40_purged'];
+      const isPrayerKey = (k) => !PROTECTED.includes(k) && (/^prayer_/.test(k) || /^prayer_month_/.test(k));
       for (const k of Array.from(this._mem.keys())) {
         if (isPrayerKey(k)) this._mem.delete(k);
       }
@@ -70,6 +118,10 @@ const Storage = {
   },
 
   loadSettings() {
+    // v1.0.71: تنبيه الأذان مفعّل افتراضيًا — يُكتب صراحة عند أول تشغيل
+    const _notifSeed = Storage.get('prayer_notif_enabled');
+    if (_notifSeed === undefined || _notifSeed === null) Storage.set('prayer_notif_enabled', true);
+
     const settings = Storage.get('settings');
     if (settings) {
       Object.assign(AppState.settings, settings);
@@ -109,7 +161,8 @@ const Storage = {
   },
 };
 
-// Cargar ajustes al inicio
+// Restaurar primero la copia nativa (si localStorage perdió algo), luego cargar ajustes
+Storage._restoreFromMirror();
 Storage.loadSettings();
 
 // v38: purga ÚNICA post-actualización — elimina horarios cacheados de

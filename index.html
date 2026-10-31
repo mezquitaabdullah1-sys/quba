@@ -56,6 +56,10 @@
   <link rel="apple-touch-icon" href="assets/icon.png">
 
   <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/quba-extras.css">
+  <link rel="stylesheet" href="css/perm-guide.css">
+  <link rel="stylesheet" href="css/prayer-visuals.css">
+  <link rel="stylesheet" href="css/night-mode.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/screens.css">
   <link rel="stylesheet" href="css/wisdom.css">
@@ -82,6 +86,8 @@
   <link rel="stylesheet" href="css/home-v95.css">
   <link rel="stylesheet" href="css/home-v102.css">
   <link rel="stylesheet" href="css/features.css"> <!-- v103: صفحة كل الميزات --> <!-- v102: الرئيسية الجديدة -->
+  <link rel="stylesheet" href="css/tracker.css"> <!-- v128: صفحة يومي -->
+  <link rel="stylesheet" href="css/prayers-v125.css"> <!-- v125: لوح الصلوات الموحّد + شريط التقدّم -->
   <link rel="stylesheet" href="css/imsakiyah.css"> <!-- v98: إمساكية رمضان --> <!-- v94: الرئيسية المبسّطة (رأس ثابت + بطاقة صلوات مضغوطة + تبويبات الوسائط) -->
 
   <!-- Google Fonts -->
@@ -176,6 +182,7 @@
   <script src="js/api.js"></script>
   <script src="js/qibla.js"></script>
   <script src="js/duas.js"></script>
+  <script src="js/daily-verses.js"></script>
   <script src="js/hadith.js"></script> <!-- v61: حديث اليوم (صحيح، بترجمة معتمدة) -->
   <script src="js/hijri.js"></script>
 
@@ -199,8 +206,14 @@
   <script src="js/library-sources.js"></script> <!-- v1.0.84: مصادر متعددة اللغات (HadeethEnc / IslamHouse) -->
   <script src="js/radio-service.js"></script> <!-- v56: محرّك التشغيل العالمي -->
   <script src="js/adhan.js"></script>
+  <script src="js/toggle-feedback.js"></script>
+  <script src="js/notif-perm.js"></script>
+  <script src="js/perm-guide.js"></script>
+  <script src="js/prayer-visuals.js"></script>
+  <script src="js/night-mode.js"></script>
   <script src="js/notifications.js"></script>
-  <script src="js/notif-center.js"></script> <!-- v55: مركز الإشعارات مع الصوت -->
+  <script src="js/notif-center.js"></script>
+  <script src="js/adhkar-notify.js"></script> <!-- v55: مركز الإشعارات مع الصوت -->
   <script src="js/wake-lock.js"></script>
   <script src="js/event-delegation.js"></script>
 
@@ -238,9 +251,16 @@
   <script src="data/courses/names_of_allah.js"></script>
   <!-- v7 interactive courses -->
   <script src="data/courses/journey.js"></script>
+  <script src="data/courses/journey_b.js"></script>
+  <script src="data/courses/journey_c.js"></script>
+  <script src="data/courses/journey_figs.js"></script>
   <script src="data/courses/kids.js"></script>
   <script src="data/courses/quran_basics.js"></script>
   <script src="data/courses/salah_complete.js"></script>
+  <script src="data/courses/salah_extra.js"></script>
+  <script src="data/courses/salah_figs.js"></script>
+  <script src="data/courses/wudu_extra.js"></script>
+  <script src="data/courses/wudu_figs.js"></script>
   <script src="data/courses/wudu_complete.js"></script>
   <!-- v20/v64: Arabic language course v2 — datos crudos ANTES de arabic_language.js -->
   <script src="data/courses/arabic_data.js"></script>
@@ -272,6 +292,8 @@
 
   <!-- Phase 2: Wisdom subpages -->
   <script src="pages/wisdom/quiz.js"></script>
+  <script src="js/tracker.js"></script> <!-- v128: تتبّع الأعمال اليومية -->
+  <script src="pages/tracker.js"></script>
   <script src="pages/wisdom/tasbih.js"></script>
   <script src="pages/wisdom/adhkar.js"></script>
   <script src="pages/wisdom/courses.js"></script>
@@ -287,7 +309,10 @@
   <!-- App core -->
   <script src="js/router.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/native-bridge.js"></script>
 
 
+  <script src="js/duas-extra.js"></script>
+  <script src="js/hadith-extra.js"></script>
 </body>
 </html>

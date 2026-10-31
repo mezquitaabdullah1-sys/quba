@@ -1,0 +1,22 @@
+/* ============================================================
+   🌙 v1.0.73 — الوضع الليلي التلقائي (NightMode)
+   لا يُعرّف هذا الملف ألوانًا: المظهران «light» و«dark» موجودان
+   أصلًا في glass-theme.css. هنا فقط:
+     1) انتقال ناعم عند تبدّل المظهر مع الغروب/الشروق (لا وميض مفاجئ)
+     2) color-scheme ليتوافق مع عناصر النظام (أشرطة التمرير، الحقول)
+   يُفعَّل فقط عندما يكون المظهر المختار «ليلي تلقائي»
+   (data-night-auto="1") فلا يمسّ باقي المظاهر.
+   ============================================================ */
+
+html[data-night-auto="1"] body,
+html[data-night-auto="1"] .card,
+html[data-night-auto="1"] .top-bar,
+html[data-night-auto="1"] .page-header,
+html[data-night-auto="1"] .home-header,
+html[data-night-auto="1"] .bottom-tabs,
+html[data-night-auto="1"] .list-row {
+  transition: background-color .6s ease, border-color .6s ease, color .6s ease;
+}
+
+html[data-night-auto="1"][data-theme="dark"] { color-scheme: dark; }
+html[data-night-auto="1"][data-theme="light"] { color-scheme: light; }

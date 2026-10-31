@@ -63,7 +63,7 @@ const HomePage = {
       }
 
       // Use curated famous verses with wisdom (not random)
-      const verse = getFamousVerseOfTheDay();
+      const verse = (typeof getDailyVerse === 'function') ? getDailyVerse() : getFamousVerseOfTheDay();
       const dua = getDuaOfTheDay();
       // v61: حديث اليوم (أحاديث صحيحة بترجمة معتمدة — js/hadith.js)
       const hadith = (typeof getHadithOfTheDay === 'function') ? getHadithOfTheDay() : null;
@@ -177,18 +177,20 @@ const HomePage = {
             settings: 'Settings', allFeatures: 'All features', language: 'Language', theme: 'Theme', todayPrayers: "Today's prayers",
             prevLbl: 'Elapsed', elapsed: 'Time elapsed', nextLbl: 'Next prayer' },
     }[loc0] || {};
-    const skyKey = this._skyKey(timings);
+    const skyKey = this._skyKey(timings, loc);
     let ramDays = null;
     try {
+      // v119: نفس حساب بطاقة العدّاد أسفل الصفحة (أيام كاملة بـ floor) حتى لا يختلف الرقمان
       const rt = this._findRamadanTarget();
-      if (rt) ramDays = Math.max(0, Math.ceil((rt.getTime() - now0.getTime()) / 86400000));
+      if (rt) ramDays = Math.max(0, Math.floor((rt.getTime() - now0.getTime()) / 86400000));
     } catch (e) { ramDays = null; }
     const ramTxt = (ramDays === null) ? '' : hxl.ramadanIn.replace('{n}', ramDays);
     const pct0 = this._dayProgress(timings);
     const prevTxt = this._prevPrayerText(timings, loc0);
     let dowTxt = '';
     try { dowTxt = now0.toLocaleDateString(loc0, { weekday: 'long' }); } catch (e) { dowTxt = ''; }
-    let occTxt = '';
+    // v120: نفصل اسم المناسبة عن وقتها كي يُعرض العنوان في سطر وما تحته الاسم والوقت
+    let occName = '', occWhen = '';
     try {
       if (typeof ISLAMIC_HOLIDAYS !== 'undefined' && typeof HijriCalc !== 'undefined' && HijriCalc.nextOccurrence) {
         let best = null;
@@ -200,14 +202,17 @@ const HomePage = {
           const nm = best.h['name_' + loc0] || best.h.name_es;
           const dtxt = best.daysLeft === 0 ? t('todayWord')
             : (best.daysLeft === 1 ? t('tomorrowWord') : t('daysLeftTxt').replace('{n}', best.daysLeft));
-          occTxt = hxl.nextOcc + ': ' + nm + ' · ' + dtxt;
+          occName = nm; occWhen = dtxt;
         }
       }
-    } catch (e) { occTxt = ''; }
+    } catch (e) { occName = ''; occWhen = ''; }
 
+    const dailyLbl = ({ ar: 'يومي', es: 'Mi día', en: 'My day' })[loc0] || 'يومي';
     container.innerHTML = `
       <!-- v102: بطاقة الرأس — خلفية سماء/مسجد متغيّرة + صلاة قادمة + تاريخ + شريط الصلوات داخلها -->
-      <div class="home-header home-hero hsx-hero hsx-${skyKey}" id="home-hero">
+      <div class="home-header home-hero hsx-hero hsx-ink-${this._skyInk(skyKey)}" id="home-hero">
+        <!-- v105: الصورة إلى نهاية بطاقة التاريخ فقط — شريط الصلوات أسفلها على خلفية البطاقة -->
+        <div class="hsx-photo">
         <div class="hsx-bg" style="background-image:url('assets/sky/${skyKey}.jpg')"></div>
         <div class="hsx-veil"></div>
         <div class="hh-inner hsx-inner">
@@ -223,6 +228,7 @@ const HomePage = {
             </button>
           </div>
 
+          <div class="hsx-duo">
           <!-- بطاقة الصلاة القادمة: الوقت + المتبقي + ما مضى على الصلاة السابقة -->
           ${nextPrayer ? `
             <div class="hsx-next" id="hsx-next">
@@ -250,10 +256,17 @@ const HomePage = {
               ${hLineFull ? `<span class="hsx-hij">${escapeHtml(hLineFull)}</span>` : ''}
             </div>
             <div class="hsx-greg">${escapeHtml(gLineFull)}</div>
-            ${occTxt ? `<div class="hsx-occ"><i class="fas fa-star-and-crescent"></i> ${escapeHtml(occTxt)}</div>` : ''}
+            ${occName ? `<div class="hsx-occ">
+                <span class="hsx-occ-t">${escapeHtml(hxl.nextOcc || t('nextEventTitle') || '')}</span>
+                <span class="hsx-occ-b"><b class="hsx-occ-n" title="${escapeAttr(occName)}">${escapeHtml(occName)}</b><span class="hsx-occ-w">${escapeHtml(occWhen)}</span></span>
+              </div>` : ''}
+          </div>
           </div>
 
-          <!-- صلوات اليوم داخل البطاقة: شريط + خط تقدّم وكرة ذهبية -->
+        </div>
+
+        <!-- v113: صلوات اليوم — داخل الصورة، على لوح زجاجي شفّاف -->
+        <div class="hh-inner hsx-inner hsx-inner-foot">
           <div class="hsx-prayers">
             <div class="hsx-strip">
               ${six.map(p => {
@@ -268,13 +281,15 @@ const HomePage = {
             <div class="hsx-trackwrap">
               <div class="hsx-track">
                 <span class="hsx-fill" id="hsx-fill" style="width:${pct0.toFixed(2)}%"></span>
-                ${six.map(p => `<span class="hsx-tk" style="inset-inline-start:${this._prayerPct(timings, p.name).toFixed(2)}%"></span>`).join('')}
-                <span class="hsx-ball" id="hsx-ball" style="inset-inline-start:${pct0.toFixed(2)}%"></span>
+                ${six.map(p => `<span class="hsx-tk" style="--p:${this._prayerPct(timings, p.name).toFixed(2)}%"></span>`).join('')}
+                <span class="hsx-ball" id="hsx-ball" style="--p:${pct0.toFixed(2)}%"></span>
               </div>
             </div>
           </div>
 
+          ${this._dualStripHtml()}
           ${isEstimated ? `<span class="estimated-badge"><i class="fas fa-wifi-slash"></i> ${t('estimatedTimes')}</span>` : ''}
+        </div>
         </div>
       </div>
 
@@ -330,6 +345,10 @@ const HomePage = {
             <button class="hsx-serv" onclick="Router.go('wisdom/duas')" aria-label="${escapeAttr(t('quickDuas'))}" title="${escapeAttr(t('quickDuas'))}">
               <img src="assets/quick/duas.png" alt="" loading="lazy" draggable="false">
               <span>${t('quickDuas')}</span>
+            </button>
+            <button class="hsx-serv" onclick="Router.go('daily')" aria-label="${escapeAttr(dailyLbl)}" title="${escapeAttr(dailyLbl)}">
+              <span class="hsx-serv-ic"><i class="fas fa-list-check"></i></span>
+              <span>${escapeHtml(dailyLbl)}</span>
             </button>
             <button class="hsx-serv" onclick="Router.go('wisdom/courses')" aria-label="${escapeAttr(t('quickCourses'))}" title="${escapeAttr(t('quickCourses'))}">
               <img src="assets/quick/courses.png" alt="" loading="lazy" draggable="false">
@@ -683,6 +702,56 @@ const HomePage = {
       }
     } catch (e) {}
     return '';
+  },
+
+
+  // ============ v120: التوقيت الثانوي (مدينة ثانية) — أسفل توقيت الصلوات، بلا أيقونات ============
+  _dualStripHtml() {
+    try {
+      if (typeof DualTiming === 'undefined' || !DualTiming.getCity) return '';
+      const city = DualTiming.getCity();
+      if (!city) {
+        return `<div class="hsx-dual hsx-dual-empty" id="hsx-dual">
+          <button class="hsx-dual-add" onclick="DualTiming.openPicker()">${escapeHtml(t('addSecondaryTiming') || '')}</button>
+        </div>`;
+      }
+      const local = (DualTiming._getOfflineTimings ? DualTiming._getOfflineTimings(city) : null);
+      const html = this._dualBodyHtml(city, local);
+      // الأوقات الدقيقة من الشبكة (نفس مصدر الجدول الرئيسي) تُستبدل فور وصولها
+      if (navigator.onLine && DualTiming.getTimings) {
+        DualTiming.getTimings(city).then(remote => {
+          if (!remote) return;
+          let changed = !local;
+          if (local) {
+            for (const n of ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']) {
+              if (String(local[n] || '') !== String(remote[n] || '')) { changed = true; break; }
+            }
+          }
+          const box = document.getElementById('hsx-dual');
+          if (changed && box) box.innerHTML = this._dualBodyHtml(city, remote);
+        }).catch(() => {});
+      }
+      return html;
+    } catch (e) { return ''; }
+  },
+
+  _dualBodyHtml(city, timings) {
+    const names = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+    const cells = names.map(n => `<div class="hsx-dual-cell">
+        <span class="hsx-dual-n">${t('prayers.' + n)}</span>
+        <span class="hsx-dual-t">${formatTime12h(String((timings && timings[n]) || '--:--').split(' ')[0])}</span>
+      </div>`).join('');
+    const country = (city && city.country) ? Cities.plainCountry(city) : '';
+    return `<div class="hsx-dual" id="hsx-dual">
+      <div class="hsx-dual-head">
+        <span class="hsx-dual-city">${escapeHtml(Cities.plainName(city))}${country ? ' · ' + escapeHtml(country) : ''}</span>
+        <span class="hsx-dual-actions">
+          <button class="hsx-dual-btn" onclick="DualTiming.openPicker()">${escapeHtml(t('dualChange') || '')}</button>
+          <button class="hsx-dual-btn" onclick="event.stopPropagation(); DualTiming.remove()">${escapeHtml(t('dualRemove') || '')}</button>
+        </span>
+      </div>
+      <div class="hsx-dual-grid">${cells}</div>
+    </div>`;
   },
 
   _prayerBellHtml(name) {
@@ -1062,18 +1131,70 @@ const HomePage = {
     return d;
   },
 
-  _skyKey(timings) {
+  // ============ v104: مصدر صورة الخلفية — يتغيّر بالمدينة/الموقع والوقت المحلي ============
+  // الأماكن المقدّسة تُختار بحسب المدينة، وغيرها يُختار عشوائيًا (ثابتًا خلال اليوم)
+  // من مساجد مناطق العالم — فيتبدّل المشهد عند تغيير المدينة أو تغيّر النهار/الليل.
+  SKY_SITES: [
+    'mecca', 'medina', 'quds', 'istanbul', 'morocco', 'malaysia', 'pakistan',
+  ],
+  // v105: سطوع كل صورة (متوسط إضاءة الجزء العلوي حيث يجلس النص) — لتكييف لون الخط
+  SKY_LUMA: { istanbul_day: 179, istanbul_night: 56, malaysia_day: 194, malaysia_night: 50,
+              mecca_day: 178, mecca_night: 30, medina_day: 194, medina_night: 52,
+              morocco_day: 191, morocco_night: 36, pakistan_day: 198, pakistan_night: 37,
+              quds_day: 166, quds_night: 64 },
+  // صورة ساطعة → خط داكن · صورة داكنة → خط فاتح
+  _skyInk(key) {
+    const l = this.SKY_LUMA[key];
+    if (typeof l === 'number') return l >= 140 ? 'dark' : 'light';
+    return /_day$/.test(key) ? 'dark' : 'light';
+  },
+
+  // الأماكن التي لها صورة مطابقة لمدينتها
+  _skyFixed(cityRaw) {
+    const c = String(cityRaw || '').toLowerCase();
+    if (!c) return null;
+    if (/مكة|مكه|makk|mecca|la meca/.test(c)) return 'mecca';
+    if (/مدينة|المدينة|madin|medina/.test(c)) return 'medina';
+    if (/قدس|jerusalem|quds|al-quds|jerusalen/.test(c)) return 'quds';
+    if (/اسطنبول|إستنبول|istanbul|estambul/.test(c)) return 'istanbul';
+    if (/دار البيضاء|casablanca|الدار البيضاء|morocco|المغرب/.test(c)) return 'morocco';
+    if (/كوالالمبور|kuala|putrajaya|ماليزيا|malaysia/.test(c)) return 'malaysia';
+    if (/لاهور|lahore|باكستان|pakistan|إسلام آباد|islamabad/.test(c)) return 'pakistan';
+    return null;
+  },
+
+  _skyKey(timings, loc) {
     const now = new Date();
-    const m = now.getHours() * 60 + now.getMinutes();
-    const f = this._mnOf(timings && timings.Fajr);
-    const s = this._mnOf(timings && timings.Sunrise);
-    const a = this._mnOf(timings && timings.Asr);
-    const g = this._mnOf(timings && timings.Maghrib);
-    if (f !== null && m < f) return 'night';
-    if (g !== null && m >= g) return 'night';
-    if (f !== null && s !== null && m >= f && m < s + 25) return 'morning';
-    if (a !== null && g !== null && m >= a) return 'dusk';
-    return 'noon';
+    // ليل/نهار بحسب مواقيت المدينة نفسها (الفجر → المغرب = نهار)
+    let night = false;
+    const f = this._moment(timings, 'Fajr');
+    const g = this._moment(timings, 'Maghrib');
+    if (f && g) night = !(now >= f && now < g);
+    else {
+      const h = now.getHours();
+      night = (h < 5 || h >= 19);
+    }
+    const cityName = (loc && (loc.city || loc.name)) || '';
+    let site = this._skyFixed(cityName);
+    if (!site) {
+      // عشوائية ثابتة: تتغيّر بتغيّر المدينة/الإحداثيات واليوم — لا ترتجف عند كل رسم
+      const lat = loc && isFinite(loc.latitude) ? Math.round(loc.latitude * 10) : 0;
+      const lon = loc && isFinite(loc.longitude) ? Math.round(loc.longitude * 10) : 0;
+      const d = new Date();
+      const doy = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+      let hsh = 2166136261;
+      const seedStr = cityName + '|' + lat + '|' + lon + '|' + doy;
+      for (let i = 0; i < seedStr.length; i++) {
+        hsh ^= seedStr.charCodeAt(i);
+        hsh = (hsh * 16777619) >>> 0;
+      }
+      const idx = hsh % this.SKY_SITES.length;
+      site = this.SKY_SITES[idx];
+      // في الليل نُقدّم صورة مسجد مضاءة إن لم تكن للمدينة صورة
+    }
+    this._skySite = site;
+    this._skyNight = night;
+    return site + (night ? '_night' : '_day');
   },
 
   // v103: خط التقدّم دقيق — كل صلاة عند مركز خليّتها في الشريط تمامًا،
@@ -1151,13 +1272,22 @@ const HomePage = {
     if (fill) fill.style.width = pct.toFixed(2) + '%';
     const ball = document.getElementById('hsx-ball');
     if (ball) {
-      try { ball.style.setProperty('inset-inline-start', pct.toFixed(2) + '%'); }
+      try { ball.style.setProperty('--p', pct.toFixed(2) + '%'); ball.style.setProperty('inset-inline-start', pct.toFixed(2) + '%'); }
       catch (e) { ball.style.left = pct.toFixed(2) + '%'; }
     }
     const hero = document.getElementById('home-hero');
     if (hero) {
-      const k = this._skyKey(AppState.timings);
-      ['morning', 'noon', 'dusk', 'night'].forEach(x => hero.classList.toggle('hsx-' + x, x === k));
+      const k = this._skyKey(AppState.timings, AppState.location);
+      if (this._skyKey !== k) hero.dataset.sky = k;
+      const url = "assets/sky/" + k + ".jpg";
+      if (hero.dataset.skyUrl !== url) {
+        hero.dataset.skyUrl = url;
+        const bg = hero.querySelector('.hsx-bg');
+        if (bg) bg.style.backgroundImage = "url('" + url + "')";
+        const ink = this._skyInk(k);
+        hero.classList.toggle('hsx-ink-dark', ink === 'dark');
+        hero.classList.toggle('hsx-ink-light', ink === 'light');
+      }
     }
   },
 

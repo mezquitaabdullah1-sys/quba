@@ -319,8 +319,43 @@ const QuranOfflineService = {
     return typeof caches !== 'undefined';
   },
 
+  // ============ v1.0.74: قرّاء MP3Quran/everyayah (معرّفات mp3q.*) ============
+  // ea: آية/آية من everyayah (الدوسري، نعينع) — whole: ملف السورة الكاملة من
+  // cdn.mp3quran.net (اللحيدان، بن حميد، إسلام صبحي) ويُشغَّل مقطع الآية فيه
+  // حسب توقيت MP3Quran (ayat_timing) أو تقدير تناسبي عند غيابه.
+  // رابط آية «whole» = رابط ملف السورة + ‎#a=N (المقطع يُحدَّد عند التشغيل).
+  customReciter(id) {
+    if (!id || String(id).indexOf('mp3q.') !== 0 || typeof CONFIG === 'undefined') return null;
+    const meta = (CONFIG.RECITERS || []).find(r => r.id === id);
+    const r = meta && typeof RadioData !== 'undefined' ? RadioData.reciter(meta.radio) : null;
+    if (!r) return null;
+    return { id, r, kind: r.ea ? 'ea' : 'whole' };
+  },
+
+  customAyahUrl(c, surah, ayah) {
+    if (!c || !RadioData.hasSurah(c.r, surah)) return null;
+    if (c.kind === 'ea') return RadioData.ayahUrl(c.r.ea, surah, ayah);
+    return RadioData.surahFileUrl(c.r, surah) + '#a=' + ayah;
+  },
+
+  // (سورة، آية) من الرقم العالمي 1-6236
+  _globalToSA(g) {
+    let left = Number(g);
+    for (const row of QURAN_SURAH_TABLE) {
+      if (left <= row[4]) return [row[0], left];
+      left -= row[4];
+    }
+    return [114, 6];
+  },
+
   // URL cacheable del MP3 de una aleya (CDN estable por número global)
   audioUrlFor(ayahGlobal, reciter) {
+    const c = this.customReciter(reciter);
+    if (c) {
+      const [su, ay] = this._globalToSA(ayahGlobal);
+      const u = this.customAyahUrl(c, su, ay) || '';
+      return u.split('#')[0];
+    }
     return `https://cdn.islamic.network/quran/audio/128/${reciter}/${ayahGlobal}.mp3`;
   },
 
@@ -402,6 +437,12 @@ const QuranOfflineService = {
   async getPlayableUrl(originalUrl, ayahGlobal, reciter) {
     try {
       if (!reciter || !ayahGlobal || !this._audioCacheSupported()) return originalUrl;
+      if (this.customReciter(reciter)) {
+        const base = String(originalUrl || '').split('#')[0];
+        const hit = await caches.open(this.AUDIO_CACHE).then(c => c.match(base));
+        if (!hit) return originalUrl;
+        return URL.createObjectURL(await hit.blob());
+      }
       const hit = await caches.open(this.AUDIO_CACHE).then(c => c.match(this.audioUrlFor(ayahGlobal, reciter)));
       if (!hit) return originalUrl;
       const blob = await hit.blob();
@@ -415,6 +456,10 @@ const QuranOfflineService = {
     if (!this._audioCacheSupported() || !navigator.onLine) return false;
     const meta = this.getSurahMeta(surahNumber);
     if (!meta) return false;
+
+    const cust = this.customReciter(reciter);
+    if (cust && cust.kind === 'whole') return this._downloadWholeSurah(cust, meta);
+    if (cust && !RadioData.hasSurah(cust.r, meta.number)) return false;
 
     this._audioDownloading = true;
     this._cancelRequested = false;
@@ -477,10 +522,74 @@ const QuranOfflineService = {
     }
   },
 
+  // v1.0.74: تنزيل ملف السورة الكاملة (قرّاء MP3Quran) مع تقدّم حقيقي بالبايت
+  async _downloadWholeSurah(cust, meta) {
+    if (!RadioData.hasSurah(cust.r, meta.number)) return false;
+    const reciter = cust.id;
+    const url = RadioData.surahFileUrl(cust.r, meta.number);
+    this._audioDownloading = true;
+    this._cancelRequested = false;
+    const total = 100;
+    this._audioDl = { reciter, surah: meta.number, done: 0, total, bytes: 0 };
+    this._emit({ type: 'audio-start', reciter, surah: meta.number, done: 0, total });
+    try {
+      const cache = await caches.open(this.AUDIO_CACHE);
+      let blob = null;
+      const hit = await cache.match(url);
+      if (hit) blob = await hit.blob();
+      else {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('http ' + res.status);
+        const len = Number(res.headers.get('content-length')) || 0;
+        if (res.body && res.body.getReader) {
+          const rd = res.body.getReader();
+          const parts = [];
+          let got = 0, lastPct = -1;
+          while (true) {
+            if (this._cancelRequested) { try { rd.cancel(); } catch (e) {} break; }
+            const { done, value } = await rd.read();
+            if (done) break;
+            parts.push(value);
+            got += value.length;
+            const pct = len ? Math.min(99, Math.floor(got / len * 100)) : 50;
+            if (pct !== lastPct) {
+              lastPct = pct;
+              this._audioDl.done = pct; this._audioDl.bytes = got;
+              this._emit({ type: 'audio-progress', reciter, surah: meta.number, done: pct, total, bytes: got });
+            }
+          }
+          if (!this._cancelRequested) blob = new Blob(parts, { type: 'audio/mpeg' });
+        } else {
+          blob = await res.blob();
+        }
+        if (blob) { try { await cache.put(url, new Response(blob, { headers: { 'Content-Type': 'audio/mpeg' } })); } catch (e2) {} }
+      }
+      if (!blob || this._cancelRequested) {
+        this._emit({ type: 'audio-paused', reciter, surah: meta.number, done: 0, total });
+        return false;
+      }
+      this._lastTotalBytes = blob.size;
+      this._setSurahAudioDone(reciter, meta.number, blob.size);
+      this._pausedAt = null;
+      this._emit({ type: 'audio-complete', reciter, surah: meta.number, bytes: blob.size });
+      return true;
+    } catch (e) {
+      this._emit({ type: 'audio-error' });
+      return false;
+    } finally {
+      this._audioDownloading = false;
+      this._audioDl = null;
+    }
+  },
+
   // ---- Borrado ----
   async deleteSurahAudio(reciter, surahNumber) {
     try {
-      if (this._audioCacheSupported()) {
+      const cust = this.customReciter(reciter);
+      if (cust && cust.kind === 'whole' && this._audioCacheSupported()) {
+        const cache = await caches.open(this.AUDIO_CACHE);
+        try { await cache.delete(RadioData.surahFileUrl(cust.r, Number(surahNumber))); } catch (e) {}
+      } else if (this._audioCacheSupported()) {
         const meta = this.getSurahMeta(surahNumber);
         if (meta) {
           const cache = await caches.open(this.AUDIO_CACHE);
@@ -538,6 +647,8 @@ const QuranOfflineService = {
 
   // URLs candidatas del MP3 de la sura completa (en orden de preferencia)
   surahFileUrlsFor(reciter, surahNumber) {
+    const cust = this.customReciter(reciter);
+    if (cust) return RadioData.hasSurah(cust.r, surahNumber) ? [RadioData.surahFileUrl(cust.r, surahNumber)] : [];
     const n = String(surahNumber).padStart(3, '0');
     return (this.SURAH_FILE_SOURCES[reciter] || []).map(base => base + n + '.mp3');
   },
@@ -551,6 +662,18 @@ const QuranOfflineService = {
   // (Algunos recitadores devuelven 403 a 128 kbps pero sí a 64; everyayah
   // usa numeración sura/aleya, no el índice global 1-6236.)
   async _fetchAyahAudioBlob(ayahGlobal, reciter, surahNumber, ayahInSurah) {
+    const cust = this.customReciter(reciter);
+    if (cust) {
+      if (cust.kind !== 'ea') return null; // ملف السورة الكاملة لا يُجزّأ لآيات
+      const [su, ay] = (surahNumber && ayahInSurah) ? [surahNumber, ayahInSurah] : this._globalToSA(ayahGlobal);
+      const u = this.customAyahUrl(cust, su, ay);
+      if (!u) return null;
+      try {
+        const res = await fetch(u);
+        if (res && res.ok) { const b = await res.blob(); if (b && b.size > 512) return b; }
+      } catch (e) {}
+      return null;
+    }
     const urls = [
       `https://cdn.islamic.network/quran/audio/128/${reciter}/${ayahGlobal}.mp3`,
       `https://cdn.islamic.network/quran/audio/64/${reciter}/${ayahGlobal}.mp3`,
@@ -578,6 +701,18 @@ const QuranOfflineService = {
     if (!meta) return { ok: false };
     const name = `${String(meta.number).padStart(3, '0')}_${(meta.englishName || 'surah').replace(/[^A-Za-z0-9-]+/g, '_')}_${reciter}.mp3`;
 
+    // v1.0.74: قرّاء السورة الكاملة — الملف المخزَّن محلياً أولاً (أوفلاين)
+    const cust = this.customReciter(reciter);
+    if (cust && cust.kind === 'whole') {
+      if (!RadioData.hasSurah(cust.r, meta.number)) return { ok: false };
+      try {
+        if (this._audioCacheSupported()) {
+          const hit = await (await caches.open(this.AUDIO_CACHE)).match(RadioData.surahFileUrl(cust.r, meta.number));
+          if (hit) { const b = await hit.blob(); this._triggerBlobDownload(b, name); return { ok: true, source: 'cache', bytes: b.size, name }; }
+        }
+      } catch (e) {}
+    }
+
     // Plan A: MP3 de la sura completa (una sola descarga, más rápido)
     if (navigator.onLine) {
       for (const url of this.surahFileUrlsFor(reciter, meta.number)) {
@@ -593,6 +728,9 @@ const QuranOfflineService = {
         } catch (e) { /* siguiente fuente */ }
       }
     }
+
+    // v1.0.74: ملف السورة الكاملة لا يُجمَّع من آيات (الخطتان B/C تخصّان آية/آية)
+    if (cust && cust.kind === 'whole') return { ok: false };
 
     // Plan B: concatenar las aleyas ya cacheadas de esa sura
     try {

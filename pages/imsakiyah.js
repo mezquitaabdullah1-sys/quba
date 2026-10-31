@@ -100,7 +100,9 @@ const ImsakiyahPage = {
       rows.push({
         d, g, t, imsak,
         fast: this._diffMin(t.Fajr, t.Maghrib),
-        isToday: !!(todayH && todayH.year === hy && parseInt(todayH.day, 10) === d),
+        // v119: داخل رمضان فقط (سنة + شهر ٩ + يوم)؛ كان يقارن السنة واليوم فيتقدّم المؤشّر قبل رمضان
+        isToday: !!(todayH && todayH.year === hy && parseInt(todayH.month, 10) === 9
+                    && parseInt(todayH.day, 10) === d),
         wd: (typeof getWeekdayName === 'function') ? getWeekdayName(g.getDay(), (typeof currentLocale !== 'undefined' ? currentLocale : 'ar')) : '',
       });
     }

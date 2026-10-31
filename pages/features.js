@@ -88,6 +88,7 @@ const FeaturesPage = {
       {
         t: L.g5, items: [
           [L.tasbih, L.d17, 'fa-circle-dot', "Router.go('wisdom/tasbih')"],
+          ['يومي', 'تتبّع الصلوات والنوافل والأذكار والإحصائيات', 'fa-list-check', "Router.go('daily')"],
           [L.profile, L.d18, 'fa-gear', "Router.go('profile')"],
         ],
       },

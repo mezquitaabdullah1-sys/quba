@@ -34,7 +34,7 @@ const RadioData = {
       ayah: 'آية',
       of: 'من',
       liveTranslation: 'الترجمة الحيّة',
-      translationNote: 'التلاوة بالعربية وتظهر الترجمة النصية هنا متزامنة مع الآيات',
+      translationNote: 'اختر القارئ ثم السورة — تظهر الآية بالعربية وترجمتها في بطاقة التشغيل متزامنةً مع التلاوة',
       replayAyah: 'إعادة الآية',
       prevAyah: 'الآية السابقة',
       nextAyah: 'التالية',
@@ -72,6 +72,26 @@ const RadioData = {
       voiceTr: 'قراءة الترجمة صوتيًا',
       voiceTrOn: 'الترجمة الصوتية مفعّلة — تُقرأ الترجمة بعد كل آية',
       voiceTrOff: 'الترجمة الصوتية متوقفة',
+      // v1.0.74
+      liveStream: 'بث مباشر',
+      liveMujawwad: 'بث مباشر (مجوَّد)',
+      pickSurah: 'اختيار سورة',
+      noLive: 'لا يتوفر بث مباشر لهذا القارئ — اختر سورة',
+      surahsCount: 'سورة',
+      rep_off: 'بدون تكرار',
+      rep_one_s: 'السورة',
+      rep_all_s: 'متواصل',
+      rep_random_s: 'عشوائي',
+      rep_off_s: 'بدون',
+      syncExact: 'مزامنة دقيقة مع التلاوة',
+      syncApprox: 'مزامنة تقريبية (لا يتوفر توقيت رسمي لهذا القارئ)',
+      surahUnavailable: 'هذه السورة غير متوفرة لهذا القارئ',
+      reciterSurahs: 'سور القارئ',
+      stopEnd: 'يتوقف بعد انتهاء السورة',
+      download: 'تحميل',
+      downloadingAudio: 'جارٍ تحميل التلاوة…',
+      downloadDone: 'تم حفظ ملف التلاوة',
+      downloadFail: 'تعذّر تحميل الملف',
     },
     es: {
       radioTitle: 'Radio Islámica',
@@ -139,6 +159,26 @@ const RadioData = {
       voiceTr: 'Leer la traducción en voz alta',
       voiceTrOn: 'Traducción hablada activada — se lee tras cada aleya',
       voiceTrOff: 'Traducción hablada desactivada',
+      // v1.0.74
+      liveStream: 'En directo',
+      liveMujawwad: 'En directo (muyawwad)',
+      pickSurah: 'Elegir sura',
+      noLive: 'Este recitador no tiene emisión en directo — elige una sura',
+      surahsCount: 'suras',
+      rep_off: 'Sin repetición',
+      rep_one_s: 'Sura',
+      rep_all_s: 'Continuo',
+      rep_random_s: 'Aleatorio',
+      rep_off_s: 'Sin',
+      syncExact: 'Sincronización exacta con la recitación',
+      syncApprox: 'Sincronización aproximada (sin tiempos oficiales para este recitador)',
+      surahUnavailable: 'Esta sura no está disponible para este recitador',
+      reciterSurahs: 'Suras del recitador',
+      stopEnd: 'Se detiene al acabar la sura',
+      download: 'Descargar',
+      downloadingAudio: 'Descargando la recitación…',
+      downloadDone: 'Archivo de recitación guardado',
+      downloadFail: 'No se pudo descargar el archivo',
     },
     en: {
       radioTitle: 'Islamic Radio',
@@ -206,6 +246,26 @@ const RadioData = {
       voiceTr: 'Read the translation aloud',
       voiceTrOn: 'Spoken translation on — read after each ayah',
       voiceTrOff: 'Spoken translation off',
+      // v1.0.74
+      liveStream: 'Live stream',
+      liveMujawwad: 'Live stream (Mujawwad)',
+      pickSurah: 'Choose surah',
+      noLive: 'No live stream for this reciter — choose a surah',
+      surahsCount: 'surahs',
+      rep_off: 'No repeat',
+      rep_one_s: 'Surah',
+      rep_all_s: 'Continuous',
+      rep_random_s: 'Shuffle',
+      rep_off_s: 'Off',
+      syncExact: 'Exact sync with the recitation',
+      syncApprox: 'Approximate sync (no official timing for this reciter)',
+      surahUnavailable: 'This surah is not available for this reciter',
+      reciterSurahs: 'Reciter surahs',
+      stopEnd: 'Stops when the surah ends',
+      download: 'Download',
+      downloadingAudio: 'Downloading recitation…',
+      downloadDone: 'Recitation file saved',
+      downloadFail: 'Could not download the file',
     },
   },
 
@@ -222,6 +282,35 @@ const RadioData = {
     quran: 'https://sspark.genspark.ai/i/7AOKvZ7Zl2un2v8z?width=1200',
     quran2: 'https://sspark.genspark.ai/i/BPbgoCK2wl758OD1?width=1200',
     language: 'https://sspark.genspark.ai/i/X2HS5tYJf7wpiSOq?width=1200',
+    // v1.0.74: صور الإذاعات المرفقة من المستخدم (محلية — تعمل أوفلاين)
+    cairo: 'assets/radio/st_cairo.webp',
+    jordan: 'assets/radio/st_jordan.webp',
+    palestine: 'assets/radio/st_palestine.webp',
+  },
+
+  IMG_FALLBACK: 'assets/radio-placeholder.svg',
+
+  imgUrl(key) { return (key && (this.IMG[key] || (/[\/.]/.test(key) ? key : ''))) || ''; },
+
+  bgImage(url) {
+    return url
+      ? `url('${url}'), url('${this.IMG_FALLBACK}')`
+      : `url('${this.IMG_FALLBACK}')`;
+  },
+
+  // ============ v1.0.74: روابط البث ============
+  // qurango.net (الرئيسي) أولاً ثم backup.qurango.net احتياطياً — فُحص كلاهما:
+  // backup يعيد 500 بشكل متقطع، والرئيسي يعيد 502 أحياناً؛ لذلك نجرّب الاثنين.
+  qg(slug) { return ['https://qurango.net/radio/' + slug, 'https://backup.qurango.net/radio/' + slug]; },
+
+  // قائمة الروابط المرشّحة لمحطة (تُجرَّب بالترتيب عند الفشل)
+  streamCands(st) {
+    if (!st) return [];
+    if (st.slug) return this.qg(st.slug);
+    const out = [];
+    if (st.url) out.push(st.resolve ? { url: st.url, resolve: true } : st.url);
+    (st.alts || []).forEach(u => out.push(u));
+    return out;
   },
 
   // ============ الإذاعات الرئيسية ============
@@ -230,98 +319,223 @@ const RadioData = {
       id: 'cairo',
       name: { ar: 'إذاعة القرآن الكريم من القاهرة', es: 'Radio del Sagrado Corán — El Cairo', en: 'Holy Quran Radio — Cairo' },
       descKey: 'stationCairoDesc',
-      url: 'https://stream.radiojar.com/0tpy1h0kxtzuv',
-      img: 'kaaba',
+      // v1.0.74 FIX: المعرّف السابق (0tpy1h0kxtzuv) كان «Saudi Quran Radio» وليس القاهرة.
+      // radiojar يحوّل (302) إلى عقدة http:// تُحجب في التطبيق (https فقط) —
+      // resolve=true: يُحلّ التحويل أصلياً وتُشغَّل العقدة نفسها عبر https.
+      url: 'https://stream.radiojar.com/8s5u5tpdtwzuv',
+      resolve: true,
+      img: 'cairo',
     },
     {
       id: 'jordan',
       name: { ar: 'إذاعة القرآن الكريم — الأردن', es: 'Radio del Corán — Jordania', en: 'Quran Radio — Jordan' },
       descKey: 'stationJordanDesc',
       url: 'https://jrtv-live.ercdn.net/jrradio/quranradio.m3u8',
-      img: 'kaaba2',
+      img: 'jordan',
     },
     {
       id: 'palestine',
       name: { ar: 'إذاعة القرآن الكريم — نابلس، فلسطين', es: 'Radio del Corán — Nablus, Palestina', en: 'Quran Radio — Nablus, Palestine' },
       descKey: 'stationPalestineDesc',
-      url: 'https://streaming.zaytonatube.com:8081/holyquran/holyquran/index.m3u8',
-      img: 'quran2',
+      // v1.0.74: البث الصوتي الرسمي للإذاعة (Shoutcast، صوت فقط) — رابط HLS
+      // السابق بث فيديو ثقيل (~6Mbps) ويرفض الاتصالات الزائدة (503).
+      url: 'https://quran-radio.org:8899/;',
+      alts: ['https://streaming.zaytonatube.com:8081/holyquran/holyquran/index.m3u8'],
+      img: 'palestine',
     },
     {
       id: 'mix',
       name: { ar: 'إذاعة التلاوات المتنوعة — لعدد من القرّاء', es: 'Emisora general — varios recitadores', en: 'General station — various reciters' },
       descKey: 'stationMixDesc',
-      url: 'https://backup.qurango.net/radio/mix',
+      slug: 'mix',
       img: 'quran',
     },
   ],
 
-  // ============ القرّاء (بث متواصل ٢٤/٧ — MP3Quran / qurango) ============
+  // ============ v1.0.74: القرّاء — قائمة موحّدة (بث مباشر + سور كاملة + آية/آية) ============
+  // live:   محطات qurango الخاصة بالقارئ ({slug, k:'liveStream'|'liveMujawwad'})
+  // server: مجلد MP3Quran للسور الكاملة (SSS.mp3) — تُستخدم في «اختيار سورة»
+  // list:   السور المتوفرة (إن لم تكن ١١٤ كاملة)
+  // read:   معرّف ayat_timing في MP3Quran (توقيت كل آية داخل ملف السورة)
+  // ea:     مجلد everyayah.com (آية/آية) — مزامنة دقيقة للترجمة الحية
+  // img:    صورة القارئ (من الصور المرفقة) — بدونها يظهر الحرف الأول
   RECITERS: [
-    { id: 'maher',    name: { ar: 'ماهر المعيقلي', es: 'Maher Al-Muaiqly', en: 'Maher Al-Muaiqly' },      url: 'https://backup.qurango.net/radio/maher', img: 'kaaba2' },
-    { id: 'balushi',  name: { ar: 'هزاع البلوشي', es: 'Hazza Al-Balushi', en: 'Hazza Al-Balushi' },       url: 'https://backup.qurango.net/radio/hazza_albalushi', img: 'quran' },
-    { id: 'minshawi', name: { ar: 'محمد صديق المنشاوي', es: 'M. Siddiq Al-Minshawi', en: 'M. Siddiq Al-Minshawi' }, url: 'https://backup.qurango.net/radio/mohammed_siddiq_alminshawi', img: 'quran2' },
-    { id: 'minshawi_mj', name: { ar: 'المنشاوي (مجوَّد)', es: 'Al-Minshawi (Muyawwad)', en: 'Al-Minshawi (Mujawwad)' }, url: 'https://backup.qurango.net/radio/mohammed_siddiq_alminshawi_mojawwad', img: 'quran' },
-    { id: 'hussary',  name: { ar: 'محمود خليل الحصري', es: 'M. Khalil Al-Husary', en: 'M. Khalil Al-Husary' }, url: 'https://backup.qurango.net/radio/mahmoud_khalil_alhussary', img: 'kaaba' },
-    { id: 'hussary_mj', name: { ar: 'الحصري (مجوَّد)', es: 'Al-Husary (Muyawwad)', en: 'Al-Husary (Mujawwad)' }, url: 'https://backup.qurango.net/radio/mahmoud_khalil_alhussary_mojawwad', img: 'kaaba2' },
-    { id: 'tarateel', name: { ar: 'تراتيل قصيرة متميزة', es: 'Tarâteel cortas selectas', en: 'Short selected Tarateel' }, url: 'https://backup.qurango.net/radio/tarateel', img: 'quran2' },
-    // v57: المزيد من القرّاء (بث متواصل ٢٤/٧ من MP3Quran)
-    { id: 'sudais',   name: { ar: 'عبدالرحمن السديس', es: 'Abdulrahman Al-Sudais', en: 'Abdulrahman Al-Sudais' }, url: 'https://backup.qurango.net/radio/abdulrahman_alsudaes', img: 'kaaba' },
-    { id: 'shuraim',  name: { ar: 'سعود الشريم', es: 'Saud Al-Shuraim', en: 'Saud Al-Shuraim' }, url: 'https://backup.qurango.net/radio/saud_alshuraim', img: 'kaaba2' },
-    { id: 'ghamdi',   name: { ar: 'سعد الغامدي', es: 'Saad Al-Ghamdi', en: 'Saad Al-Ghamdi' }, url: 'https://backup.qurango.net/radio/saad_alghamdi', img: 'quran' },
-    { id: 'ajmy',     name: { ar: 'أحمد بن علي العجمي', es: 'Ahmed Al-Ajmi', en: 'Ahmed Al-Ajmi' }, url: 'https://backup.qurango.net/radio/ahmad_alajmy', img: 'quran2' },
-    { id: 'juhany',   name: { ar: 'عبدالله عواد الجهني', es: 'Abdullah Awad Al-Juhany', en: 'Abdullah Awad Al-Juhany' }, url: 'https://backup.qurango.net/radio/abdullah_aljohany', img: 'kaaba' },
-    { id: 'qatami',   name: { ar: 'ناصر القطامي', es: 'Nasser Al-Qatami', en: 'Nasser Al-Qatami' }, url: 'https://backup.qurango.net/radio/nasser_alqatami', img: 'quran' },
-    { id: 'dosari',   name: { ar: 'ياسر الدوسري', es: 'Yasser Al-Dosari', en: 'Yasser Al-Dosari' }, url: 'https://backup.qurango.net/radio/yasser_aldosari', img: 'quran2' },
-    { id: 'banna',    name: { ar: 'محمود علي البنا', es: 'Mahmoud Ali Al-Banna', en: 'Mahmoud Ali Al-Banna' }, url: 'https://backup.qurango.net/radio/mahmoud_ali__albanna', img: 'kaaba2' },
-    { id: 'abdulbasit', name: { ar: 'عبدالباسط عبدالصمد', es: 'Abdulbasit Abdulsamad', en: 'Abdulbasit Abdulsamad' }, url: 'https://backup.qurango.net/radio/abdulbasit_abdulsamad', img: 'quran' },
-    { id: 'jibreel',  name: { ar: 'محمد جبريل', es: 'Muhammad Jibreel', en: 'Muhammad Jibreel' }, url: 'https://backup.qurango.net/radio/mohammed_jibreel', img: 'kaaba' },
-    { id: 'shatri',   name: { ar: 'أبو بكر الشاطري', es: 'Abu Bakr Al-Shatri', en: 'Abu Bakr Al-Shatri' }, url: 'https://backup.qurango.net/radio/shaik_abu_bakr_al_shatri', img: 'quran2' },
-    { id: 'ayyub',    name: { ar: 'محمد أيوب', es: 'Muhammad Ayyub', en: 'Muhammad Ayyub' }, url: 'https://backup.qurango.net/radio/mohammed_ayyub', img: 'kaaba2' },
+    { id: 'dosari', name: { ar: 'ياسر الدوسري', es: 'Yasser Al-Dosari', en: 'Yasser Al-Dosari' }, img: 'assets/radio/r_dosari.webp',
+      live: [{ slug: 'yasser_aldosari' }], server: 'https://cdn.mp3quran.net/audio/yasser-dosari/r1/', read: 92, ea: 'Yasser_Ad-Dussary_128kbps' },
+    { id: 'luhaidan', name: { ar: 'محمد اللحيدان', es: 'Muhammad Al-Luhaidan', en: 'Muhammad Al-Luhaidan' }, img: 'assets/radio/r_luhaidan.webp',
+      live: [{ slug: 'mohammed_allohaidan' }], server: 'https://cdn.mp3quran.net/audio/muhammad-luhaidan/r1/' },
+    { id: 'nuaina', name: { ar: 'أحمد نعينع', es: 'Ahmad Nuaina', en: 'Ahmad Nuaina' }, img: 'assets/radio/r_nuaina.webp',
+      live: [{ slug: 'ahmad_nauina' }], server: 'https://cdn.mp3quran.net/audio/ahmad-naina/r1/', read: 9, ea: 'Ahmed_Neana_128kbps' },
+    { id: 'binhumaid', name: { ar: 'أحمد طالب بن حميد', es: 'Ahmad Talib bin Humaid', en: 'Ahmad Talib bin Humaid' }, img: 'assets/radio/r_binhumaid.webp',
+      live: [{ slug: 'a_binhameed' }], server: 'https://cdn.mp3quran.net/audio/ahmad-humaid/r1/', read: 137,
+      list: '1,2,3,4,5,6,7,8,10,11,12,13,15,18,19,20,21,22,25,26,27,28,29,30,31,32,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114' },
+    { id: 'islam', name: { ar: 'إسلام صبحي', es: 'Islam Sobhi', en: 'Islam Sobhi' }, img: 'assets/radio/r_islam.webp',
+      live: [], server: 'https://cdn.mp3quran.net/audio/islam-sobhi/r1/',
+      list: '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,38,41,42,43,44,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114' },
+    { id: 'maher', name: { ar: 'ماهر المعيقلي', es: 'Maher Al-Muaiqly', en: 'Maher Al-Muaiqly' }, img: 'assets/radio/r_maher.webp',
+      live: [{ slug: 'maher' }], server: 'https://cdn.mp3quran.net/audio/maher-muaiqly/r1/', ea: 'MaherAlMuaiqly128kbps' },
+    { id: 'balushi', name: { ar: 'هزاع البلوشي', es: 'Hazza Al-Balushi', en: 'Hazza Al-Balushi' }, img: 'assets/radio/r_balushi.webp',
+      live: [{ slug: 'hazza' }], server: 'https://cdn.mp3quran.net/audio/hazza-balushi/r1/',
+      list: '1,6,8,12,13,14,15,17,18,19,20,21,22,25,29,30,31,32,34,35,36,37,38,39,40,41,42,43,44,45,46,47,49,50,51,52,53,54,55,56,57,61,63,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114' },
+    { id: 'minshawi', name: { ar: 'محمد صديق المنشاوي', es: 'M. Siddiq Al-Minshawi', en: 'M. Siddiq Al-Minshawi' }, img: 'assets/radio/r_minshawi.webp',
+      live: [{ slug: 'mohammed_siddiq_alminshawi' }, { slug: 'mohammed_siddiq_alminshawi_mojawwad', k: 'liveMujawwad' }],
+      server: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/', read: 112, ea: 'Minshawy_Murattal_128kbps' },
+    // v1.0.82: قراءة ثانية للمنشاوي — «المصحف المعلّم» (ترديد الطفل بعد كل آية).
+    // المجلد مؤكَّد من واجهة MP3Quran البرمجية (moshaf «المصحف المعلم»، ١١٤ سورة).
+    { id: 'minshawi_mlm', name: { ar: 'المنشاوي — المصحف المعلّم (ترديد الطفل)', es: 'M. Siddiq Al-Minshawi — Corán del maestro (el niño repite)', en: 'M. Siddiq Al-Minshawi — Teaching Quran (child repeats)' }, img: 'assets/radio/r_minshawi.webp',
+      live: [], server: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r3/' },
+    { id: 'hussary', name: { ar: 'محمود خليل الحصري', es: 'M. Khalil Al-Husary', en: 'M. Khalil Al-Husary' }, img: 'assets/radio/r_hussary.webp',
+      live: [{ slug: 'mahmoud_khalil_alhussary' }, { slug: 'mahmoud_khalil_alhussary_mojawwad', k: 'liveMujawwad' }],
+      server: 'https://cdn.mp3quran.net/audio/mahmoud-husary/r1/', read: 118, ea: 'Husary_128kbps' },
+    { id: 'abdulbasit', name: { ar: 'عبدالباسط عبدالصمد', es: 'Abdulbasit Abdulsamad', en: 'Abdulbasit Abdulsamad' }, img: 'assets/radio/r_abdulbasit.webp',
+      live: [{ slug: 'abdulbasit_abdulsamad' }, { slug: 'abdulbasit_abdulsamad_mojawwad', k: 'liveMujawwad' }],
+      server: 'https://cdn.mp3quran.net/audio/abdulbasit-abdulsamad/r3/', read: 53, ea: 'Abdul_Basit_Murattal_192kbps' },
+    { id: 'banna', name: { ar: 'محمود علي البنا', es: 'Mahmoud Ali Al-Banna', en: 'Mahmoud Ali Al-Banna' }, img: 'assets/radio/r_banna.webp',
+      live: [{ slug: 'mahmoud_ali__albanna' }, { slug: 'mahmoud_ali__albanna_mojawwad', k: 'liveMujawwad' }],
+      server: 'https://cdn.mp3quran.net/audio/mahmoud-banna/r1/', ea: 'mahmoud_ali_al_banna_32kbps' },
+    { id: 'sudais', name: { ar: 'عبدالرحمن السديس', es: 'Abdulrahman Al-Sudais', en: 'Abdulrahman Al-Sudais' }, img: 'assets/radio/r_sudais.webp',
+      live: [{ slug: 'abdulrahman_alsudaes' }], server: 'https://cdn.mp3quran.net/audio/abdulrahman-sudais/r1/', read: 54, ea: 'Abdurrahmaan_As-Sudais_192kbps' },
+    { id: 'shuraim', name: { ar: 'سعود الشريم', es: 'Saud Al-Shuraim', en: 'Saud Al-Shuraim' }, img: 'assets/radio/r_shuraim.webp',
+      live: [{ slug: 'saud_alshuraim' }], server: 'https://cdn.mp3quran.net/audio/saud-shuraim/r1/', read: 31, ea: 'Saood_ash-Shuraym_128kbps' },
+    { id: 'ghamdi', name: { ar: 'سعد الغامدي', es: 'Saad Al-Ghamdi', en: 'Saad Al-Ghamdi' }, img: 'assets/radio/r_ghamdi.webp',
+      live: [{ slug: 'saad_alghamdi' }], server: 'https://cdn.mp3quran.net/audio/saad-ghamdi/r1/', read: 30, ea: 'Ghamadi_40kbps' },
+    { id: 'qatami', name: { ar: 'ناصر القطامي', es: 'Nasser Al-Qatami', en: 'Nasser Al-Qatami' }, img: 'assets/radio/r_qatami.webp',
+      live: [{ slug: 'nasser_alqatami' }], server: 'https://cdn.mp3quran.net/audio/nasser-qatami/r1/', read: 86, ea: 'Nasser_Alqatami_128kbps' },
+    { id: 'juhany', name: { ar: 'عبدالله عواد الجهني', es: 'Abdullah Awad Al-Juhany', en: 'Abdullah Awad Al-Juhany' }, img: 'assets/radio/r_juhany.webp',
+      live: [{ slug: 'abdullah_aljohany' }], server: 'https://cdn.mp3quran.net/audio/abdullah-juhani/r1/', read: 62, ea: 'Abdullaah_3awwaad_Al-Juhaynee_128kbps' },
+    { id: 'ajmy', name: { ar: 'أحمد بن علي العجمي', es: 'Ahmed Al-Ajmi', en: 'Ahmed Al-Ajmi' }, img: 'assets/radio/r_ajmy.webp',
+      live: [{ slug: 'ahmad_alajmy' }], server: 'https://cdn.mp3quran.net/audio/ahmad-ajmi/r1/', read: 5, ea: 'Ahmed_ibn_Ali_al-Ajamy_128kbps_ketaballah.net' },
+    { id: 'shatri', name: { ar: 'أبو بكر الشاطري', es: 'Abu Bakr Al-Shatri', en: 'Abu Bakr Al-Shatri' }, img: 'assets/radio/r_shatri.webp',
+      live: [{ slug: 'shaik_abu_bakr_al_shatri' }], server: 'https://cdn.mp3quran.net/audio/abubakr-shatri/r1/', read: 4, ea: 'Abu_Bakr_Ash-Shaatree_128kbps' },
+    { id: 'ayyub', name: { ar: 'محمد أيوب', es: 'Muhammad Ayyub', en: 'Muhammad Ayyub' }, img: 'assets/radio/r_ayyub.webp',
+      live: [{ slug: 'mohammed_ayyub' }], server: 'https://cdn.mp3quran.net/audio/muhammad-ayyub/r1/', read: 109, ea: 'Muhammad_Ayyoub_128kbps' },
+    { id: 'jibreel', name: { ar: 'محمد جبريل', es: 'Muhammad Jibreel', en: 'Muhammad Jibreel' }, img: 'assets/radio/r_jibreel.webp',
+      live: [{ slug: 'mohammed_jibreel' }], server: 'https://cdn.mp3quran.net/audio/muhammad-jibreel/r1/', ea: 'Muhammad_Jibreel_128kbps' },
   ],
 
-  // ============ v57: قرّاء إضافيون للتلاوة المترجمة (آية/آية — everyayah) ============
-  // (أُزيل قسم «القراءات العشر» بناءً على طلب المستخدم)
-  EXTRA_RECITERS: [
-    // v59: قرّاء بتلاوة سورة كاملة (ملف واحد لكل سورة من خوادم MP3Quran)
-    // server: رابط الخادم الجاهز — تُبنى الأغنية كـ server + SSSAAA.mp3
-    { id: 'luhaidan_tl', folder: 'luhaidan_mp3quran', server: 'https://server8.mp3quran.net/lhdan/', surahTotal: 114, name: { ar: 'محمد اللحيدان', es: 'Muhammad Al-Luhaidan', en: 'Muhammad Al-Luhaidan' } },
-    { id: 'nuaina_tl', folder: 'nuaina_mp3quran', server: 'https://server11.mp3quran.net/ahmad_nu/', surahTotal: 114, name: { ar: 'أحمد نعينع', es: 'Ahmad Nuaina', en: 'Ahmad Nuaina' } },
-    { id: 'islam_tl', folder: 'islam_mp3quran', server: 'https://server14.mp3quran.net/islam/Rewayat-Hafs-A-n-Assem/', surahTotal: 109, surahList: '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,38,41,42,43,44,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114', name: { ar: 'إسلام صبحي', es: 'Islam Sobhi', en: 'Islam Sobhi' } },
-    { id: 'husary_tl',  folder: 'Husary_128kbps', name: { ar: 'محمود خليل الحصري', es: 'M. Khalil Al-Husary', en: 'M. Khalil Al-Husary' } },
-    { id: 'minshawi_tl', folder: 'Minshawy_Murattal_128kbps', name: { ar: 'محمد صديق المنشاوي', es: 'M. Siddiq Al-Minshawi', en: 'M. Siddiq Al-Minshawi' } },
-    { id: 'basit_tl',   folder: 'Abdul_Basit_Murattal_192kbps', name: { ar: 'عبد الباسط عبد الصمد (مرتّل)', es: 'Abdul Basit (Murattal)', en: 'Abdul Basit (Murattal)' } },
-    { id: 'ajmy_tl',    folder: 'Ahmed_ibn_Ali_al-Ajamy_128kbps_ketaballah.net', name: { ar: 'أحمد بن علي العجمي', es: 'Ahmed Al-Ajmi', en: 'Ahmed Al-Ajmi' } },
-    // v61: بديلا العفاسي — الشيخ ياسر الدوسري وهزاع البلوشي (سورة كاملة، خوادم MP3Quran، متحقق منها)
-    { id: 'dosari_tl',  folder: 'dosari_mp3quran',  server: 'https://server11.mp3quran.net/yasser/', surahTotal: 114, name: { ar: 'ياسر الدوسري', es: 'Yasser Al-Dosari', en: 'Yasser Al-Dosari' } },
-    { id: 'balushi_tl', folder: 'balushi_mp3quran', server: 'https://server11.mp3quran.net/hazza/',  surahTotal: 114, name: { ar: 'هزاع البلوشي', es: 'Hazza Al-Balushi', en: 'Hazza Al-Balushi' } },
-  ],
+  reciter(id) { return this.RECITERS.find(r => r.id === id) || null; },
 
-  // ============ الأذكار والرقية الشرعية وتكبيرات العيد ============
+  // السور المتوفرة لقارئ (مصفوفة أرقام)
+  surahsFor(r) {
+    if (!r) return [];
+    if (r._list) return r._list;
+    r._list = r.list ? r.list.split(',').map(Number).filter(n => n >= 1 && n <= 114)
+                     : Array.from({ length: 114 }, (_, i) => i + 1);
+    return r._list;
+  },
+
+  hasSurah(r, n) { return this.surahsFor(r).indexOf(Number(n)) >= 0; },
+
+  surahFileUrl(r, n) { return r && r.server ? r.server + String(n).padStart(3, '0') + '.mp3' : ''; },
+
+  // المحطة (بث مباشر) لقارئ
+  liveStation(r, i) {
+    const lv = r && r.live && r.live[i || 0];
+    if (!lv) return null;
+    return { id: r.id + '_live' + (i || 0), slug: lv.slug, name: r.name, img: r.img, k: lv.k || 'liveStream', rid: r.id };
+  },
+
+  // الحروف الأولى للأفاتار الحرفي
+  initials(r) {
+    const n = (r && r.name && (r.name.ar || r.name.en)) || '';
+    const w = n.replace(/^(ال)/, '').split(/\s+/).filter(Boolean);
+    return (w[0] ? w[0][0] : '') + (w[1] ? w[1].replace(/^ال/, '')[0] : '');
+  },
+
+  avatarHtml(r, cls) {
+    const c = cls || 'rc-av';
+    if (r && r.img) return `<img class="${c}" src="${r.img}" alt="" loading="lazy" onerror="this.outerHTML='<span class=&quot;${c} rc-ini&quot;>${this.initials(r)}</span>'">`;
+    return `<span class="${c} rc-ini">${this.initials(r)}</span>`;
+  },
+
+  // ============ الأذكار والرقية الشرعية وتكبيرات العيد والتراتيل ============
   EXTRA: [
-    { id: 'eid',    name: { ar: 'تكبيرات العيد', es: 'Takbirât del Eid', en: 'Eid Takbeer' },            url: 'https://backup.qurango.net/radio/eid', img: 'kaaba', badge: '🌙' },
-    { id: 'roqiah', name: { ar: 'الرقية الشرعية', es: 'Ruqiah legal (sharʿí)', en: 'Ruqyah Shariah' },   url: 'https://backup.qurango.net/radio/roqiah', img: 'quran2', badge: '🤲' },
-    { id: 'adhkar_s', name: { ar: 'أذكار الصباح', es: 'Adhkar de la mañana', en: 'Morning Adhkar' },     url: 'https://backup.qurango.net/radio/athkar_sabah', img: 'kaaba2', badge: '🌅' },
-    { id: 'adhkar_m', name: { ar: 'أذكار المساء', es: 'Adhkar de la tarde', en: 'Evening Adhkar' },      url: 'https://backup.qurango.net/radio/athkar_masa', img: 'kaaba2', badge: '🌇' },
-    { id: 'sira',   name: { ar: 'في ظلال السيرة النبوية', es: 'A la sombra de la Sîra', en: 'In the Shade of the Seerah' }, url: 'https://backup.qurango.net/radio/fi_zilal_alsiyra', img: 'quran', badge: '📜' },
-    { id: 'sahabah', name: { ar: 'صور من حياة الصحابة', es: 'Escenas de la vida de los Compañeros', en: 'Scenes from the Companions’ lives' }, url: 'https://backup.qurango.net/radio/sahabah', img: 'quran2', badge: '🕌' },
+    { id: 'eid',    name: { ar: 'تكبيرات العيد', es: 'Takbirât del Eid', en: 'Eid Takbeer' }, slug: 'eid', img: 'kaaba', badge: '🌙' },
+    { id: 'roqiah', name: { ar: 'الرقية الشرعية', es: 'Ruqiah legal (sharʿí)', en: 'Ruqyah Shariah' }, slug: 'roqiah', img: 'quran2', badge: '🤲' },
+    { id: 'adhkar_s', name: { ar: 'أذكار الصباح', es: 'Adhkar de la mañana', en: 'Morning Adhkar' }, slug: 'athkar_sabah', img: 'kaaba2', badge: '🌅' },
+    { id: 'adhkar_m', name: { ar: 'أذكار المساء', es: 'Adhkar de la tarde', en: 'Evening Adhkar' }, slug: 'athkar_masa', img: 'kaaba2', badge: '🌇' },
+    { id: 'tarateel', name: { ar: 'تراتيل قصيرة متميزة', es: 'Tarâteel cortas selectas', en: 'Short selected Tarateel' }, slug: 'tarateel', img: 'quran2', badge: '🎧' },
+    { id: 'sira',   name: { ar: 'في ظلال السيرة النبوية', es: 'A la sombra de la Sîra', en: 'In the Shade of the Seerah' }, slug: 'fi_zilal_alsiyra', img: 'quran', badge: '📜' },
+    { id: 'sahabah', name: { ar: 'صور من حياة الصحابة', es: 'Escenas de la vida de los Compañeros', en: 'Scenes from the Companions’ lives' }, slug: 'sahabah', img: 'quran2', badge: '🕌' },
   ],
 
   // ============ v58: قرآن قبل النوم — سور هادئة تُشغَّل بالتتابع ============
   SLEEP_SURAHS: [67, 32, 55, 56, 112, 113, 114],
-
-  // ============ التلاوة المترجمة (آية/آية عبر everyayah — متحقق منه) ============
-  // v61: أُزيل العفاسي نهائيًا من كل أقسام الراديو — الدوسري (آية/آية عبر everyayah) هو الافتراضي
-  AV_RECITERS: [
-    { id: 'dosari', folder: 'Dussary_128kbps', name: { ar: 'ياسر الدوسري', es: 'Yasser Al-Dosari', en: 'Yasser Al-Dosari' } },
-    { id: 'abdulsamad', folder: 'AbdulSamad_64kbps_QuranExplorer.Com', name: { ar: 'عبد الباسط عبد الصمد', es: 'Abdul Basit Abdul Samad', en: 'Abdul Basit Abdul Samad' } },
-  ],
+  SLEEP_RECITER: 'dosari',
 
   ayahUrl(folder, surah, ayah) {
     const p = (n) => String(n).padStart(3, '0');
-    // v59: خادم MP3Quran يُمرَّر كاملاً (http…) — الملف SSSAAA.mp3 مباشرة عليه
     if (/^https?:\/\//.test(folder)) return folder + p(surah) + p(ayah) + '.mp3';
     return `https://everyayah.com/data/${folder}/${p(surah)}${p(ayah)}.mp3`;
+  },
+
+  // ============ v1.0.74: توقيت الآيات داخل ملف السورة الكاملة ============
+  // MP3Quran ayat_timing (CORS *) — [{ayah,start_time,end_time}] بالمللي ثانية.
+  // يُخزَّن محلياً بعد أول جلب. للقرّاء غير المدعومين (اللحيدان، إسلام صبحي،
+  // البلوشي...) نقدّر التوقيت تناسبياً مع طول نص كل آية (مزامنة تقريبية).
+  _tmMem: {},
+  async getTimings(read, surah) {
+    if (!read || !surah) return null;
+    const key = read + '_' + surah;
+    if (this._tmMem[key]) return this._tmMem[key];
+    const lsKey = 'quba_radio_tm_' + key;
+    try {
+      const raw = localStorage.getItem(lsKey);
+      if (raw) { const v = JSON.parse(raw); if (Array.isArray(v) && v.length) { this._tmMem[key] = v; return v; } }
+    } catch (e) {}
+    try {
+      const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const to = ctl ? setTimeout(() => ctl.abort(), 12000) : null;
+      const r = await fetch(`https://www.mp3quran.net/api/v3/ayat_timing?surah=${surah}&read=${read}`, ctl ? { signal: ctl.signal } : undefined);
+      if (to) clearTimeout(to);
+      if (!r.ok) return null;
+      const j = await r.json();
+      const v = (Array.isArray(j) ? j : [])
+        .filter(x => x && Number(x.ayah) >= 1)
+        .map(x => [Number(x.ayah), Number(x.start_time) || 0, Number(x.end_time) || 0])
+        .sort((a, b) => a[0] - b[0]);
+      if (!v.length) return null;
+      this._tmMem[key] = v;
+      try { localStorage.setItem(lsKey, JSON.stringify(v)); } catch (e) {}
+      return v;
+    } catch (e) { return null; }
+  },
+
+  // تقدير تناسبي: [[ayah,start,end]...] لمدة إجمالية durMs
+  estimateTimings(surah, durMs) {
+    const info = this.surahInfo(surah);
+    if (!info.ayahs || !durMs || durMs <= 0) return null;
+    const strip = (t) => String(t || '').replace(/[\u064B-\u065F\u0670\u06D6-\u06ED\s]/g, '');
+    const w = [];
+    for (let i = 1; i <= info.ayahs; i++) w.push(Math.max(4, strip(this.arabicAyah(surah, i)).length || 20));
+    // البسملة في أول الملف (ما عدا الفاتحة — آيتها الأولى — والتوبة)
+    const lead = (surah !== 1 && surah !== 9) ? 19 : 0;
+    const total = w.reduce((a, b) => a + b, 0) + lead;
+    const out = [];
+    let acc = lead;
+    for (let i = 0; i < w.length; i++) {
+      const st = Math.round(acc / total * durMs);
+      acc += w[i];
+      out.push([i + 1, st, Math.round(acc / total * durMs)]);
+    }
+    return out;
+  },
+
+  // رقم الآية عند الموضع ms ضمن جدول توقيت
+  ayahAt(tm, ms) {
+    if (!tm || !tm.length) return 0;
+    let lo = 0, hi = tm.length - 1, ans = 0;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (tm[mid][1] <= ms) { ans = mid; lo = mid + 1; } else hi = mid - 1;
+    }
+    return tm[ans][0];
+  },
+
+  ayahStart(tm, n) {
+    if (!tm) return null;
+    const e = tm.find(x => x[0] === n);
+    return e ? e[1] : null;
   },
 
   // [رقم، الاسم العربي، الاسم الإسباني، الاسم الإنجليزي، عدد الآيات]
@@ -440,10 +654,20 @@ const RadioData = {
       }
     } catch (e) { console.warn('RadioData.getTranslation:', e); }
     // تحويل إلى خريطة رقم الآية → النص
+    // المصادر المحتملة: مصفوفة [{ayah,text}] أو كائن خريطة {n: text}
+    // (GarciaData.getSurahTranslation يعيد كائنًا لا مصفوفة — كان يُهمَل سابقًا)
     let map = null;
     if (Array.isArray(out)) {
       map = {};
-      out.forEach(t => { map[t.ayah] = t.text; });
+      out.forEach(t => { if (t && t.ayah != null) map[t.ayah] = t.text; });
+    } else if (out && typeof out === 'object') {
+      map = {};
+      for (const k in out) {
+        const v = out[k];
+        if (v == null) continue;
+        map[k] = (typeof v === 'object') ? (v.text != null ? v.text : (v.translation || '')) : v;
+      }
+      if (!Object.keys(map).length) map = null;
     }
     this._trMem[key] = map;
     return map;

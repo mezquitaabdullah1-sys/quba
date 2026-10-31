@@ -185,6 +185,38 @@ const Cities = {
   },
 
   /**
+   * v122: بحث في كل مدن العالم (Open-Meteo Geocoding — مجاني بلا مفتاح).
+   * يُستخدم كتوسعة للقائمة المحلية عندما لا يجد البحث المحلي نتيجة.
+   * @returns {Promise<Array>} مدن بالشكل {name, ar, country, countryAr, lat, lon, online:true}
+   */
+  async remoteSearch(query) {
+    const q = String(query || '').trim();
+    if (q.length < 2 || typeof fetch !== 'function') return [];
+    const lang = (typeof currentLocale !== 'undefined' ? currentLocale : 'ar') === 'ar' ? 'ar' : 'en';
+    const url = 'https://geocoding-api.open-meteo.com/v1/search?count=20&format=json'
+      + '&language=' + lang + '&name=' + encodeURIComponent(q);
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) return [];
+      const j = await res.json();
+      return (j.results || []).map(r => ({
+        id: 'remote_' + r.id,
+        name: r.name,
+        ar: r.name,
+        country: r.country || '',
+        countryAr: r.country || '',
+        admin: r.admin1 || '',
+        lat: r.latitude,
+        lon: r.longitude,
+        latitude: r.latitude,
+        longitude: r.longitude,
+        flag: '🌍',
+        online: true,
+      }));
+    } catch (e) { return []; }
+  },
+
+  /**
    * Selector de ciudad con buscador (modal). Reutiliza #modal-overlay/#modal-content.
    * @param {Object} opts { title, currentId, onSelect(city) }
    */
@@ -194,23 +226,90 @@ const Cities = {
     const content = document.getElementById('modal-content');
     if (!overlay || !content) return;
 
-    const renderList = (query) => {
-      const results = this.search(query);
-      const listEl = content.querySelector('#city-picker-list');
-      if (!listEl) return;
-      listEl.innerHTML = results.length
-        ? results.map(c => `
-            <div class="modal-option city-option ${c.id === currentId ? 'selected' : ''}" data-city="${c.id}">
-              ${escapeHtml(this.label(c))}
-            </div>`).join('')
-        : `<div style="padding:16px;text-align:center;color:var(--text-secondary);font-size:13px;">—</div>`;
-      listEl.querySelectorAll('.city-option').forEach(el => {
-        el.addEventListener('click', () => {
-          const city = this.byId(el.dataset.city);
-          closeModal();
-          if (city && typeof onSelect === 'function') onSelect(city);
-        });
+    let remoteSeq = 0;
+    let remoteTimer = null;
+    const L3 = (ar, es, en) => {
+      const l = (typeof currentLocale !== 'undefined' ? currentLocale : 'es');
+      return l === 'ar' ? ar : (l === 'en' ? en : es);
+    };
+    const listBox = () => content.querySelector('#city-picker-list');
+    const localRow = (x) => `
+      <div class="modal-option city-option ${x.id === currentId ? 'selected' : ''}" data-city="${x.id}" data-local="1">
+        ${escapeHtml(this.label(x))}
+      </div>`;
+    const remoteRow = (r) => `
+      <div class="modal-option city-option city-online-option" data-remote="1"
+           data-name="${escapeAttr(r.name)}" data-country="${escapeAttr(r.country || '')}"
+           data-lat="${r.lat}" data-lon="${r.lon}">
+        🌍 ${escapeHtml(r.name)}${r.admin ? ', ' + escapeHtml(r.admin) : ''}${r.country ? ' — ' + escapeHtml(r.country) : ''}
+      </div>`;
+
+    // تفويض واحد للنقر: يعمل مع كل النتائج المحلية والعالمية بعد كل تحديث
+    const bindClicks = () => {
+      const box = listBox();
+      if (!box || box._bound) return;
+      box._bound = true;
+      box.addEventListener('click', (ev) => {
+        const opt = ev.target.closest('.city-option');
+        if (!opt) return;
+        let city = null;
+        if (opt.dataset.remote === '1') {
+          const lat = parseFloat(opt.dataset.lat);
+          const lon = parseFloat(opt.dataset.lon);
+          city = {
+            id: 'remote_' + lat + '_' + lon,
+            name: opt.dataset.name, ar: opt.dataset.name,
+            country: opt.dataset.country || '', countryAr: opt.dataset.country || '',
+            lat: lat, lon: lon, latitude: lat, longitude: lon,
+            flag: '🌍', online: true,
+          };
+        } else {
+          city = this.byId(opt.dataset.city);
+        }
+        if (!city) return;
+        closeModal();
+        if (typeof onSelect === 'function') onSelect(city);
       });
+    };
+
+    // v130: البحث المحلي + بحث عالمي دائم في كل مدن الأرض (لا نتوقف عند 3 نتائج)
+    const renderList = (query) => {
+      const q = String(query || '').trim();
+      const box = listBox();
+      if (!box) return;
+      bindClicks();
+      if (remoteTimer) { clearTimeout(remoteTimer); remoteTimer = null; }
+      if (q.length < 2) {
+        const local = this.search(q);
+        box.innerHTML = `<div class="city-group-label"><i class="fas fa-location-dot"></i> ${L3('مدن مقترحة', 'Ciudades frecuentes', 'Suggested cities')}</div>`
+          + local.map(localRow).join('')
+          + `<div class="city-empty-note">${L3('اكتب حرفين أو أكثر للبحث في كل مدن العالم', 'Escribe 2 letras o más para buscar en todo el mundo', 'Type 2+ letters to search every city worldwide')}</div>`;
+        return;
+      }
+      const local = this.search(q);
+      box.innerHTML = (local.length
+        ? `<div class="city-group-label"><i class="fas fa-list"></i> ${L3('من قائمتك', 'En tu lista', 'In your list')}</div>` + local.map(localRow).join('')
+        : '')
+        + `<div class="city-group-label city-group-world"><i class="fas fa-earth-americas"></i> ${L3('كل مدن العالم', 'Todas las ciudades del mundo', 'All cities worldwide')}</div>`
+        + `<div class="city-remote-hint" id="city-remote-hint"><i class="fas fa-spinner fa-spin"></i> ${L3('جارٍ البحث…', 'Buscando…', 'Searching…')}</div>`;
+      const seq = ++remoteSeq;
+      remoteTimer = setTimeout(() => {
+        this.remoteSearch(q).then(rows => {
+          if (seq !== remoteSeq) return;
+          const hint = content.querySelector('#city-remote-hint');
+          if (hint) hint.remove();
+          const el = listBox();
+          if (!el) return;
+          const known = new Set(local.map(x => this._norm(x.name)));
+          const extra = rows.filter(r => !known.has(this._norm(r.name)));
+          if (!extra.length) {
+            if (!local.length) el.insertAdjacentHTML('beforeend',
+              `<div class="city-empty-note">${L3('لا نتائج — تحقق من الإملاء أو من اتصال الإنترنت', 'Sin resultados — revisa la ortografía o tu conexión', 'No results — check spelling or your connection')}</div>`);
+            return;
+          }
+          el.insertAdjacentHTML('beforeend', extra.map(remoteRow).join(''));
+        });
+      }, 240);
     };
 
     content.innerHTML = `
@@ -221,10 +320,11 @@ const Cities = {
       <div style="padding:0 4px 4px;">
         ${typeof onGps === 'function' ? `
         <div class="modal-option city-option city-gps-option" id="city-picker-gps" role="button" tabindex="0">
-          <i class="fas fa-location-crosshairs"></i>&nbsp; ${escapeHtml(t('useMyLocation') || 'تحديد موقعي (GPS)')}
+          <i class="fas fa-location-crosshairs"></i>&nbsp; ${escapeHtml(t('useMyLocation') || 'تحديد موقعي تلقائيًا (GPS)')}
         </div>` : ''}
         <input type="search" id="city-picker-search" class="city-search-input"
-               placeholder="${escapeAttr(t('searchCity') || 'Buscar ciudad...')}" autocomplete="off">
+               placeholder="${escapeAttr(t('searchWorld') || 'Buscar cualquier ciudad del mundo...')}" autocomplete="off">
+        <div class="city-world-hint"><i class="fas fa-earth-americas"></i> ${escapeHtml(t('searchWorldHint') || '')}</div>
         <div id="city-picker-list" class="modal-options city-picker-list"></div>
       </div>
     `;

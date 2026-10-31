@@ -1572,3 +1572,319 @@
   font-weight: 700;
   font-size: 14px;
 }
+
+/* ===== v129: تصاميم الخرز (ألوان) ===== */
+#misbaha-beads { --bead-a: #6b7078; --bead-b: #16181d; --bead-c: #000000; }
+.misbaha-wrap[data-design="amber"] #misbaha-beads { --bead-a: #6b7078; --bead-b: #16181d; --bead-c: #000000; }
+.misbaha-wrap[data-design="turquoise"] #misbaha-beads { --bead-a: #BFF3EE; --bead-b: #2E9C93; --bead-c: #0A3E3A; }
+.misbaha-wrap[data-design="emerald"] #misbaha-beads { --bead-a: #C8F0D2; --bead-b: #2E8B57; --bead-c: #0B3A24; }
+.misbaha-wrap[data-design="agate"] #misbaha-beads { --bead-a: #F0C9B0; --bead-b: #9B4A2A; --bead-c: #3A1408; }
+.misbaha-wrap[data-design="pearl"] #misbaha-beads { --bead-a: #FFFFFF; --bead-b: #EFE6D2; --bead-c: #B9AC8E; }
+.misbaha-wrap[data-design="wood"] #misbaha-beads { --bead-a: #D9B48A; --bead-b: #8B5E34; --bead-c: #3C2412; }
+.misbaha-wrap[data-design="gold"] #misbaha-beads { --bead-a: #FFF6D0; --bead-b: #D4AF37; --bead-c: #7A5A08; }
+.misbaha-wrap[data-design="night"] #misbaha-beads { --bead-a: #8FA3B8; --bead-b: #2C3A4B; --bead-c: #070C12; }
+
+#misbaha-beads .misbaha-bead {
+  background: radial-gradient(circle at 32% 26%, var(--bead-a) 0%, var(--bead-b) 52%, var(--bead-c) 100%) !important;
+  box-shadow: inset -2px -4px 8px rgba(0, 0, 0, .34), 0 4px 9px rgba(0, 0, 0, .34) !important;
+  border: 0 !important;
+}
+#misbaha-beads .misbaha-bead.shape-ring {
+  background: radial-gradient(circle, rgba(0,0,0,0) 0 38%, var(--bead-b) 44% 70%, var(--bead-a) 86%, var(--bead-c) 100%) !important;
+}
+#misbaha-beads .misbaha-bead.shape-pearl {
+  background: radial-gradient(circle at 30% 24%, #fff 0, var(--bead-a) 26%, var(--bead-b) 70%, var(--bead-c) 100%) !important;
+}
+#misbaha-beads .misbaha-bead.shape-diamond { border-radius: 8% !important; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+#misbaha-beads .misbaha-bead.shape-hex { border-radius: 8% !important; clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%); }
+#misbaha-beads .misbaha-bead.shape-square { border-radius: 22% !important; }
+#misbaha-beads .misbaha-bead.shape-oval { transform-origin: center; border-radius: 50% !important; }
+#misbaha-beads .misbaha-bead.shape-star { border-radius: 6% !important; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+#misbaha-beads .misbaha-bead.shape-octagon { border-radius: 6% !important; clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%); }
+.misbaha-string-path { stroke: var(--bead-c, #8a6a35) !important; }
+
+/* شريط اختيار التصاميم */
+.misbaha-designs { margin-top: 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.misbaha-designs-row { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; }
+.misbaha-design {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 2px solid transparent; background: transparent; padding: 0;
+  display: grid; place-items: center; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.misbaha-design > span { width: 22px; height: 22px; border-radius: 50%; display: block; box-shadow: inset -2px -3px 5px rgba(0,0,0,.35); }
+.misbaha-design.active { border-color: #D4AF37; }
+.misbaha-design.d-amber > span { background: radial-gradient(circle at 32% 26%, #F7E2B4, #C99A45 55%, #5A3A10); }
+.misbaha-design.d-turquoise > span { background: radial-gradient(circle at 32% 26%, #BFF3EE, #2E9C93 55%, #0A3E3A); }
+.misbaha-design.d-emerald > span { background: radial-gradient(circle at 32% 26%, #C8F0D2, #2E8B57 55%, #0B3A24); }
+.misbaha-design.d-agate > span { background: radial-gradient(circle at 32% 26%, #F0C9B0, #9B4A2A 55%, #3A1408); }
+.misbaha-design.d-pearl > span { background: radial-gradient(circle at 32% 26%, #fff, #EFE6D2 55%, #B9AC8E); }
+.misbaha-design.d-wood > span { background: radial-gradient(circle at 32% 26%, #D9B48A, #8B5E34 55%, #3C2412); }
+.misbaha-design.d-gold > span { background: radial-gradient(circle at 32% 26%, #FFF6D0, #D4AF37 55%, #7A5A08); }
+.misbaha-design.d-night > span { background: radial-gradient(circle at 32% 26%, #8FA3B8, #2C3A4B 55%, #070C12); }
+
+/* معاينات الأشكال (مصغّرة ملوّنة) */
+.misbaha-shape .shape-preview { width: 18px; height: 18px; display: block; background: radial-gradient(circle at 32% 26%, #F7E2B4, #C99A45 55%, #5A3A10); box-shadow: inset -1px -2px 3px rgba(0,0,0,.32); }
+.shape-preview.shape-round { border-radius: 50%; }
+.shape-preview.shape-pearl { border-radius: 50%; background: radial-gradient(circle at 30% 24%, #fff, #EFE6D2 50%, #B9AC8E); }
+.shape-preview.shape-oval { border-radius: 50%; transform: scaleX(.72); }
+.shape-preview.shape-diamond { border-radius: 8%; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.shape-preview.shape-hex { border-radius: 8%; clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%); }
+.shape-preview.shape-square { border-radius: 22%; }
+.shape-preview.shape-ring { border-radius: 50%; background: radial-gradient(circle, rgba(0,0,0,0) 0 36%, #C99A45 44% 72%, #F7E2B4 88%); }
+.shape-preview.shape-star { border-radius: 6%; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+.shape-preview.shape-octagon { border-radius: 6%; clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%); }
+
+/* ===== v129: الشريط الجانبي (الوضع + إعادة العدّاد) ===== */
+.tasbih-rail {
+  position: fixed !important;
+  inset-inline-end: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 65;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.t-rail-btn {
+  width: 46px; height: 46px; border-radius: 16px;
+  display: grid; place-items: center;
+  background: rgba(15, 76, 58, .92);
+  border: 1px solid rgba(212, 175, 55, .55);
+  color: #FFE9B5; font-size: 1.02rem;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .18);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .14s ease, background .2s ease;
+}
+[data-theme="dark"] .t-rail-btn { background: rgba(9, 46, 38, .95); }
+.t-rail-btn:active { transform: scale(.92); background: rgba(212, 175, 55, .35); }
+body.tasbih-active #bottom-nav,
+body.tasbih-active .bottom-nav { z-index: 40; }
+
+/* زر تعديل الهدف: قابل للنقر دائمًا */
+.tasbih-target { position: relative; z-index: 6; }
+.tasbih-target-edit, .misbaha-target-edit { position: relative; z-index: 7; pointer-events: auto !important; }
+
+/* ===================================================================
+   v130 — المسبحة: الأسود أساسي + تصاميم خرز حقيقية + نافذة الألوان
+   =================================================================== */
+
+/* ملاحظة: المتغيّرات تُعرَّف على .misbaha-wrap وعلى معاينات النافذة معًا
+   حتى تُرسم الخرزة والمعاينة من نفس المصدر تمامًا. */
+.misbaha-wrap[data-design="black"], .bd-prev[data-design="black"] {
+  --bead-a:#6b7078; --bead-b:#16181d; --bead-c:#000000;
+  --bead-pat: linear-gradient(150deg, rgba(255,255,255,.30) 0%, rgba(255,255,255,.07) 26%, rgba(255,255,255,0) 54%);
+}
+.misbaha-wrap[data-design="onyx"], .bd-prev[data-design="onyx"] {
+  --bead-a:#4a4e55; --bead-b:#101216; --bead-c:#000000;
+  --bead-pat: repeating-linear-gradient(116deg, rgba(255,255,255,.34) 0 1px, rgba(255,255,255,0) 1px 9px), linear-gradient(150deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 55%);
+}
+.misbaha-wrap[data-design="marble"], .bd-prev[data-design="marble"] {
+  --bead-a:#ffffff; --bead-b:#d3ccc1; --bead-c:#6a6357;
+  --bead-pat: repeating-linear-gradient(118deg, rgba(255,255,255,.72) 0 1px, rgba(255,255,255,0) 1px 7px), radial-gradient(circle at 22% 82%, rgba(70,62,52,.30), rgba(70,62,52,0) 58%);
+}
+.misbaha-wrap[data-design="striped"], .bd-prev[data-design="striped"] {
+  --bead-a:#e9e3d2; --bead-b:#b9ad8f; --bead-c:#2b2415;
+  --bead-pat: repeating-linear-gradient(90deg, rgba(30,22,6,.55) 0 2px, rgba(255,255,255,.30) 2px 4px, rgba(255,255,255,0) 4px 9px);
+}
+.misbaha-wrap[data-design="banded"], .bd-prev[data-design="banded"] {
+  --bead-a:#f3d3b4; --bead-b:#a8542c; --bead-c:#43180a;
+  --bead-pat: repeating-linear-gradient(0deg, rgba(70,20,4,.50) 0 2.5px, rgba(255,244,230,.55) 2.5px 4px, rgba(255,255,255,0) 4px 9px);
+}
+.misbaha-wrap[data-design="wood"], .bd-prev[data-design="wood"] {
+  --bead-a:#dcb387; --bead-b:#8a5b32; --bead-c:#3a2110;
+  --bead-pat: repeating-linear-gradient(94deg, rgba(48,24,6,.40) 0 1px, rgba(255,255,255,0) 1px 4px), repeating-linear-gradient(4deg, rgba(255,255,255,.14) 0 2px, rgba(255,255,255,0) 2px 7px);
+}
+.misbaha-wrap[data-design="turquoise"], .bd-prev[data-design="turquoise"] {
+  --bead-a:#bff3ee; --bead-b:#2e9c93; --bead-c:#0a3e3a;
+  --bead-pat: radial-gradient(ellipse at 74% 76%, rgba(6,32,32,.62) 0 2.5px, rgba(6,32,32,0) 4.5px), linear-gradient(126deg, rgba(6,32,32,0) 44%, rgba(6,32,32,.46) 46%, rgba(6,32,32,0) 49%), linear-gradient(150deg, rgba(255,255,255,.34) 0%, rgba(255,255,255,0) 55%);
+}
+.misbaha-wrap[data-design="emerald"], .bd-prev[data-design="emerald"] {
+  --bead-a:#c8f0d2; --bead-b:#2e8b57; --bead-c:#0b3a24;
+  --bead-pat: repeating-linear-gradient(70deg, rgba(0,44,22,.26) 0 3px, rgba(0,44,22,0) 3px 13px), linear-gradient(135deg, rgba(255,255,255,.40) 0%, rgba(255,255,255,0) 48%);
+}
+.misbaha-wrap[data-design="carnelian"], .bd-prev[data-design="carnelian"] {
+  --bead-a:#ffd0a8; --bead-b:#b4461f; --bead-c:#400f04;
+  --bead-pat: repeating-linear-gradient(72deg, rgba(255,255,255,.22) 0 2px, rgba(255,255,255,0) 2px 11px), linear-gradient(150deg, rgba(255,235,205,.40) 0%, rgba(255,255,255,0) 60%);
+}
+.misbaha-wrap[data-design="lapis"], .bd-prev[data-design="lapis"] {
+  --bead-a:#7fa4e8; --bead-b:#1d3b8a; --bead-c:#081533;
+  --bead-pat: radial-gradient(circle at 26% 70%, rgba(244,206,96,.95) 0 1.2px, rgba(244,206,96,0) 2.4px), radial-gradient(circle at 66% 34%, rgba(244,206,96,.80) 0 1.5px, rgba(244,206,96,0) 2.8px), radial-gradient(circle at 46% 84%, rgba(244,206,96,.70) 0 1px, rgba(244,206,96,0) 2px), linear-gradient(150deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,0) 55%);
+}
+.misbaha-wrap[data-design="amber"], .bd-prev[data-design="amber"] {
+  --bead-a:#ffe0a8; --bead-b:#c98a24; --bead-c:#4a2a06;
+  --bead-pat: radial-gradient(circle at 62% 64%, rgba(255,255,255,.55) 0 1.2px, rgba(255,255,255,0) 2.4px), linear-gradient(150deg, rgba(255,255,255,.44) 0%, rgba(255,255,255,0) 52%);
+}
+.misbaha-wrap[data-design="pearl"], .bd-prev[data-design="pearl"] {
+  --bead-a:#ffffff; --bead-b:#efe6d2; --bead-c:#b9ac8e;
+  --bead-pat: conic-gradient(from 200deg at 38% 34%, rgba(255,255,255,.92) 0 12%, rgba(226,214,190,.25) 34%, rgba(255,255,255,.75) 58%, rgba(210,198,172,.30) 82%, rgba(255,255,255,.9) 100%);
+}
+.misbaha-wrap[data-design="gold"], .bd-prev[data-design="gold"] {
+  --bead-a:#fff8dc; --bead-b:#d4af37; --bead-c:#7a5a08;
+  --bead-pat: linear-gradient(135deg, #fff8dc 0%, #e8c15a 30%, #a07514 54%, #ffe9a8 76%, #c79a2e 100%);
+}
+.misbaha-wrap[data-design="silver"], .bd-prev[data-design="silver"] {
+  --bead-a:#ffffff; --bead-b:#b9bfc8; --bead-c:#6c737d;
+  --bead-pat: linear-gradient(135deg, #ffffff 0%, #c9ced6 32%, #7e858f 56%, #eff2f7 78%, #a8afb8 100%);
+}
+.misbaha-wrap[data-design="speckled"], .bd-prev[data-design="speckled"] {
+  --bead-a:#f0e8d6; --bead-b:#b04a2a; --bead-c:#3a1206;
+  --bead-pat: radial-gradient(circle at 30% 32%, rgba(255,255,255,.78) 0 1px, rgba(255,255,255,0) 2px), radial-gradient(circle at 70% 72%, rgba(20,8,2,.62) 0 1px, rgba(20,8,2,0) 2px);
+  --bead-pat-size: 6px 6px, 9px 9px;
+}
+.misbaha-wrap[data-design="carbon"], .bd-prev[data-design="carbon"] {
+  --bead-a:#5a5f66; --bead-b:#1a1d22; --bead-c:#05070a;
+  --bead-pat: repeating-linear-gradient(45deg, rgba(255,255,255,.11) 0 2px, rgba(255,255,255,0) 2px 4px), repeating-linear-gradient(-45deg, rgba(0,0,0,.42) 0 2px, rgba(0,0,0,0) 2px 4px);
+}
+
+/* الخرزة نفسها: طبقة تصميم + كرة لامعة */
+#misbaha-beads .misbaha-bead {
+  background-color: var(--bead-c, #000) !important;
+  background-image: var(--bead-pat, none), radial-gradient(circle at 32% 26%, var(--bead-a, #555) 0%, var(--bead-b, #111) 52%, var(--bead-c, #000) 100%) !important;
+  background-size: var(--bead-pat-size, 100% 100%), 100% 100% !important;
+  background-repeat: repeat, no-repeat !important;
+  box-shadow: inset -2px -4px 8px rgba(0,0,0,.42), inset 3px 3px 7px rgba(255,255,255,.18), 0 4px 9px rgba(0,0,0,.38) !important;
+  border: 0 !important;
+}
+#misbaha-beads .misbaha-bead.shape-ring {
+  background-image: var(--bead-pat, none), radial-gradient(circle, rgba(0,0,0,0) 0 36%, var(--bead-b, #333) 44% 72%, var(--bead-a, #888) 88%, var(--bead-c, #000) 100%) !important;
+}
+#misbaha-beads .misbaha-bead.shape-pearl {
+  background-image: var(--bead-pat, none), radial-gradient(circle at 30% 24%, #fff 0, var(--bead-a, #eee) 26%, var(--bead-b, #ccc) 72%, var(--bead-c, #999) 100%) !important;
+}
+.misbaha-string-path { stroke: var(--bead-c, #2a2a2a) !important; opacity: .85; }
+
+/* معاينات الأشكال تأخذ نفس تصميم الخرز الحالي */
+.shape-preview {
+  background-color: var(--bead-c, #000) !important;
+  background-image: var(--bead-pat, none), radial-gradient(circle at 32% 26%, var(--bead-a, #777), var(--bead-b, #222) 52%, var(--bead-c, #000)) !important;
+  background-size: var(--bead-pat-size, 100% 100%), 100% 100% !important;
+  box-shadow: inset -1px -2px 3px rgba(0,0,0,.42), 0 1px 2px rgba(0,0,0,.25) !important;
+}
+
+/* صفّ الأشكال في الأسفل */
+.misbaha-shapes { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; }
+.misbaha-shapes-row { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.misbaha-shape {
+  width: 40px; height: 40px; border-radius: 12px; padding: 0;
+  display: grid; place-items: center; cursor: pointer;
+  background: rgba(127,127,127,.10); border: 1.5px solid transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+.misbaha-shape.active { border-color: #D4AF37; background: rgba(212,175,55,.14); }
+
+/* زر الألوان والتصاميم */
+.misbaha-palette-btn {
+  display: flex; align-items: center; gap: 9px;
+  margin: 10px auto 2px; padding: 8px 14px 8px 10px;
+  border-radius: 999px; border: 1px solid rgba(212,175,55,.55);
+  background: rgba(212,175,55,.10);
+  color: var(--text, #17201F); font-size: .7rem; font-weight: 800;
+  -webkit-tap-highlight-color: transparent;
+}
+.misbaha-palette-btn:active { background: rgba(212,175,55,.24); }
+.mpb-prev { width: 24px; height: 24px; border-radius: 50%; display: block; flex: 0 0 auto; }
+.mpb-txt { display: inline-flex; align-items: center; gap: 5px; }
+.mpb-dot { font-size: .62rem; font-weight: 700; opacity: .72; }
+
+/* نافذة اختيار التصميم */
+.bd-overlay {
+  position: fixed; inset: 0; z-index: 9998;
+  display: flex; align-items: flex-end; justify-content: center;
+  background: rgba(5,10,9,.55);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  opacity: 0; transition: opacity .18s ease;
+}
+.bd-overlay.in { opacity: 1; }
+.bd-card {
+  width: 100%; max-width: 470px; max-height: 76vh; overflow: auto;
+  background: var(--surface, #fff); color: var(--text, #17201F);
+  border-radius: 22px 22px 0 0;
+  padding: 14px 14px calc(16px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -14px 34px rgba(0,0,0,.34);
+  transform: translateY(18px); transition: transform .2s ease;
+}
+.bd-overlay.in .bd-card { transform: none; }
+.bd-head { display: flex; align-items: center; justify-content: space-between; }
+.bd-title { font-size: .88rem; font-weight: 900; display: flex; align-items: center; gap: 7px; }
+.bd-close {
+  width: 32px; height: 32px; border-radius: 50%; border: 0;
+  background: rgba(127,127,127,.14); color: var(--text, #17201F);
+  font-size: 1.05rem; line-height: 1;
+}
+.bd-sub { font-size: .6rem; color: var(--text-secondary, #66736F); margin: 3px 0 11px; }
+.bd-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
+.bd-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 8px 3px 6px; border-radius: 14px;
+  background: rgba(127,127,127,.07);
+  border: 1.5px solid transparent; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.bd-tile.active { border-color: #D4AF37; background: rgba(212,175,55,.14); }
+.bd-prev { width: 34px; height: 34px; border-radius: 50%; display: block;
+  box-shadow: inset -2px -3px 6px rgba(0,0,0,.42), inset 2px 2px 5px rgba(255,255,255,.16), 0 2px 4px rgba(0,0,0,.22); }
+.bd-nm { font-size: .55rem; font-weight: 800; color: var(--text-secondary, #66736F); text-align: center; line-height: 1.2; }
+
+/* شريط الوضع/الإعادة — داخل الصفحة، داخل حدود الشاشة دائمًا */
+.tasbih-rail {
+  position: static !important; inset: auto !important; transform: none !important;
+  z-index: auto !important;
+  display: flex; justify-content: center; gap: 16px;
+  margin: 12px auto 4px; width: 100%;
+}
+.t-rail-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.t-rail-btn {
+  width: 46px; height: 46px; border-radius: 16px;
+  display: grid; place-items: center;
+  background: rgba(15,76,58,.10); border: 1px solid rgba(212,175,55,.55);
+  color: var(--text, #17201F); font-size: 1rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .14s ease, background .2s ease;
+}
+[data-theme="dark"] .t-rail-btn { background: rgba(212,175,55,.12); color: #FFE9B5; }
+.t-rail-btn:active { transform: scale(.93); background: rgba(212,175,55,.30); }
+.t-rail-lbl { font-size: .54rem; font-weight: 800; color: var(--text-secondary, #66736F); }
+
+/* نافذة تأكيد الإعادة */
+.tdlg-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  padding: 22px; background: rgba(6,10,9,.62);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  opacity: 0; transition: opacity .18s ease;
+}
+.tdlg-overlay.in { opacity: 1; }
+.tdlg-overlay.out { opacity: 0; }
+.tdlg-card {
+  width: 100%; max-width: 340px; text-align: center;
+  background: var(--surface, #fff); color: var(--text, #17201F);
+  border-radius: 22px; padding: 20px 16px 14px;
+  box-shadow: 0 18px 44px rgba(0,0,0,.36);
+  transform: scale(.96); transition: transform .18s ease;
+}
+.tdlg-overlay.in .tdlg-card { transform: none; }
+.tdlg-ic {
+  width: 52px; height: 52px; margin: 0 auto 10px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 1.25rem;
+  background: rgba(15,76,58,.10); color: #0F4C3A;
+}
+.tdlg-card.is-danger .tdlg-ic { background: rgba(180,55,44,.12); color: #B4372C; }
+.tdlg-title { font-size: .95rem; font-weight: 900; margin-bottom: 5px; }
+.tdlg-msg { font-size: .74rem; line-height: 1.6; color: var(--text, #17201F); opacity: .92; }
+.tdlg-note {
+  margin-top: 9px; padding: 9px 11px; border-radius: 12px;
+  background: rgba(127,127,127,.10); color: var(--text-secondary, #66736F);
+  font-size: .64rem; line-height: 1.55; text-align: start;
+  display: flex; gap: 7px; align-items: flex-start;
+}
+.tdlg-note i { margin-top: 2px; opacity: .8; }
+.tdlg-actions { display: flex; gap: 8px; margin-top: 15px; }
+.tdlg-btn {
+  flex: 1 1 0; padding: 12px 8px; border: 0; border-radius: 14px;
+  font-size: .76rem; font-weight: 900; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.tdlg-cancel { background: rgba(127,127,127,.14); color: var(--text, #17201F); }
+.tdlg-ok { background: linear-gradient(135deg, #0F4C3A, #17705A); color: #fff; }
+.tdlg-card.is-danger .tdlg-ok { background: linear-gradient(135deg, #A5302A, #D9543F); }
+.tdlg-btn:active { transform: scale(.97); }

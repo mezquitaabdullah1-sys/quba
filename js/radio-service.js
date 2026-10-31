@@ -1,233 +1,365 @@
-// 🎧 RadioService — محرّك تشغيل عالمي واحد (بث مباشر + تلاوة مترجمة + مؤقّت نوم)
-// v56 — عنصر <audio> وحيد يعيش على مستوى window: التلاوة تستمر عند التنقل
-// بين الصفحات وعند إطفاء الشاشة (Media Session API تُظهر أزرار التحكم على
-// شاشة القفل). لا نستخدم WakeLock هنا عمدًا — الهدف هو الاستماع والشاشة مطفأة.
+// 🎧 RadioService — محرّك تشغيل عالمي واحد (بث مباشر + قرّاء + تلاوة مترجمة + مؤقّت نوم)
+// v56 — عنصر <audio> وحيد يعيش على مستوى window: التلاوة تستمر عند التنقل.
+// v1.0.74 — إعادة بناء:
+//   • طبقة إخراج قابلة للاستبدال (_load/_resume/_pause/_seek/_posMs/_durMs/_stopOut):
+//     في المتصفح تعمل على عنصر <audio>، وفي تطبيق Android يستبدلها native-bridge.js
+//     بأوامر ExoPlayer — المنطق (التقدم/التكرار/المزامنة) واحد في الحالتين.
+//   • الترجمة الحية: في وضع «آية/آية» (everyayah) تتبع الآية الجارية مباشرة، وفي وضع
+//     «السورة الكاملة» تُحسب الآية الحالية من موضع التشغيل عبر توقيتات MP3Quran
+//     (ayat_timing) أو تقدير تناسبي عند غيابها — فتظهر الترجمة متزامنة مع التلاوة.
+//   • تكرار صريح: off | one | all | random ضمن السور المتوفرة للقارئ.
+//   • البث المباشر: روابط بديلة تُجرَّب تلقائياً عند الفشل.
 const RadioService = {
   audio: null,
   state: 'idle',        // idle | loading | playing | paused | error
   mode: null,           // 'stream' | 'quran'
-  station: null,        // المحطة الحالية (وضع stream)
-  quran: null,          // { folder, reciterName, lang, surah, ayah, total, tr } (وضع quran)
+  station: null,
+  quran: null,          // { rid, reciterName, img, lang, surah, ayah, total, tr, whole, folder, server, read, tm, tmExact, list, sleep, playlist, plIdx }
   sleep: { endAt: 0, minutes: 0, timeoutId: null, tickId: null },
   _vol: 1,
-  repeatMode: 'one',    // v59: زر الإعادة — 'one' إعادة السورة | 'all' تشغيل متواصل (الكل) | 'random' عشوائي
-  amb: { ctx: null, gain: null, nodes: [], type: null, on: false, vol: 0.15 }, // v58: أصوات خلفية
+  repeatMode: 'off',    // off | one | all | random
+  amb: { ctx: null, gain: null, nodes: [], type: null, on: false, vol: 0.15 },
   _bar: null,
   _barBuilt: false,
-  _trAudio: null,       // v64: مقطع الترجمة الصوتية الجاري (speechSynthesis)
+  _trAudio: null,
+  _cands: [],           // روابط بديلة للبث الحالي
+  _candIdx: 0,
+  _lastTickEmit: 0,
 
   // ---------- تهيئة ----------
   ensureAudio() {
     if (this.audio) return;
+    try {
+      const saved = localStorage.getItem('quba_radio_repeat');
+      if (saved && ['off', 'one', 'all', 'random'].indexOf(saved) >= 0) this.repeatMode = saved;
+    } catch (e) {}
     this.audio = new Audio();
     this.audio.preload = 'auto';
-    this.audio.addEventListener('playing', () => {
-      this.state = 'playing';
-      this._emit();
-      // v57: في وضع التلاوة المترجمة نعيد البث بعد لحظة قصيرة — إن وصلت الترجمة
-      // متأخرة (شبكة بطيئة) تظهر للمستخدم فوراً دون انتظار الآية التالية.
-      if (this.mode === 'quran') setTimeout(() => { if (this.mode === 'quran') this._emit(); }, 700);
-    });
+    this.audio.addEventListener('playing', () => { this.state = 'playing'; this._emit(); });
     this.audio.addEventListener('pause', () => { if (this.state !== 'idle') { this.state = 'paused'; this._emit(); } });
     this.audio.addEventListener('waiting', () => { this.state = 'loading'; this._emit(); });
+    this.audio.addEventListener('timeupdate', () => this._onTick());
     this.audio.addEventListener('error', () => {
-      if (!this.audio.src) return;
-      this.state = 'error';
-      this._emit();
-      if (typeof showToast === 'function') showToast('📻 ' + RadioData.L('playError'), 3000);
+      if (!this.audio.getAttribute('src')) return;
+      this._onError();
     });
-    this.audio.addEventListener('ended', () => {
-      if (this.mode === 'quran' && this.quran) {
-        // v64: الترجمة الصوتية — تُقرأ ترجمة الآية فور انتهاء تلاوتها العربية
-        // (مثل فيديوهات القرآن المترجم: آية بالعربي ثم ترجمتها صوتيًا)، ثم
-        // يتابع التشغيل تلقائيًا. تُفعَّل/تُلغى من الإعدادات أو زر 🔊 بالبطاقة.
-        if (this._speakCurrentTranslation()) return;
-        const q = this.quran;
-        // v59: قرّاء الملف الكامل (MP3Quran) — ملف واحد لكل سورة
-        if (q.whole) {
-          if (this.repeatMode === 'one') { this.audio.currentTime = 0; this.audio.play().catch(() => {}); return; }
-          let ns = 0;
-          if (this.repeatMode === 'random') ns = 1 + Math.floor(Math.random() * 114);
-          else if (this.repeatMode === 'all') ns = (q.surah % 114) + 1;
-          if (ns && ns !== q.surah) {
-            q.surah = ns;
-            q.total = RadioData.surahInfo(ns).ayahs;
-            q.tr = null;
-            if (q.lang) {
-              const lg = q.lang;
-              RadioData.getTranslation(ns, lg).then(map => {
-                if (this.quran === q && !q.tr) { q.tr = map; this._emit(); }
-              }).catch(() => {});
-            }
-          }
-          q.ayah = 0;
-          this._playWhole();
-          return;
-        }
-        if (q.ayah < q.total) { this._playAyah(q.ayah + 1); return; }
-        // v58: قائمة قرآن النوم — عند نهاية السورة تنتقل تلقائياً للسورة التالية
-        if (q.playlist && q.plIdx < q.playlist.length - 1) {
-          q.plIdx++;
-          const ns = q.playlist[q.plIdx];
-          q.surah = ns;
-          q.total = RadioData.surahInfo(ns).ayahs;
-          q.ayah = 0;
-          this._playAyah(1);
-          return;
-        }
-        // v59: أوضاع الإعادة عند نهاية السورة (لا تنطبق على قائمة النوم)
-        if (!q.sleep) {
-          if (this.repeatMode === 'one') { this._playAyah(1); return; }
-          const pick = this.repeatMode === 'random' ? (1 + Math.floor(Math.random() * 114))
-                     : this.repeatMode === 'all' ? (q.surah % 114) + 1 : 0;
-          if (pick) {
-            q.surah = pick;
-            q.total = RadioData.surahInfo(pick).ayahs;
-            q.surahTotal = null;
-            q.tr = null;
-            if (q.lang) {
-              const lg = q.lang;
-              RadioData.getTranslation(pick, lg).then(map => {
-                if (this.quran === q && !q.tr) { q.tr = map; this._emit(); }
-              }).catch(() => {});
-            }
-            this._playAyah(1);
-            return;
-          }
-        }
-        this.stopAll(); // نهاية السورة / القائمة
-      }
-    });
+    this.audio.addEventListener('ended', () => this._onEnded());
   },
 
-  // ---------- بث مباشر ----------
+  // ================= طبقة الإخراج (يستبدلها native-bridge.js في Android) =================
+  _load(url, meta) {
+    this.ensureAudio();
+    this.audio.src = typeof url === 'string' ? url : (url && url.url) || '';
+    this.audio.volume = this._vol;
+    if (meta && meta.startMs) {
+      const st = meta.startMs / 1000;
+      const once = () => { try { this.audio.currentTime = st; } catch (e) {} this.audio.removeEventListener('loadedmetadata', once); };
+      this.audio.addEventListener('loadedmetadata', once);
+    }
+    this.audio.play().catch(() => {});
+    this._mediaSession(meta && meta.title, meta && meta.artist, meta && meta.art);
+  },
+  _resume() { this.ensureAudio(); if (this.audio.getAttribute('src')) this.audio.play().catch(() => {}); },
+  _pause() { if (this.audio) this.audio.pause(); },
+  _seek(ms) { if (this.audio) { try { this.audio.currentTime = Math.max(0, ms / 1000); } catch (e) {} } },
+  _posMs() { return this.audio ? Math.round((this.audio.currentTime || 0) * 1000) : 0; },
+  _durMs() { const d = this.audio && this.audio.duration; return (d && isFinite(d)) ? Math.round(d * 1000) : 0; },
+  _stopOut() {
+    if (this.audio) { try { this.audio.pause(); } catch (e) {} this.audio.removeAttribute('src'); try { this.audio.load(); } catch (e) {} }
+  },
+
+  // ================= البث المباشر =================
   playStream(station) {
     this.ensureAudio();
+    this._stopTrAudio();
     this.mode = 'stream';
     this.station = station;
     this.quran = null;
     this.state = 'loading';
-    this.audio.src = station.url;
-    this.audio.volume = this._vol;
-    this.audio.play().catch(() => { this.state = 'error'; this._emit(); });
-    this._mediaSession(RadioData.name(station), RadioData.L('live') + ' — Quba', RadioData.IMG[station.img] || null);
+    this._cands = RadioData.streamCands(station);
+    this._candIdx = 0;
+    this._loadCand();
     this._emit();
   },
 
-  // ---------- تلاوة مترجمة (آية/آية) ----------
+  _streamMeta() {
+    const st = this.station;
+    return { title: st ? RadioData.name(st) : 'Quba', artist: RadioData.L('live') + ' — Quba', art: st ? RadioData.imgUrl(st.img) : null, live: true };
+  },
+
+  _loadCand() {
+    const c = this._cands[this._candIdx];
+    if (!c) { this._failed(); return; }
+    this._load(c, this._streamMeta());
+  },
+
+  // ================= التلاوة (قرّاء + مترجم + نوم) =================
+  // cfg: { rid, surah, lang?, sleep?, playlist?, prefer? ('ayah'|'whole') }
   async playQuran(cfg) {
-    // cfg: { folder, reciterName, lang, surah, sleep?, playlist? }
     this.ensureAudio();
+    this._stopTrAudio();
+    const r = RadioData.reciter(cfg.rid) || RadioData.reciter('dosari');
+    const list = RadioData.surahsFor(r);
+    let surah = Number(cfg.surah) || list[0] || 1;
+    if (!RadioData.hasSurah(r, surah)) {
+      if (typeof showToast === 'function') showToast('ℹ️ ' + RadioData.L('surahUnavailable'), 2200);
+      return;
+    }
+    // آية/آية (everyayah) عند الترجمة الحية إن توفر مجلد للقارئ — أدق مزامنة؛ وإلا سورة كاملة
+    const ayahMode = cfg.prefer === 'ayah' ? !!r.ea : (cfg.prefer === 'whole' ? false : (!!cfg.lang && !!r.ea));
     this.mode = 'quran';
     this.station = null;
-    const info = RadioData.surahInfo(cfg.surah);
     this.quran = {
-      folder: cfg.folder, reciterName: cfg.reciterName, lang: cfg.lang || null,
-      surah: cfg.surah, ayah: 0, total: info.ayahs, tr: null,
+      rid: r.id, reciterName: RadioData.name(r), img: r.img || '',
+      lang: cfg.lang || null,
+      surah, ayah: 1, total: RadioData.surahInfo(surah).ayahs, tr: null,
+      whole: !ayahMode, folder: r.ea || null, server: r.server || null, read: r.read || null,
+      tm: null, tmExact: false, list,
       sleep: !!cfg.sleep, playlist: cfg.playlist || null, plIdx: 0,
-      // v59: folder يبدأ بـ http = خادم MP3Quran (سورة كاملة في ملف واحد)
-      whole: /^https?:\/\//.test(cfg.folder),
-      surahTotal: cfg.surahTotal || null,
     };
-    this.state = 'loading';
-    this._emit();
-    // v57: نجلب الترجمة أولاً ونملأ quran.tr قبل بدء الصوت، حتى تظهر الترجمة
-    // منذ الآية الأولى. عند الفشل تبدأ التلاوة دون انتظار.
-    // v58: وضع النوم (lang = null) لا يجلب أي ترجمة.
-    if (cfg.lang) {
-      try {
-        this.quran.tr = await RadioData.getTranslation(cfg.surah, cfg.lang);
-        this._emit();
-      } catch (e) { /* نكمل بلا ترجمة */ }
-      if (!this.quran || this.quran.surah !== cfg.surah) return; // غيّر المستخدم السورة أثناء الجلب
-    }
-    if (this.quran.whole) { this._playWhole(); return; }
-    this._playAyah(1);
+    this._startSurah(surah);
   },
 
-  // v59: تشغيل سورة كاملة (ملف واحد SSS.mp3) من خوادم MP3Quran
-  _playWhole() {
+  // يبدأ سورة n للقارئ الحالي (يُستدعى أيضاً عند التكرار/التالي)
+  async _startSurah(n) {
     const q = this.quran;
     if (!q) return;
+    this._stopTrAudio();
+    q.surah = n;
+    q.total = RadioData.surahInfo(n).ayahs;
     q.ayah = 1;
+    q.tr = null;
+    q.tm = null;
+    q.tmExact = false;
+    q._trSpoken = null;
     this.state = 'loading';
-    this.audio.src = q.folder + String(q.surah).padStart(3, '0') + '.mp3';
-    this.audio.volume = this._vol;
-    this.audio.play().catch(() => { this.state = 'error'; this._emit(); });
-    this._mediaSession(RadioData.surahName(q.surah), q.reciterName, RadioData.IMG.quran);
+    this._emit();
+    const token = q._tok = (q._tok || 0) + 1;
+    const jobs = [];
+    if (q.lang) {
+      jobs.push(RadioData.getTranslation(n, q.lang).then(map => {
+        if (this.quran === q && q.surah === n) { q.tr = map; this._emit(); }
+      }).catch(() => {}));
+    }
+    if (q.whole && q.read && q.lang) {
+      jobs.push(RadioData.getTimings(q.read, n).then(tm => {
+        if (this.quran === q && q.surah === n && tm) { q.tm = tm; q.tmExact = true; this._onTick(true); }
+      }).catch(() => {}));
+    }
+    // لا ننتظر أكثر من ٢.٥ ث قبل بدء الصوت (تظهر الترجمة فور وصولها)
+    if (jobs.length) await Promise.race([Promise.all(jobs), new Promise(res => setTimeout(res, 2500))]);
+    if (this.quran !== q || q._tok !== token) return;
+    if (q.whole) {
+      this._load(RadioData.surahFileUrl(RadioData.reciter(q.rid), n), this._quranMeta());
+    } else {
+      this._playAyah(1);
+    }
     this._emit();
   },
 
-  // v59: زر الإعادة الفعّال — يتنقل عند كل ضغطة:
-  // إعادة السورة ← إعادة الكل (تشغيل متواصل) ← اختيار عشوائي
-  cycleRepeat() {
-    const order = ['one', 'all', 'random'];
-    this.repeatMode = order[(order.indexOf(this.repeatMode) + 1) % order.length];
-    if (typeof showToast === 'function') showToast('🔁 ' + RadioData.L('rep_' + this.repeatMode), 1600);
-    this._emit();
+  _quranMeta() {
+    const q = this.quran;
+    if (!q) return {};
+    const t = q.whole ? RadioData.surahName(q.surah) : `${RadioData.surahName(q.surah)} • ${RadioData.L('ayah')} ${q.ayah}`;
+    return { title: t, artist: q.reciterName, art: q.img || RadioData.IMG.quran };
   },
 
   _playAyah(i) {
     const q = this.quran;
     if (!q) return;
-    this._stopTrAudio(); // v64: أي انتقال يدوي يُسكت ترجمة قيد النطق
+    this._stopTrAudio();
     i = Math.max(1, Math.min(i, q.total));
+    if (q.whole) { this.seekAyah(i); return; }
     q.ayah = i;
+    q._trSpoken = null;
     this.state = 'loading';
-    this.audio.src = RadioData.ayahUrl(q.folder, q.surah, i);
-    this.audio.volume = this._vol;
-    this.audio.play().catch(() => { this.state = 'error'; this._emit(); });
-    const sName = RadioData.surahName(q.surah);
-    this._mediaSession(`${sName} • ${RadioData.L('ayah')} ${i}`, q.reciterName, RadioData.IMG.quran);
-    if ('mediaSession' in navigator) {
-      try {
-        navigator.mediaSession.setActionHandler('previoustrack', () => this.prevAyah());
-        navigator.mediaSession.setActionHandler('nexttrack', () => this.nextAyah());
-      } catch (e) {}
-    }
+    this._load(RadioData.ayahUrl(q.folder, q.surah, i), this._quranMeta());
     this._emit();
   },
 
-  nextAyah() { if (this.mode === 'quran' && this.quran && !this.quran.whole) this._playAyah(this.quran.ayah + 1); },
-  prevAyah() { if (this.mode === 'quran' && this.quran && !this.quran.whole) this._playAyah(Math.max(1, this.quran.ayah - 1)); },
-  replayAyah() {
-    if (this.mode === 'quran' && this.quran && this.quran.ayah > 0) {
-      this.audio.currentTime = 0;
-      this.audio.play().catch(() => {});
+  // تقديم ملف السورة الكاملة إلى بداية الآية i (حسب التوقيت)
+  seekAyah(i) {
+    const q = this.quran;
+    if (!q || !q.whole) return;
+    const tm = this._tmFor(q);
+    i = Math.max(1, Math.min(i, q.total));
+    const st = tm ? RadioData.ayahStart(tm, i) : null;
+    if (st === null) return;
+    q.ayah = i;
+    this._seek(st);
+    this._resume();
+    this._emit();
+  },
+
+  _tmFor(q) {
+    if (q.tm) return q.tm;
+    const d = this._durMs();
+    if (d > 0) {
+      q.tm = RadioData.estimateTimings(q.surah, d);
+      q.tmExact = false;
     }
+    return q.tm;
+  },
+
+  // نبضة الموضع: تحديث رقم الآية في وضع السورة الكاملة → الترجمة الحية
+  _onTick(force) {
+    const q = this.quran;
+    if (this.mode !== 'quran' || !q || !q.whole) return;
+    const tm = this._tmFor(q);
+    if (!tm) return;
+    const a = RadioData.ayahAt(tm, this._posMs());
+    if (a && (a !== q.ayah || force)) {
+      q.ayah = Math.min(a, q.total);
+      this._emit();
+    }
+  },
+
+  nextAyah() {
+    const q = this.quran;
+    if (this.mode !== 'quran' || !q) return;
+    if (!q.lang) { this.nextSurah(); return; }
+    if (q.ayah >= q.total) { this._surahEnded(true); return; }
+    this._playAyah(q.ayah + 1);
+  },
+  prevAyah() {
+    const q = this.quran;
+    if (this.mode !== 'quran' || !q) return;
+    if (!q.lang) { this.prevSurah(); return; }
+    this._playAyah(Math.max(1, q.ayah - 1));
+  },
+  nextSurah() {
+    const q = this.quran;
+    if (!q) return;
+    const L = q.list || [];
+    const i = L.indexOf(q.surah);
+    this._startSurah(L[(i + 1) % L.length] || q.surah);
+  },
+  prevSurah() {
+    const q = this.quran;
+    if (!q) return;
+    const L = q.list || [];
+    const i = L.indexOf(q.surah);
+    this._startSurah(L[(i - 1 + L.length) % L.length] || q.surah);
+  },
+  replayAyah() {
+    const q = this.quran;
+    if (this.mode !== 'quran' || !q) return;
+    if (q.whole) {
+      const tm = this._tmFor(q);
+      const st = tm ? RadioData.ayahStart(tm, q.ayah) : 0;
+      this._seek(st || 0);
+      this._resume();
+    } else {
+      this._playAyah(q.ayah);
+    }
+  },
+
+  setRepeat(m) {
+    if (['off', 'one', 'all', 'random'].indexOf(m) < 0) return;
+    this.repeatMode = m;
+    try { localStorage.setItem('quba_radio_repeat', m); } catch (e) {}
+    if (typeof showToast === 'function') showToast('🔁 ' + RadioData.L('rep_' + m), 1500);
+    this._emit();
+  },
+  cycleRepeat() {
+    const order = ['off', 'one', 'all', 'random'];
+    this.setRepeat(order[(order.indexOf(this.repeatMode) + 1) % order.length]);
+  },
+
+  // ---------- نهاية المقطع ----------
+  _onEnded() {
+    if (this.mode === 'stream') { // انقطع البث: أعد الاتصال بالرابط نفسه/البديل
+      this._candIdx = (this._candIdx + 1) % Math.max(1, this._cands.length);
+      this._loadCand();
+      return;
+    }
+    const q = this.quran;
+    if (this.mode !== 'quran' || !q) return;
+    if (this._speakCurrentTranslation()) return;
+    if (!q.whole && q.ayah < q.total) { this._playAyah(q.ayah + 1); return; }
+    this._surahEnded(false);
+  },
+
+  _surahEnded(manual) {
+    const q = this.quran;
+    if (!q) return;
+    if (q.playlist) {
+      if (q.plIdx < q.playlist.length - 1) { q.plIdx++; this._startSurah(q.playlist[q.plIdx]); return; }
+      this.stopAll();
+      return;
+    }
+    const L = q.list && q.list.length ? q.list : [q.surah];
+    const m = manual && this.repeatMode === 'off' ? 'all' : this.repeatMode;
+    if (m === 'one') { this._startSurah(q.surah); return; }
+    if (m === 'all') { const i = L.indexOf(q.surah); this._startSurah(L[(i + 1) % L.length]); return; }
+    if (m === 'random') {
+      let n = L[Math.floor(Math.random() * L.length)];
+      if (L.length > 1 && n === q.surah) n = L[(L.indexOf(n) + 1) % L.length];
+      this._startSurah(n);
+      return;
+    }
+    // off: توقف عند نهاية السورة مع إبقاء البطاقة (يمكن إعادة التشغيل)
+    this.state = 'paused';
+    q._ended = true;
+    this._emit();
+  },
+
+  _onError() {
+    if (this.mode === 'stream' && this._candIdx < this._cands.length - 1) {
+      this._candIdx++;
+      this._loadCand();
+      return;
+    }
+    this._failed();
+  },
+
+  _failed() {
+    this.state = 'error';
+    this._emit();
+    if (typeof showToast === 'function') showToast('📻 ' + RadioData.L('playError'), 3000);
   },
 
   // ---------- تشغيل / إيقاف مؤقت / إيقاف كامل ----------
   toggle() {
     this.ensureAudio();
-    if (this.state === 'playing') { this._stopTrAudio(); this.audio.pause(); }
-    else if (this.audio.src) { this.audio.play().catch(() => {}); }
+    const q = this.quran;
+    if (this.state === 'playing' || this.state === 'loading') { this._stopTrAudio(); this._pause(); this.state = 'paused'; this._emit(); return; }
+    if (this.mode === 'quran' && q && q._ended) { q._ended = false; this._startSurah(q.surah); return; }
+    if (this.state === 'error') {
+      if (this.mode === 'stream' && this.station) { this.playStream(this.station); return; }
+      if (this.mode === 'quran' && q) { this._startSurah(q.surah); return; }
+    }
+    this._resume();
   },
 
   stopAll() {
-    if (this.audio) { try { this.audio.pause(); } catch (e) {} this.audio.removeAttribute('src'); this.audio.load(); }
+    this._stopOut();
     this.state = 'idle';
     this.mode = null;
     this.station = null;
     this.quran = null;
-    this._stopTrAudio(); // v64
+    this._cands = [];
+    this._stopTrAudio();
     this.clearSleep();
     this.stopAmbience(false);
     if ('mediaSession' in navigator) { try { navigator.mediaSession.metadata = null; } catch (e) {} }
     this._emit();
   },
 
-  // ---------- Media Session (تحكم شاشة القفل / سماعات) ----------
+  // ---------- Media Session (المتصفح؛ في Android يتولاها ExoPlayer) ----------
   _mediaSession(title, artist, img) {
-    if (!('mediaSession' in navigator)) return;
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
-        title, artist: artist || 'Quba', album: 'Quba — ' + RadioData.L('radioTitle'),
-        artwork: img ? [{ src: img, sizes: '512x512', type: 'image/jpeg' }] : [],
+        title: title || 'Quba', artist: artist || 'Quba', album: 'Quba — ' + RadioData.L('radioTitle'),
+        artwork: img ? [{ src: img, sizes: '512x512' }] : [],
       });
       navigator.mediaSession.setActionHandler('play', () => this.toggle());
       navigator.mediaSession.setActionHandler('pause', () => this.toggle());
-      if (this.mode !== 'quran') {
+      if (this.mode === 'quran') {
+        navigator.mediaSession.setActionHandler('previoustrack', () => this.prevAyah());
+        navigator.mediaSession.setActionHandler('nexttrack', () => this.nextAyah());
+      } else {
         navigator.mediaSession.setActionHandler('previoustrack', null);
         navigator.mediaSession.setActionHandler('nexttrack', null);
       }
@@ -245,7 +377,6 @@ const RadioService = {
     this.sleep.minutes = minutes;
     this.sleep.endAt = Date.now() + minutes * 60000;
     this.sleep.timeoutId = setTimeout(() => this._fadeStop(), minutes * 60000);
-    // نبضة كل ثانية لتحديث العد التنازلي في الواجهة
     this.sleep.tickId = setInterval(() => this._emit(), 5000);
     if (typeof showToast === 'function') showToast('🌙 ' + RadioData.L('sleepSetToast') + ' — ' + minutes + ' ' + RadioData.L('sleepMin'), 2500);
     this._emit();
@@ -259,12 +390,11 @@ const RadioService = {
   },
 
   sleepLeftSec() {
-    if (!this.sleep.endAt) return -1;
+    if (!this.sleep || !this.sleep.endAt) return -1;
     return Math.max(0, Math.round((this.sleep.endAt - Date.now()) / 1000));
   },
 
   _fadeStop() {
-    // خفض تدريجي للصوت خلال ٥ ثوانٍ ثم إيقاف كامل
     const steps = 10;
     let i = 0;
     const startVol = this._vol;
@@ -375,7 +505,7 @@ const RadioService = {
     const done = () => {
       if (this._trAudio !== a) return; // أُلغيت (إيقاف/انتقال يدوي)
       this._trAudio = null;
-      try { if (this.audio) this.audio.dispatchEvent(new Event('ended')); } catch (e) {}
+      try { this._onEnded(); } catch (e) {}
     };
     u.onend = done;
     u.onerror = done;
@@ -384,6 +514,7 @@ const RadioService = {
     catch (e) { this._trAudio = null; return false; }
     return true;
   },
+
 
   // ---------- مشاركة ----------
   share() {
@@ -413,7 +544,7 @@ const RadioService = {
   _updateBar() {
     if (typeof document === 'undefined') return;
     const onRadioPage = (typeof Router !== 'undefined' && Router.current && Router.current.name === 'radio');
-    const active = (this.state === 'playing' || this.state === 'paused' || this.state === 'loading');
+    const active = (this.state === 'playing' || this.state === 'paused' || this.state === 'loading') && !!this.mode;
     if (!active || onRadioPage) {
       if (this._bar) { this._bar.remove(); this._bar = null; this._barBuilt = false; }
       return;
@@ -424,17 +555,22 @@ const RadioService = {
       document.body.appendChild(this._bar);
       this._barBuilt = true;
     }
-    const title = this.mode === 'quran' && this.quran
-      ? `${RadioData.surahName(this.quran.surah)} • ${RadioData.L('ayah')} ${this.quran.ayah}/${this.quran.total}`
+    const q = this.quran;
+    const title = this.mode === 'quran' && q
+      ? `${RadioData.surahName(q.surah)} • ${q.lang ? RadioData.L('ayah') + ' ' + q.ayah + '/' + q.total : q.reciterName}`
       : (this.station ? RadioData.name(this.station) : '');
     const icon = this.state === 'playing' ? 'fa-pause' : 'fa-play';
-    this._bar.innerHTML = `
+    const esc = typeof escapeHtml === 'function' ? escapeHtml : (x) => x;
+    const html = `
       <button class="rfb-body" onclick="Router.go('radio')" aria-label="${RadioData.L('radioTitle')}">
         <span class="rfb-eq ${this.state === 'playing' ? 'on' : ''}"><i></i><i></i><i></i></span>
-        <span class="rfb-title">${typeof escapeHtml === 'function' ? escapeHtml(title) : title}</span>
+        <span class="rfb-title">${esc(title)}</span>
       </button>
       <button class="rfb-btn" onclick="RadioService.toggle()" aria-label="play/pause"><i class="fas ${icon}"></i></button>
       <button class="rfb-btn" onclick="RadioService.stopAll()" aria-label="stop"><i class="fas fa-xmark"></i></button>
     `;
+    if (this._bar._html !== html) { this._bar.innerHTML = html; this._bar._html = html; }
   },
 };
+
+if (typeof window !== 'undefined') window.RadioService = RadioService;

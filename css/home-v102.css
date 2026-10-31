@@ -16,32 +16,37 @@
   overflow: hidden;
   box-shadow: 0 14px 34px -18px rgba(0, 0, 0, .55);
   color: #fff;
-  background-image: linear-gradient(160deg, #1d4b52 0%, #12403a 45%, #061d18 100%);
+  background-color: var(--card, #16241f);
 }
-.hsx-hero.hsx-noon { background-image: linear-gradient(160deg, #2b6f9b 0%, #1c577a 42%, #073028 100%); }
-.hsx-hero.hsx-dusk { background-image: linear-gradient(160deg, #a4552a 0%, #5c2f44 45%, #170f1c 100%); }
-.hsx-hero.hsx-night { background-image: linear-gradient(160deg, #0a2038 0%, #06182c 45%, #030c16 100%); }
+.hsx-photo {
+  position: relative;
+  background-size: cover;
+  background-position: center 42%;
+  background-repeat: no-repeat;
+  border-radius: 0 0 22px 22px;
+  overflow: hidden;
+}
 .hsx-bg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   background-size: cover !important;
-  background-position: center center !important;
+  background-position: center 42% !important;
   background-repeat: no-repeat;
-  transform: scale(1.02);
-  transition: opacity .5s ease;
   z-index: 0;
 }
 .hsx-veil {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(180deg, rgba(3, 20, 16, .24) 0%, rgba(3, 20, 16, .06) 34%, rgba(3, 20, 16, .20) 68%, rgba(3, 18, 14, .38) 100%);
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, .22) 0%, rgba(0, 0, 0, .04) 45%, rgba(0, 0, 0, .10) 100%);
 }
-.hsx-hero.hsx-noon .hsx-veil { background: linear-gradient(180deg, rgba(4, 26, 44, .20) 0%, rgba(4, 26, 44, .05) 36%, rgba(3, 18, 24, .20) 68%, rgba(3, 18, 14, .38) 100%); }
-.hsx-hero.hsx-dusk .hsx-veil { background: linear-gradient(180deg, rgba(48, 20, 10, .18) 0%, rgba(30, 14, 20, .08) 36%, rgba(12, 8, 16, .22) 68%, rgba(8, 6, 14, .40) 100%); }
-.hsx-hero.hsx-night .hsx-veil { background: linear-gradient(180deg, rgba(2, 10, 20, .28) 0%, rgba(2, 10, 20, .10) 36%, rgba(2, 9, 16, .22) 68%, rgba(2, 8, 14, .42) 100%); }
+.hsx-ink-dark .hsx-veil {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .30) 0%, rgba(255, 255, 255, .55) 55%, rgba(255, 255, 255, .72) 100%);
+}
+
 .hsx-inner {
   position: relative;
   z-index: 2;
@@ -49,6 +54,24 @@
   max-width: 560px;
   margin: 0 auto;
 }
+/* ألوان الخط تتكيّف مع سطوع الصورة */
+.hsx-hero {
+  --ink: #fff;
+  --ink-2: rgba(255, 255, 255, .82);
+  --ink-gold: #ffd98a;
+  --ink-panel: rgba(255, 255, 255, .12);
+  --ink-panel-b: rgba(255, 255, 255, .26);
+  --ink-shadow: 0 1px 4px rgba(0, 0, 0, .55);
+}
+.hsx-ink-dark {
+  --ink: #0d211b;
+  --ink-2: rgba(9, 28, 22, .78);
+  --ink-gold: #8a5b00;
+  --ink-panel: rgba(255, 255, 255, .62);
+  --ink-panel-b: rgba(255, 255, 255, .80);
+  --ink-shadow: 0 1px 2px rgba(255, 255, 255, .7);
+}
+.hsx-hero .hsx-top, .hsx-hero .hsx-date, .hsx-hero .hsx-next { text-shadow: var(--ink-shadow); }
 
 /* ---------- الصف الأول: أيقونات + رمضان + المدينة ---------- */
 .hsx-top {
@@ -107,7 +130,6 @@
   text-align: end;
   -webkit-tap-highlight-color: transparent;
 }
-.hsx-city i { font-size: .68rem; opacity: .85; flex: 0 0 auto; }
 .hsx-city span {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -120,7 +142,7 @@
   padding: 9px 13px 10px;
   border-radius: 18px;
   background: rgba(255, 255, 255, .10);
-  border: 1px solid rgba(255, 255, 255, .24);
+  border: 1px solid rgba(255, 255, 255, .26);
   -webkit-backdrop-filter: blur(9px);
   backdrop-filter: blur(9px);
 }
@@ -189,8 +211,8 @@
   margin-top: 8px;
   padding: 7px 12px 8px;
   border-radius: 16px;
-  background: rgba(0, 0, 0, .13);
-  border: 1px solid rgba(255, 255, 255, .16);
+  background: rgba(255, 255, 255, .07);
+  border: 1px solid rgba(255, 255, 255, .18);
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -218,17 +240,6 @@
   text-overflow: ellipsis;
 }
 .hsx-occ i { font-size: .54rem; opacity: .9; }
-
-/* ---------- شريط صلوات اليوم داخل البطاقة + خط التقدّم ---------- */
-.hsx-prayers {
-  margin-top: 10px;
-  padding: 8px 8px 10px;
-  border-radius: 18px;
-  background: rgba(4, 26, 21, .10);
-  border: 1px solid rgba(255, 255, 255, .18);
-  -webkit-backdrop-filter: blur(7px);
-  backdrop-filter: blur(7px);
-}
 .hsx-strip {
   display: flex;
   align-items: stretch;
@@ -257,17 +268,6 @@
   box-shadow: 0 0 0 1px rgba(212, 175, 55, .10) inset;
 }
 .hsx-cell.is-sunrise { opacity: .82; }
-.hsx-cn {
-  font-size: .55rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, .78);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-.hsx-cell.next .hsx-cn { color: #ffe4a3; }
-.hsx-ci { line-height: 0; opacity: .95; }
 .hsx-ct {
   font-size: .6rem;
   font-weight: 700;
@@ -277,12 +277,6 @@
 .hsx-cell .prayer-remaining { display: none !important; }
 
 .hsx-trackwrap { margin: 9px 7px 2px; }
-.hsx-track {
-  position: relative;
-  height: 4px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, .20);
-}
 .hsx-fill {
   position: absolute;
   inset-inline-start: 0;
@@ -292,15 +286,6 @@
   background: linear-gradient(90deg, rgba(212, 175, 55, .55), #f3d68a);
   box-shadow: 0 0 10px rgba(212, 175, 55, .45);
   transition: width .6s linear;
-}
-.hsx-tk {
-  position: absolute;
-  top: -3px;
-  width: 2px;
-  height: 10px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, .42);
-  transform: translateX(-50%);
 }
 .hsx-ball {
   position: absolute;
@@ -482,7 +467,6 @@
   .hsx-serv span { font-size: .5rem; }
 }
 
-
 /* ---------- v103: قائمة اللغة/المظهر السريعة ---------- */
 .hsx-pop {
   position: fixed;
@@ -539,4 +523,549 @@
   text-shadow: 0 1px 3px rgba(0, 0, 0, .55);
 }
 .hsx-ct, .hsx-cn { text-shadow: 0 1px 4px rgba(0, 0, 0, .7); }
-.hsx-prayers { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .10); }
+
+/* v104: الصورة تمتدّ خلف كل البطاقة حتى خط التقدّم — بلا حزام داكن */
+.hsx-hero { background-color: #10312a; }
+.hsx-bg { opacity: 1; }
+.hsx-prev { background: rgba(0, 0, 0, .30); }
+
+/* ==========================================================================
+   v105 — الصورة إلى نهاية بطاقة التاريخ فقط، وشريط الصلوات أسفلها على خلفية
+   البطاقة · وألوان الخط تتكيّف مع سطوع الصورة (ساطعة → خط داكن).
+   ========================================================================== */
+.hsx-hero { padding: 0 !important; overflow: hidden; background: var(--card, #16241f) !important; }
+.hsx-photo { margin: 0; }
+.hsx-inner-foot { padding: 10px 12px 12px; }
+.hsx-hero .hsx-ibtn {
+  background: var(--ink-panel);
+  border: 1px solid var(--ink-panel-b);
+  color: var(--ink);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+.hsx-hero .hsx-ibtn:active { background: var(--ink-panel-b); }
+.hsx-hero .hsx-ram {
+  background: rgba(212, 175, 55, .18);
+  border: 1px solid rgba(212, 175, 55, .55);
+  color: var(--ink-gold);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+.hsx-ink-dark .hsx-ram { background: rgba(255, 255, 255, .66); border-color: rgba(138, 91, 0, .40); }
+.hsx-hero .hsx-next { background: var(--ink-panel); border: 1px solid var(--ink-panel-b); }
+.hsx-hero .hsx-k { color: var(--ink-2); }
+.hsx-hero .hsx-k i { color: var(--ink-gold); }
+.hsx-hero .hsx-np { color: var(--ink); }
+.hsx-hero .hsx-np .hsx-t { color: var(--ink-gold); }
+.hsx-hero .hsx-mlbl { color: var(--ink-2); }
+.hsx-hero .hsx-cd { color: var(--ink-gold); text-shadow: var(--ink-shadow), 0 1px 10px rgba(212, 175, 55, .30); }
+.hsx-hero .hsx-prev { background: rgba(0, 0, 0, .26); border-color: rgba(255, 255, 255, .18); color: var(--ink); }
+.hsx-ink-dark .hsx-prev { background: rgba(255, 255, 255, .70); border-color: rgba(13, 33, 27, .16); }
+.hsx-hero .hsx-date { background: var(--ink-panel); border: 1px solid var(--ink-panel-b); }
+.hsx-hero .hsx-date-main { color: var(--ink); }
+.hsx-hero .hsx-dow { color: var(--ink-gold); }
+.hsx-hero .hsx-greg { color: var(--ink-2); }
+.hsx-hero .hsx-occ { color: var(--ink-gold); }
+.hsx-hero .estimated-badge { background: rgba(0, 0, 0, .30) !important; color: var(--ink-gold) !important; border-color: var(--ink-panel-b) !important; }
+@media (max-width: 380px) {
+  .hsx-inner-foot { padding: 8px 9px 10px; }
+}
+
+/* ==========================================================================
+   v106 — تباين مضمون في كل الثيمات:
+   بطاقة صلوات اليوم + شريط التقدّم + الكرة، وبطاقات (آية/دعاء/حديث اليوم).
+   كل ثيم له لوح وألوان خط صريحة بدل الشفافيات التي كانت تختفي على خلفية فاتحة.
+   ========================================================================== */
+
+/* ---------- لوحة صلوات اليوم: ألوان صريحة لكل ثيم ---------- */
+.hsx-hero {
+  --pl-bg: #10453A;              /* لوح الشريط (افتراضي = الثيم الفاتح) */
+  --pl-bg2: #0C3A31;
+  --pl-bd: rgba(230, 200, 104, .45);
+  --pl-ink: #FFFFFF;
+  --pl-ink2: rgba(255, 255, 255, .78);
+  --pl-gold: #FFD98A;
+  --pl-track: rgba(255, 255, 255, .26);
+  --pl-tick: rgba(255, 255, 255, .55);
+  --pl-fill: linear-gradient(90deg, #C9A227, #F3D68A);
+  --pl-hi-bg: rgba(212, 175, 55, .22);
+  --pl-hi-bd: rgba(255, 217, 138, .85);
+}
+[data-theme="dark"] .hsx-hero {
+  --pl-bg: #16263F; --pl-bg2: #101E33; --pl-bd: rgba(212, 175, 55, .38);
+  --pl-ink: #F4F7FC; --pl-ink2: #AEBBCE; --pl-gold: #E6C868;
+  --pl-track: rgba(255, 255, 255, .22); --pl-tick: rgba(255, 255, 255, .48);
+  --pl-hi-bg: rgba(230, 200, 104, .20); --pl-hi-bd: rgba(230, 200, 104, .80);
+}
+[data-theme="emerald"] .hsx-hero {
+  --pl-bg: #14503F; --pl-bg2: #0F4234; --pl-bd: rgba(201, 162, 39, .55);
+  --pl-ink: #FFFDF6; --pl-ink2: rgba(255, 253, 246, .80); --pl-gold: #EBD08A;
+  --pl-track: rgba(255, 255, 255, .28); --pl-tick: rgba(255, 255, 255, .60);
+  --pl-hi-bg: rgba(201, 162, 39, .24); --pl-hi-bd: rgba(235, 208, 138, .85);
+}
+[data-theme="brown"] .hsx-hero {
+  --pl-bg: #6B4F3A; --pl-bg2: #5A4130; --pl-bd: rgba(255, 249, 239, .34);
+  --pl-ink: #FFF9EF; --pl-ink2: rgba(255, 249, 239, .82); --pl-gold: #F2DCA8;
+  --pl-track: rgba(255, 249, 239, .30); --pl-tick: rgba(255, 249, 239, .58);
+  --pl-hi-bg: rgba(242, 220, 168, .22); --pl-hi-bd: rgba(242, 220, 168, .85);
+}
+[data-theme="maroon"] .hsx-hero {
+  --pl-bg: #421121; --pl-bg2: #330B18; --pl-bd: rgba(212, 175, 55, .50);
+  --pl-ink: #F6EEDC; --pl-ink2: #CBB489; --pl-gold: #E6C868;
+  --pl-track: rgba(246, 238, 220, .26); --pl-tick: rgba(246, 238, 220, .52);
+  --pl-hi-bg: rgba(212, 175, 55, .22); --pl-hi-bd: rgba(230, 200, 104, .85);
+}
+.hsx-hero .hsx-fill {
+  background: var(--pl-fill) !important;
+  height: 5px;
+  box-shadow: 0 0 12px rgba(230, 200, 104, .55);
+}
+.hsx-hero .hsx-ball {
+  width: 14px; height: 14px;
+  background: radial-gradient(circle at 34% 28%, #FFFDF2 0%, #F0D07E 45%, #B8860B 100%);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, .16), 0 0 16px rgba(243, 214, 138, .95);
+  border: 1px solid rgba(255, 255, 255, .55);
+}
+
+/* ==========================================================================
+   v113 — بطاقة الرأس: الصورة تغطّي البطاقة كاملة، والتضليل على قدر النصوص
+   (مربّعان منفصلان على الجانبين، والوسط مكشوف لرؤية الصورة) بدل صفّين بعرض كامل.
+   ========================================================================== */
+
+/* الصورة والغلالة على كامل البطاقة */
+.hsx-photo { display: flex; flex-direction: column; border-radius: 0; }
+.hsx-bg { background-position: center 32% !important; }
+.hsx-veil {
+  background: linear-gradient(180deg, rgba(0,0,0,.30) 0%, rgba(0,0,0,.10) 42%, rgba(0,0,0,.24) 100%);
+}
+.hsx-ink-dark .hsx-veil {
+  background: linear-gradient(180deg, rgba(255,255,255,.26) 0%, rgba(255,255,255,.44) 45%, rgba(255,255,255,.58) 100%);
+}
+
+/* الصلاة القادمة + التاريخ → مربّعان على الجانبين */
+.hsx-duo {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+.hsx-duo > .hsx-next,
+.hsx-duo > .hsx-date {
+  width: 46%;
+  flex: 0 0 46%;
+  max-width: 232px;
+  min-height: 132px;
+  aspect-ratio: 1 / 1;
+  margin: 0 !important;
+  padding: 9px 10px !important;
+  border-radius: 16px !important;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+  background: var(--ink-panel) !important;
+  border: 1px solid var(--ink-panel-b) !important;
+  -webkit-backdrop-filter: blur(11px) saturate(1.2);
+  backdrop-filter: blur(11px) saturate(1.2);
+  box-shadow: 0 8px 20px -14px rgba(0,0,0,.6);
+}
+
+/* بطاقة الصلاة القادمة داخل المربّع */
+.hsx-duo .hsx-next-head { flex-direction: column; align-items: flex-start; gap: 2px; }
+.hsx-duo .hsx-np { flex-direction: column; align-items: flex-start; gap: 0; font-size: .84rem; line-height: 1.2; }
+.hsx-duo .hsx-np .hsx-t { font-size: .78rem; }
+.hsx-duo .hsx-k { font-size: .5rem; }
+.hsx-duo .hsx-k i { font-size: .48rem; }
+.hsx-duo .hsx-metrics { flex-direction: column; align-items: stretch; justify-content: flex-end; gap: 4px; margin-top: 2px; }
+.hsx-duo .hsx-metric { gap: 0; }
+.hsx-duo .hsx-metric.end { align-items: flex-start; text-align: start; }
+.hsx-duo .hsx-mlbl { font-size: .47rem; letter-spacing: .1px; }
+.hsx-duo .hsx-cd { font-size: 1.02rem; line-height: 1.06; }
+.hsx-duo .hsx-prev { font-size: .47rem; padding: 2px 6px; max-width: 100%; }
+
+/* بطاقة التاريخ داخل المربّع */
+.hsx-duo .hsx-date-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.hsx-duo .hsx-dow { font-size: .58rem; line-height: 1.2; }
+.hsx-duo .hsx-hij {
+  font-size: .63rem; font-weight: 600; line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.hsx-duo .hsx-greg {
+  font-size: .5rem; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.hsx-duo .hsx-occ {
+  margin: 0; padding: 3px 6px; font-size: .46rem; line-height: 1.3;
+  border-radius: 8px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.hsx-duo .hsx-occ i { font-size: .44rem; }
+
+@media (max-width: 359px) {
+  .hsx-duo { gap: 8px; }
+  .hsx-duo > .hsx-next, .hsx-duo > .hsx-date { width: 47.5%; flex-basis: 47.5%; aspect-ratio: auto; min-height: 128px; }
+  .hsx-duo .hsx-cd { font-size: .93rem; }
+  .hsx-duo .hsx-np { font-size: .78rem; }
+}
+.hsx-inner-foot { padding: 10px 12px 14px; }
+
+/* ==========================================================================
+   v114 — مربّعان أصغر + نص أكبر وترتيب صارم: كل بطاقة شبكة من أربعة صفوف
+   (تسمية · قيمة · عدّاد · شارة) بمحاذاة واحدة، والفراغ الأوسط يتّسع للصورة.
+   ========================================================================== */
+.hsx-duo {
+  gap: 12px;
+  margin-top: 9px;
+  align-items: stretch;
+}
+.hsx-duo > .hsx-next,
+.hsx-duo > .hsx-date {
+  width: 39.5%;
+  flex: 0 0 39.5%;
+  max-width: 172px;
+  aspect-ratio: 1 / 1.12;
+  min-height: 0;
+  padding: 8px 9px !important;
+  border-radius: 14px !important;
+  gap: 0 !important;
+  justify-content: flex-start !important;
+}
+
+/* --- بطاقة الصلاة: صف تسمية / صف اسم+وقت / عدّاد / شارة --- */
+.hsx-duo .hsx-next-head {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--ink-panel-b);
+}
+.hsx-duo .hsx-k {
+  font-size: .53rem;
+  letter-spacing: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hsx-duo .hsx-k i { font-size: .52rem; }
+.hsx-duo .hsx-np {
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+  font-size: .92rem;
+  line-height: 1.15;
+}
+.hsx-duo .hsx-np b { white-space: nowrap; }
+.hsx-duo .hsx-np .hsx-t { font-size: .74rem; }
+.hsx-duo .hsx-metrics {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 7px;
+}
+.hsx-duo .hsx-metric { gap: 1px; align-items: flex-start; }
+.hsx-duo .hsx-metric.end { align-items: flex-start; text-align: start; }
+.hsx-duo .hsx-mlbl { font-size: .5rem; line-height: 1.2; }
+.hsx-duo .hsx-cd {
+  font-size: 1.16rem;
+  line-height: 1.04;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.hsx-duo .hsx-prev {
+  font-size: .5rem;
+  padding: 2px 5px;
+  border-radius: 7px;
+  max-width: 100%;
+}
+.hsx-duo .hsx-prev i { font-size: .46rem; }
+
+/* --- بطاقة التاريخ: يوم / هجري / ميلادي / مناسبة --- */
+.hsx-duo .hsx-date-main {
+  gap: 2px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--ink-panel-b);
+}
+.hsx-duo .hsx-dow { font-size: .68rem; line-height: 1.15; }
+.hsx-duo .hsx-hij {
+  font-size: .72rem;
+  font-weight: 700;
+  line-height: 1.4;
+  -webkit-line-clamp: 2;
+  display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;
+}
+.hsx-duo .hsx-greg {
+  font-size: .56rem;
+  line-height: 1.35;
+  margin-top: 6px;
+  -webkit-line-clamp: 2;
+  display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;
+}
+.hsx-duo .hsx-occ {
+  margin-top: auto;
+  padding: 3px 5px;
+  font-size: .5rem;
+  line-height: 1.3;
+  border-radius: 7px;
+  -webkit-line-clamp: 2;
+  display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;
+}
+.hsx-duo .hsx-occ i { font-size: .46rem; }
+
+/* ==========================================================================
+   v115 — تصغير المربّعين وضبط النصّ: عرض 36.5% وارتفاع ثابت 116px بدل مربّع
+   كبير، تدرّج واضح (تسمية · اسم+وقت · عدّاد · شارة) بلا فراغ متوسط،
+   وتخفيف الضباب حتى تظهر الصورة من خلف اللوح.
+   ========================================================================== */
+.hsx-duo { gap: 10px; margin-top: 8px; }
+.hsx-duo > .hsx-next,
+.hsx-duo > .hsx-date {
+  width: 36.5%;
+  flex: 0 0 36.5%;
+  max-width: 158px;
+  aspect-ratio: auto;
+  height: 116px;
+  min-height: 0;
+  padding: 7px 8px !important;
+  border-radius: 12px !important;
+  -webkit-backdrop-filter: blur(6px) saturate(1.1);
+  backdrop-filter: blur(6px) saturate(1.1);
+  background: var(--ink-panel) !important;
+  box-shadow: 0 6px 16px -12px rgba(0,0,0,.55);
+}
+.hsx-ink-light .hsx-next, .hsx-ink-light .hsx-date { background: rgba(255,255,255,.16) !important; }
+.hsx-duo .hsx-next-head { gap: 2px; padding-bottom: 4px; }
+.hsx-duo .hsx-k { font-size: .48rem; line-height: 1.15; }
+.hsx-duo .hsx-k i { font-size: .46rem; }
+.hsx-duo .hsx-np { font-size: .82rem; line-height: 1.1; }
+.hsx-duo .hsx-np .hsx-t { font-size: .66rem; }
+.hsx-duo .hsx-metrics { gap: 4px; padding-top: 5px; }
+.hsx-duo .hsx-mlbl { font-size: .44rem; line-height: 1.15; }
+.hsx-duo .hsx-cd { font-size: 1.0rem; line-height: 1; }
+.hsx-duo .hsx-prev { font-size: .44rem; padding: 1px 4px; border-radius: 6px; }
+.hsx-duo .hsx-prev i { font-size: .42rem; }
+.hsx-duo .hsx-date-main { gap: 1px; padding-bottom: 4px; }
+.hsx-duo .hsx-dow { font-size: .6rem; }
+.hsx-duo .hsx-hij { font-size: .62rem; line-height: 1.3; -webkit-line-clamp: 2; }
+.hsx-duo .hsx-greg { font-size: .48rem; margin-top: 4px; line-height: 1.25; -webkit-line-clamp: 1; }
+.hsx-duo .hsx-occ { font-size: .44rem; padding: 2px 4px; line-height: 1.2; border-radius: 6px; -webkit-line-clamp: 1; }
+.hsx-duo .hsx-occ i { font-size: .42rem; }
+
+/* ==========================================================================
+   v116 — الموازنة النهائية: عرض 38.5% وارتفاع 124px (لا مربّع ضخم ولا نص
+   ضئيل)، وكل الخطوط أكبر بدرجة، والنصّ يلمس حدّي البطاقة بلا فراغ متوسط.
+   ========================================================================== */
+.hsx-duo { gap: 11px; margin-top: 8px; }
+.hsx-duo > .hsx-next,
+.hsx-duo > .hsx-date {
+  width: 38.5%;
+  flex: 0 0 38.5%;
+  max-width: 164px;
+  height: 124px;
+  padding: 7px 9px !important;
+  border-radius: 13px !important;
+}
+.hsx-duo .hsx-next-head { gap: 3px; padding-bottom: 5px; }
+.hsx-duo .hsx-k { font-size: .53rem; line-height: 1.2; }
+.hsx-duo .hsx-k i { font-size: .5rem; }
+.hsx-duo .hsx-np { font-size: .9rem; line-height: 1.15; }
+.hsx-duo .hsx-np .hsx-t { font-size: .72rem; }
+.hsx-duo .hsx-metrics { gap: 5px; padding-top: 6px; }
+.hsx-duo .hsx-mlbl { font-size: .49rem; line-height: 1.2; }
+.hsx-duo .hsx-cd { font-size: 1.12rem; line-height: 1.02; }
+.hsx-duo .hsx-prev { font-size: .48rem; padding: 2px 5px; border-radius: 6px; }
+.hsx-duo .hsx-prev i { font-size: .45rem; }
+.hsx-duo .hsx-date-main { gap: 2px; padding-bottom: 5px; }
+.hsx-duo .hsx-dow { font-size: .64rem; line-height: 1.15; }
+.hsx-duo .hsx-hij { font-size: .66rem; line-height: 1.34; -webkit-line-clamp: 2; }
+.hsx-duo .hsx-greg { font-size: .5rem; margin-top: 5px; line-height: 1.3; -webkit-line-clamp: 2; }
+.hsx-duo .hsx-occ { font-size: .48rem; padding: 2px 5px; line-height: 1.25; border-radius: 6px; -webkit-line-clamp: 1; }
+.hsx-duo .hsx-occ i { font-size: .45rem; }
+
+/* ==========================================================================
+   v117 — ضبط الحشو والارتفاع حتى لا يُقصّ شيء: 128px، حشو 8/10، وقصّ واضح
+   داخل البطاقة، والشارة السفلية ملتصقة بالحدّ السفلي بلا تجاوز.
+   ========================================================================== */
+.hsx-duo > .hsx-next,
+.hsx-duo > .hsx-date { height: 128px; padding: 8px 10px !important; overflow: hidden; }
+.hsx-duo > .hsx-next { justify-content: space-between !important; }
+.hsx-duo > .hsx-date { justify-content: flex-start !important; }
+.hsx-duo .hsx-metrics { margin-top: 0; }
+.hsx-duo .hsx-occ { margin-top: auto; flex: 0 0 auto; }
+.hsx-duo .hsx-greg { margin-bottom: 2px; }
+.hsx-duo .hsx-hij { max-height: 2.7em; }
+.hsx-duo .hsx-cd { letter-spacing: -.2px; }
+
+/* ==========================================================================
+   v118 — هرمية أوضح داخل المربّع الصغير: الرقم هو البطل.
+   الصلاة: تسمية ← الاسم+الوقت ← العدّاد الكبير ← شارة «مضى» في سطر واحد.
+   التاريخ: اليوم ← الهجري ← الميلادي ← المناسبة. كل الصفوف متلاصقة بلا فراغ.
+   ========================================================================== */
+.hsx-duo > .hsx-next, .hsx-duo > .hsx-date { height: 130px; padding: 8px 9px !important; }
+
+/* بطاقة الصلاة */
+.hsx-duo .hsx-k { font-size: .55rem; letter-spacing: 0; }
+.hsx-duo .hsx-np { font-size: .98rem; }
+.hsx-duo .hsx-np .hsx-t { font-size: .78rem; }
+.hsx-duo .hsx-metrics { gap: 3px; padding-top: 6px; }
+.hsx-duo .hsx-metric { gap: 0; }
+.hsx-duo .hsx-metric > .hsx-mlbl:first-child { font-size: .5rem; }
+.hsx-duo .hsx-cd { font-size: 1.34rem; line-height: 1.06; font-weight: 800; }
+.hsx-duo .hsx-metric.end {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+.hsx-duo .hsx-metric.end .hsx-mlbl {
+  font-size: .46rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 1 auto;
+}
+.hsx-duo .hsx-prev { font-size: .5rem; padding: 2px 5px; flex: 0 0 auto; }
+
+/* بطاقة التاريخ */
+.hsx-duo .hsx-date-main { padding-bottom: 4px; }
+.hsx-duo .hsx-dow { font-size: .68rem; }
+.hsx-duo .hsx-hij { font-size: .7rem; line-height: 1.3; }
+.hsx-duo .hsx-greg { font-size: .54rem; margin-top: 4px; line-height: 1.25; }
+.hsx-duo .hsx-occ {
+  font-size: .5rem;
+  margin-top: 5px;
+  padding: 2px 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==========================================================================
+   v119 — تضليل أخف + نص أكبر بلا تكبير البطاقة (130px ثابتة).
+   ========================================================================== */
+.hsx-duo > .hsx-next,
+.hsx-duo > .hsx-date {
+  background: rgba(255, 255, 255, .10) !important;
+  -webkit-backdrop-filter: blur(3.5px) saturate(1.05);
+  backdrop-filter: blur(3.5px) saturate(1.05);
+  border: 1px solid rgba(255, 255, 255, .22) !important;
+}
+.hsx-ink-light .hsx-next, .hsx-ink-light .hsx-date { background: rgba(255, 255, 255, .10) !important; }
+/* الخط الداكن (صورة ساطعة): تضليل أبيض أخف حتى لا يطمس الصورة */
+.hsx-ink-dark .hsx-next, .hsx-ink-dark .hsx-date { background: rgba(255, 255, 255, .48) !important; border-color: rgba(255, 255, 255, .62) !important; }
+.hsx-ink-dark .hsx-duo .hsx-next-head,
+.hsx-ink-dark .hsx-duo .hsx-date-main { border-bottom-color: rgba(13, 33, 27, .14); }
+
+/* نص أكبر بدرجة داخل الحدود نفسها */
+.hsx-duo .hsx-k { font-size: .58rem; }
+.hsx-duo .hsx-k i { font-size: .55rem; }
+.hsx-duo .hsx-np { font-size: 1.02rem; }
+.hsx-duo .hsx-np .hsx-t { font-size: .82rem; }
+.hsx-duo .hsx-metric > .hsx-mlbl:first-child { font-size: .53rem; }
+.hsx-duo .hsx-cd { font-size: 1.42rem; }
+.hsx-duo .hsx-metric.end .hsx-mlbl { font-size: .49rem; }
+.hsx-duo .hsx-prev { font-size: .53rem; padding: 2px 5px; }
+.hsx-duo .hsx-dow { font-size: .72rem; }
+.hsx-duo .hsx-hij { font-size: .74rem; }
+.hsx-duo .hsx-greg { font-size: .57rem; }
+.hsx-duo .hsx-occ { font-size: .53rem; }
+.hsx-duo .hsx-occ i { font-size: .49rem; }
+
+/* ===== v120: «المناسبة القادمة» — العنوان في سطر، وتحته الاسم والوقت ===== */
+.hsx-occ {
+  display: block;
+  margin-top: 3px;
+  font-size: .58rem;
+  color: #ffe4a3;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  line-height: 1.35;
+}
+.hsx-occ-t {
+  display: block;
+  font-size: .5rem;
+  font-weight: 700;
+  letter-spacing: .2px;
+  opacity: .9;
+}
+.hsx-occ-b { display: flex; flex-wrap: wrap; align-items: baseline; gap: 5px; margin-top: 1px; }
+.hsx-occ-n { font-weight: 800; font-size: .6rem; }
+.hsx-occ-w { font-size: .54rem; opacity: .95; }
+.hsx-duo .hsx-occ { padding: 0 !important; font-size: .56rem !important; }
+.hsx-dual-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 3px;
+}
+.hsx-dual-city { font-size: .6rem; font-weight: 700; line-height: 1.2; }
+.hsx-dual-actions { display: flex; gap: 5px; flex: 0 0 auto; }
+.hsx-dual-btn:active { transform: scale(.96); }
+.hsx-dual-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; text-align: center; }
+.hsx-dual-cell { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.hsx-dual-t { font-size: .56rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hsx-dual-empty { padding: 0; background: transparent; border: none; display: flex; justify-content: center; }
+
+/* ==========================================================================
+   v121 — إصلاحات نهائية (تتجاوز كل ما سبق):
+   1) «المناسبة القادمة»: عنوان، ثم اسم المناسبة، ثم كم يوم متبقٍّ — بلا قصّ.
+   2) بطاقة «صلوات اليوم»: لوح أخضر عميق في الثيم الفاتح (كانت تظهر بيضاء)،
+      وأيقونات ذهبية واضحة. الثيم الداكن يبقى كما هو.
+   ========================================================================== */
+
+/* --- 1) بطاقتا الرأس تنموان مع المحتوى بدل قصّه --- */
+.hsx-duo > .hsx-next,
+.hsx-duo > .hsx-date {
+  aspect-ratio: auto !important;
+  height: auto !important;
+  min-height: 132px !important;
+}
+.hsx-duo > .hsx-date { overflow: visible !important; }
+.hsx-duo .hsx-hij { -webkit-line-clamp: unset !important; display: block !important; overflow: visible !important; }
+.hsx-duo .hsx-greg { -webkit-line-clamp: unset !important; display: block !important; overflow: visible !important; }
+
+/* --- 2) المناسبة القادمة: ثلاث أسطر مرتّبة --- */
+.hsx-duo .hsx-occ,
+.hsx-occ {
+  display: block !important;
+  -webkit-line-clamp: unset !important;
+  -webkit-box-orient: unset !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  text-overflow: clip !important;
+  padding: 0 !important;
+  margin-top: 4px !important;
+  border-radius: 0 !important;
+  background: none !important;
+  line-height: 1.35 !important;
+}
+.hsx-occ-t {
+  display: block !important;
+  font-size: .49rem !important;
+  font-weight: 800 !important;
+  letter-spacing: .2px;
+  opacity: .92;
+  margin-bottom: 1px;
+  white-space: normal !important;
+}
+.hsx-occ-b { display: block !important; margin: 0 !important; }
+.hsx-occ-n {
+  display: block !important;
+  font-size: .6rem !important;
+  font-weight: 800 !important;
+  line-height: 1.3 !important;
+  white-space: normal !important;
+}
+.hsx-occ-w {
+  display: block !important;
+  font-size: .53rem !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+  opacity: .95;
+  white-space: normal !important;
+}
