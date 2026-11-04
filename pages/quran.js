@@ -81,7 +81,7 @@ const QuranPage = {
     container.innerHTML = `
       <div class="quran-list-header qrh">
         <div class="qrh-top">
-          <button class="qrh-ic" onclick="Router.go('quran/read')" aria-label="${t('backToWisdom')}">
+          <button class="qrh-ic" onclick="Router.go('quran')" aria-label="${t('backToWisdom')}">
             <i class="fas fa-chevron-right"></i>
           </button>
           <div class="qrh-title">

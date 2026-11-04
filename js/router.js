@@ -4,6 +4,8 @@ const Router = {
     home: { page: HomePage, tabId: 'home' },
     quran: { page: QuranHubPage, tabId: 'quran' },
     'quran/read': { page: QuranPage, tabId: 'quran' },
+    // v1.0.134: ختمة القرآن والورد اليومي
+    'quran/khatma': { page: KhatmaPage, tabId: 'quran', method: 'render' },
     prayer: { page: PrayerPage, tabId: 'prayer' },
     calendar: { page: CalendarPage, tabId: null },
     // v98: إمساكية رمضان — جدول مواعيد الشهر كامل ولخمس رمضانات قادمة
@@ -27,6 +29,8 @@ const Router = {
     daily: { page: DailyTrackerPage, tabId: null },
     // v103: فهرس كل ميزات التطبيق
     features: { page: FeaturesPage, tabId: null },
+    // v1.0.132: ويدجتس الشاشة الرئيسية (لون/نمط + تثبيت)
+    'settings/widgets': { page: WidgetSettingsPage, tabId: 'profile' },
   },
 
   current: null,

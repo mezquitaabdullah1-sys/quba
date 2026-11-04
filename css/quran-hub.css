@@ -98,3 +98,32 @@
 .qrh-fullpage .qrh-fp-arw { font-size: 10px; opacity: .6; }
 .qrh-fullpage:active { transform: scale(.99); }
 [data-theme="dark"] .qrh-fullpage { background: rgba(90,200,160,.10); border-color: rgba(90,200,160,.24); color: #9BE3C8; }
+
+/* v133: ألوان الترويسة تتبع الثيم — لا أبيض ثابت */
+.quran-list-header.qrh {
+  background: var(--card, #fff);
+  border-bottom: 1px solid var(--border, rgba(0,0,0,.07));
+  box-shadow: 0 6px 18px rgba(0,0,0,.05);
+}
+.qrh .quran-unified-search,
+.qrh .search-box {
+  background: var(--surface-alt, #F5F0E6) !important;
+  border: 1px solid var(--border, rgba(0,0,0,.08)) !important;
+  color: var(--ink, #26251F) !important;
+}
+.qrh .quran-unified-search input,
+.qrh .search-box input {
+  background: transparent !important; color: var(--ink, #26251F) !important;
+}
+.qrh .quran-unified-search input::placeholder,
+.qrh .search-box input::placeholder { color: var(--muted, #8A8577) !important; }
+.qrh .quran-unified-search > i, .qrh .search-box > i { color: var(--muted, #8A8577) !important; }
+.qrh-fullpage {
+  background: var(--surface-alt, #F5F0E6) !important;
+  border: 1px solid var(--border, rgba(0,0,0,.1)) !important;
+  color: var(--ink, #26251F) !important;
+}
+.qrh-fullpage > i { color: var(--brand, #0F4C3A) !important; }
+.qrh-ic { background: var(--surface-alt, rgba(0,0,0,.04)) !important; color: var(--ink, #26251F) !important; }
+[data-theme="dark"] .qrh-fullpage { background: var(--surface-alt) !important; border-color: var(--border) !important; color: var(--ink) !important; }
+[data-theme="dark"] .qrh-fullpage > i { color: #9BE3C8 !important; }

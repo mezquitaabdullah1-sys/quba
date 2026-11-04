@@ -48,7 +48,7 @@ const QuranHubPage = {
             <i class="fas fa-chevron-left qhb-arw"></i>
           </button>
 
-          <button class="qhb-card qhb-c2" onclick="showToast('قريبًا — ختمة وورد يومي يتجدّد تلقائيًا', 2200)">
+          <button class="qhb-card qhb-c2" onclick="Router.go('quran/khatma')">
             <span class="qhb-ic"><i class="fas fa-calendar-check"></i></span>
             <span class="qhb-tx">
               <b>${L('ختم القرآن والورد', 'Jatma y Wird diario', 'Khatma & daily ward')}</b>

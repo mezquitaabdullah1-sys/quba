@@ -1,6 +1,10 @@
 // 🌐 Sistema de internacionalización — 100% trilingüe (ES / AR / EN)
 const I18N = {
   "es": {
+    "wardToday": "Wird de hoy",
+    "wardEnd": "Fin del wird de hoy",
+    "wardTapToRecord": "toca para registrar",
+    "wardRecorded": "Página registrada",
     "adhanSettings": "Adhan y notificaciones",
     "adhanGroupDesc": "Adhan, iqama, notificaciones finas y recordatorios",
     "mainAlerts": "Alertas principales",
@@ -719,6 +723,10 @@ const I18N = {
     "dualEdit": "Editar"
   },
   "ar": {
+    "wardToday": "ورد اليوم",
+    "wardEnd": "نهاية ورد اليوم",
+    "wardTapToRecord": "اضغط للاحتساب",
+    "wardRecorded": "تم احتساب الصفحة",
     "adhanSettings": "الأذان والإشعارات",
     "adhanGroupDesc": "الأذان، الإقامة، الإشعارات الدقيقة والتذكيرات",
     "mainAlerts": "التنبيهات الرئيسية",
@@ -1437,6 +1445,10 @@ const I18N = {
     "dualEdit": "تعديل"
   },
   "en": {
+    "wardToday": "Today's ward",
+    "wardEnd": "End of today's ward",
+    "wardTapToRecord": "tap to record",
+    "wardRecorded": "Page recorded",
     "adhanSettings": "Adhan & notifications",
     "adhanGroupDesc": "Adhan, iqama, fine notifications and reminders",
     "mainAlerts": "Main alerts",

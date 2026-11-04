@@ -578,7 +578,8 @@ const HomePage = {
         rel = days <= 0 ? t('resumeToday') : (days === 1 ? t('resumeYesterday') : t('resumeDaysAgo').replace('{n}', days));
       }
       return `
-      <button class="resume-strip" onclick="Router.go('surah',{surahNumber:${lr.s},ayah:${lr.a}})" aria-label="${escapeAttr(t('resumeReading'))}">
+      <button class="resume-strip" onclick="Router.go('surah',{surahNumber:${lr.s},ayah:${lr.a}})" aria-label="${escapeAttr(t('resumeReading'))}
+        ${this._wardStrip()}">
         <span class="resume-strip-ic"><i class="fas fa-bookmark"></i></span>
         <span class="resume-strip-body">
           <span class="resume-strip-label">${t('resumeReading')} — ${t('resumeStoppedAt')}</span>
@@ -586,6 +587,28 @@ const HomePage = {
           <span class="resume-strip-meta">${page ? t('resumePage') + ' ' + page : ''}${page && rel ? ' · ' : ''}${rel}</span>
         </span>
         <i class="fas fa-chevron-${document.documentElement.dir === 'rtl' ? 'left' : 'right'} resume-strip-arrow"></i>
+      </button>`;
+    } catch (e) { return ''; }
+  },
+
+  // v1.0.134: شريط ختمة/ورد في الرئيسية (يظهر فقط إن كانت هناك ختمة نشطة)
+  _wardStrip() {
+    try {
+      if (typeof KhatmaStore === 'undefined') return '';
+      const k = KhatmaStore.active(); if (!k) return '';
+      const wp = KhatmaStore.wardProgress(k); const pr = KhatmaStore.progress(k);
+      const w = wp.ward;
+      const range = (w && w.pages > 0) ? KhatmaStore.rangeLabel(k, w) : 'يوم راحة';
+      const dir = document.documentElement.dir === 'rtl' ? 'left' : 'right';
+      return `
+      <button class="resume-strip" onclick="Router.go('quran/khatma')" aria-label="ختمتي">
+        <span class="resume-strip-ic"><i class="fas fa-book-quran"></i></span>
+        <span class="resume-strip-body">
+          <span class="resume-strip-label">ورد اليوم · ${wp.done}/${wp.total} صفحة</span>
+          <span class="resume-strip-title">${range}</span>
+          <span class="resume-strip-meta">${pr.read} / ${pr.total} صفحة · ${pr.pct}% من الختمة</span>
+        </span>
+        <i class="fas fa-chevron-${dir} resume-strip-arrow"></i>
       </button>`;
     } catch (e) { return ''; }
   },

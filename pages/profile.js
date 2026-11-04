@@ -621,6 +621,14 @@ const ProfilePage = {
         </div>
 
         <div class="section-label"><i class="fas fa-gear"></i> ${t('settings')}</div>
+        <button onclick="Router.go('settings/widgets')" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;border:none;border-radius:16px;background:var(--surface,#fff);margin:10px 0;text-align:right;color:inherit">
+          <span style="width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(232,200,119,.18);color:#B8860B"><i class="fas fa-table-cells-large"></i></span>
+          <span style="flex:1">
+            <span style="display:block;font-size:14px;font-weight:700">ويدجتس الشاشة الرئيسية</span>
+            <span style="display:block;font-size:11px;opacity:.65">الألوان · الأنماط · إضافة الويدجتس</span>
+          </span>
+          <i class="fas fa-chevron-left" style="opacity:.4"></i>
+        </button>
         <div class="card" style="padding: 0; overflow: hidden;">
           <div class="list-row" onclick="ProfilePage.pickLanguage()">
             <div class="list-row-icon"><i class="fas fa-language"></i></div>
