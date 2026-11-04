@@ -16,6 +16,7 @@ const LibraryPage = {
   _chev() { return this._rtl() ? 'left' : 'right'; },
 
   render(container, params = {}) {
+    try { LibraryService.requestPersist(); } catch (e) { /* تجاهل */ }
     this._fs = (Storage.get('library_fontsize')) || 20;
     const loc = (typeof currentLocale !== 'undefined' && currentLocale) || 'ar';
     const saved = (typeof Storage !== 'undefined' && Storage.get('library_lang')) || null;
@@ -629,6 +630,8 @@ const LibraryPage = {
   },
   // v1.0.86 — يُفتح الكتاب دائمًا داخل التطبيق: يُجلب الملف ويُخزَّن محليًا ثم يُعرض من نسخة
   // محلية (blob:) فلا يُحجب داخل iframe، ويُقرأ بعدها بلا إنترنت كأي كتاب منزَّل.
+  // v1.0.125 — يُفتح الكتاب دائمًا داخل التطبيق عبر pdf.js على <canvas>:
+  // WebView لا يعرض PDF في iframe، والملف يُقرأ من IndexedDB إن كان منزَّلًا.
   async _openPdf(b, from) {
     if (!b || !b.pdf) { if (typeof showToast === 'function') showToast('\u26a0\ufe0f ' + this.L('libPdfFail')); return; }
     if (from && ['shelf', 'favs', 'jami', 'topic', 'kids', 'newmuslims', 'hadith', 'home'].indexOf(from) !== -1) this._from = from;
@@ -638,30 +641,49 @@ const LibraryPage = {
     const lang = b.lang || this._lang;
     const key = LibraryService.pdfKey(lang, b.id);
     const name = b.name || '';
-    let blobUrl = await LibraryService.pdfObjectUrl(key);
+    let cached = null;
+    try { cached = await LibraryService.getPdfBlob(key); } catch (e) { cached = null; }
     el.innerHTML = `<div class="lib-page lib-pdf-page">
-      ${this._header(name, blobUrl ? this.L('libPdfOffline') : this.L('libPdfViewer'), 'LibraryPage._backFromPdf()')}
+      ${this._header(name, cached ? this.L('libPdfOffline') : this.L('libPdfViewer'), 'LibraryPage._backFromPdf()')}
       <div class="lib-pdf-bar">
         <button class="lib-mini dl" title="${escapeAttr(this.L('libPdfSave'))}" onclick="LibraryPage._dlPdfById(${b.id},this,${JSON.stringify(lang)})"><i class="fas fa-download"></i></button>
-        <span class="lib-pdf-note" id="lib-pdf-note">${esc(blobUrl ? this.L('libPdfOffline') : this.L('libPdfDownloading'))}</span>
+        <span class="lib-pdf-note" id="lib-pdf-note">${esc(cached ? this.L('libPdfOffline') : this.L('libPdfDownloading'))}</span>
         <button class="lib-mini ext" title="${escapeAttr(this.L('libOpenWeb'))}" onclick="window.open('${escapeAttr(b.pdf)}','_blank')"><i class="fas fa-up-right-from-square"></i></button>
       </div>
       <div id="lib-pdf-slot"></div></div>`;
     const slot = document.getElementById('lib-pdf-slot');
     if (!slot) return;
-    const frame = (src) => `<iframe class="lib-pdf-frame" src="${escapeAttr(src)}" title="${escapeAttr(name)}"></iframe>`;
-    if (blobUrl) { slot.innerHTML = frame(blobUrl); return; }
-    slot.innerHTML = `<div class="lib-pdf-loading"><i class="fas fa-spinner fa-spin"></i><span>${esc(this.L('libPdfDownloading'))}</span></div>`;
+    if (cached) { await this._renderPdfBlob(slot, cached, name, b.pdf); return; }
+    slot.innerHTML = `<div class="lpdf-loading"><i class="fas fa-spinner fa-spin"></i> ${esc(this.L('libPdfDownloading'))}</div>`;
     try {
-      await LibraryService.cachePdf(b.pdf, key, null);
-      blobUrl = await LibraryService.pdfObjectUrl(key);
-      const note = document.getElementById('lib-pdf-note');
-      if (note && blobUrl) note.textContent = this.L('libPdfOffline');
-      const s2 = document.getElementById('lib-pdf-slot');
-      if (s2) s2.innerHTML = frame(blobUrl || b.pdf);
+      const blob = await LibraryService.cachePdf(b.pdf, key, (got, total) => {
+        const n = document.getElementById('lib-pdf-note');
+        if (n && total) n.textContent = Math.round(got / total * 100) + '%';
+      });
+      const n2 = document.getElementById('lib-pdf-note');
+      if (n2) n2.textContent = this.L('libPdfOffline');
+      await this._renderPdfBlob(slot, blob, name, b.pdf);
     } catch (e) {
-      const s2 = document.getElementById('lib-pdf-slot');
-      if (s2) s2.innerHTML = frame(b.pdf); // احتياط: عرض مباشر من الرابط
+      slot.innerHTML = `<div class="lpdf-err"><i class="fas fa-wifi"></i>
+        ${esc(this.L('libPdfFail'))}
+        <div class="lpdf-fallback">
+          <button class="lib-btn ghost" onclick="window.open('${escapeAttr(b.pdf)}','_blank')"><i class="fas fa-up-right-from-square"></i> ${esc(this.L('libOpenWeb'))}</button>
+        </div></div>`;
+    }
+  },
+  async _renderPdfBlob(slot, blob, name, url) {
+    try {
+      const buf = await blob.arrayBuffer();
+      const ok = await PdfReader.show(slot, buf, {
+        name: name || '',
+        url: url || '',
+        onSave: true,
+      });
+      if (!ok) {
+        window.__lpdfSave = () => LibraryService.saveBlobToDevice(blob, String(name || 'book').replace(/[^A-Za-z0-9\u0600-\u06FF ]+/g, '_').slice(0, 60) + '.pdf');
+      }
+    } catch (e) {
+      slot.innerHTML = `<div class="lpdf-err"><i class="fas fa-file-circle-exclamation"></i>${esc(this.L('libPdfFail'))}</div>`;
     }
   },
   _openPdfById(id, from) { const b = this._findIh(id); if (b) this._openPdf(b, from); },
@@ -928,6 +950,7 @@ const LibraryPage = {
       const t = document.getElementById('lib-rtext'); if (!t) return;
       t.innerHTML = (p.text && p.text.trim()) ? this._sanitize(p.text) : `<div style="text-align:center;color:var(--text-secondary);padding:30px 0;">— ${esc(this.L('libPage'))} ${this._rpage} —</div>`;
       LibraryService.setProgress(id, this._rpage, total);
+      LibraryService.prefetch(id, this._rpage + 1); // v1.0.125: تقليب فوري أوفلاين
       const pl = document.getElementById('lib-pline'); if (pl && total) pl.style.width = Math.min(100, Math.round(this._rpage / total * 100)) + '%';
       const pi = document.getElementById('lib-pageinfo'); if (pi) pi.textContent = this.L('libPage') + ' ' + this._rpage + (total ? ' / ' + total : '');
     } catch (e) {
@@ -982,6 +1005,7 @@ const LibraryPage = {
   },
   _runDownload() { return Promise.resolve(null); },
   cleanup() {
+    if (typeof PdfReader !== 'undefined') PdfReader.close();
     if (this._timer) { clearTimeout(this._timer); this._timer = null; }
     document.querySelectorAll('.lib-sheet-overlay').forEach(o => { try { o.remove(); } catch (e) { /* تجاهل */ } });
   },
@@ -1105,11 +1129,60 @@ const LibraryPage = {
     this._paintJami();
   },
   _moreJami() { this._jlimit += 120; this._paintJami(); },
+  // v1.0.125 — يجمع كتب الجامع في مجموعات حسب التصنيف بدل صف واحد مسحوب
+  _jamiSections() {
+    const lang = this._lang;
+    if (this._jcat) {
+      const t = this._topicDef(this._jcat);
+      const gid = this._arGroupOf(this._jcat) || this._jcat;
+      const label = t ? (t.key ? this.L(t.key) : t.label) : LibraryData.ihLabel(gid);
+      return [{ id: gid, label: label, icon: t ? t.icon : 'fa-book', color: t ? t.color : '#0F4C3A', items: this._jamiBooks() }];
+    }
+    const out = [];
+    const groups = LibraryData.ihGroups(lang) || [];
+    groups.forEach(g => {
+      const items = (lang === 'ar') ? this._arGroupItems(g.id) : (g.books || []).slice();
+      if (!items.length) return;
+      out.push({
+        id: g.id,
+        label: g.label || g.title || LibraryData.ihLabel(g.id) || g.id,
+        icon: LibraryData.ihGroupIcon(g.id) || 'fa-book-open',
+        color: LibraryData.ihGroupColor(g.id) || '#0F4C3A',
+        items: items,
+      });
+    });
+    if (lang === 'ar') {
+      const covered = {};
+      groups.forEach(g => (g.tKeys || []).forEach(k => { covered[k] = 1; }));
+      const rest = [];
+      Object.keys(LibraryData.CAT_BOOKS || {}).forEach(k => {
+        if (covered[k]) return;
+        (LibraryData.CAT_BOOKS[k] || []).forEach(b => rest.push({ id: b.id, name: b.name, author: b.author || '', volumes: b.volumes || 0 }));
+      });
+      if (rest.length) out.push({ id: 'more', label: this.L('libMoreBooks'), icon: 'fa-layer-group', color: '#7A6A4F', items: rest });
+    }
+    return out;
+  },
   _jamiHtml() {
     if (this._loading) return `<div class="lib-empty-list">${esc(this.L('libLoading'))}</div>`;
-    const list = this._jamiBooks();
-    if (!list.length) return `<div class="lib-empty-list">${esc(this.L('libNoCatBooks'))}</div>`;
-    return this._gridHtml(list.slice(0, (this._jlimit || 240)).map(b => ({ b: b, kind: b.pdf ? 'ih' : 't', g: b.group || '' })));
+    const secs = this._jamiSections();
+    if (!secs.length) return `<div class="lib-empty-list">${esc(this.L('libNoCatBooks'))}</div>`;
+    let budget = this._jlimit || 240;
+    let html = '';
+    for (const sec of secs) {
+      if (budget <= 0) break;
+      const items = sec.items.slice(0, budget);
+      budget -= items.length;
+      html += `<div class="lib-jsec">
+        <div class="lib-jsec-h">
+          <span class="lib-jsec-ic" style="--jc:${sec.color}"><i class="fas ${sec.icon}"></i></span>
+          <span class="lib-jsec-t">${esc(sec.label)}</span>
+          <span class="lib-jsec-n">${esc(this.L('libBooksCount', { n: sec.items.length }))}</span>
+        </div>
+        <div class="lib-grid">${items.map(b => this._gridCard(b, sec.id)).join('')}</div>
+      </div>`;
+    }
+    return html;
   },
   // v1.0.89 — كتب المكتبة الشاملة التابعة لباب ما (أو لكلها)
   _turathBooksFor(keys) {

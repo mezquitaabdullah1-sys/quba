@@ -1,3 +1,16 @@
+/* v1.0.131 — خط المصحف العثماني الرسمي (KFGQPC Uthmanic Hafs) + خط أسماء السور */
+@font-face {
+  font-family: 'UthmanicHafs';
+  src: url('../assets/fonts/quran/UthmanicHafs.woff2') format('woff2');
+  font-display: block;
+  font-weight: 400;
+}
+@font-face {
+  font-family: 'SuraNames';
+  src: url('../assets/fonts/quran/sura_names.woff2') format('woff2');
+  font-display: block;
+}
+
 /* 📖 المصحف — القرآن صفحة كاملة (أوفلاين) */
 
 .msh-wrap {
@@ -63,7 +76,7 @@
 }
 
 .msh-flow {
-  font-family: 'Scheherazade New', 'Amiri', 'Noto Naskh Arabic', serif;
+  font-family: 'UthmanicHafs', 'Scheherazade New', 'Amiri', 'Noto Naskh Arabic', serif;
   text-align: justify;
   line-height: 2.15;
   word-spacing: 1px;
@@ -198,3 +211,45 @@ body.msh-immersive .msh-pager-bar,
 body.msh-immersive .bottom-tabs {
   display: none !important;
 }
+
+
+/* ===== v1.0.131: إعدادات المصحف المتقدمة ===== */
+.msh-set-fab {
+  position: fixed; inset-inline-end: 14px; bottom: 86px; z-index: 40;
+  width: 42px; height: 42px; border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(15,76,58,.92); color: #fff; font-size: 15px;
+  box-shadow: 0 10px 24px -10px rgba(0,0,0,.6);
+  display: flex; align-items: center; justify-content: center;
+}
+.msh-set-fab:active { transform: scale(.93); }
+
+.msh-set-sheet {
+  position: fixed; inset-inline: 0; bottom: 0; z-index: 120;
+  background: var(--card, #fff); border-radius: 22px 22px 0 0;
+  padding: 16px 16px 26px; box-shadow: 0 -18px 40px -20px rgba(0,0,0,.5);
+  max-height: 82vh; overflow-y: auto;
+  animation: mshSheetUp .26s cubic-bezier(.2,.8,.3,1);
+}
+@keyframes mshSheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.msh-set-veil { position: fixed; inset: 0; z-index: 119; background: rgba(0,0,0,.42); }
+.msh-set-grab { width: 42px; height: 4px; border-radius: 3px; background: var(--line, #E0D9C8); margin: 0 auto 12px; }
+.msh-set-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.msh-set-h b { font-size: 15px; font-weight: 800; color: var(--ink, #26251F); }
+.msh-set-h button { border: none; background: var(--chip, rgba(0,0,0,.06)); color: var(--muted, #8A8577);
+  width: 28px; height: 28px; border-radius: 9px; cursor: pointer; }
+.msh-set-grp { margin-bottom: 14px; }
+.msh-set-lbl { font-size: 11px; font-weight: 800; color: var(--muted, #8A8577); margin-bottom: 7px; letter-spacing: .02em; }
+.msh-set-chips { display: flex; gap: 7px; flex-wrap: wrap; }
+.msh-set-chip {
+  padding: 8px 13px; border-radius: 11px; cursor: pointer; font-family: inherit;
+  font-size: 12px; font-weight: 700; border: 1px solid var(--line, #E7E0D0);
+  background: var(--card, #fff); color: var(--ink, #26251F);
+}
+.msh-set-chip.on { background: var(--accent, #1B7A5A); border-color: transparent; color: #fff; }
+.msh-paper-sepia { background: #F6ECD8 !important; }
+.msh-paper-white { background: #FFFFFF !important; }
+.msh-paper-dark  { background: #14140F !important; color: #E8E2D2 !important; }
+.msh-paper-dark .msh-ayah-end { color: #C9A227; }
+.msh-lh-tight  .msh-flow { line-height: 1.62; }
+.msh-lh-normal .msh-flow { line-height: 2.05; }
+.msh-lh-wide   .msh-flow { line-height: 2.45; }

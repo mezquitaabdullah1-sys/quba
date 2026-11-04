@@ -11,15 +11,54 @@ const LibraryService = {
     return base.replace(/\/$/, '') + '/' + String(path).replace(/^\//, '');
   },
 
+  // v1.0.125 — جسر HTTP أصلي داخل تطبيق أندرويد: يُنفَّذ الطلب في Kotlin
+  // (HttpURLConnection) فلا تنطبق سياسة CORS إطلاقًا — هذه هي الطريقة التي
+  // تجعل api.turath.io (بلا Access-Control-Allow-Origin) يعمل داخل التطبيق.
+  _seq: 0,
+  _httpPool: null,
+  _nativeGet(url) {
+    return new Promise((resolve, reject) => {
+      const nat = (typeof window !== 'undefined') && window.QubaNative;
+      const And = (typeof window !== 'undefined') && window.Android;
+      if (!nat || !And || typeof And.httpGet !== 'function' || typeof nat.addEventListener !== 'function') {
+        reject(new Error('no-native')); return;
+      }
+      const id = 'h' + Date.now() + '_' + (++this._seq);
+      let settled = false;
+      const done = (fn, v) => { if (settled) return; settled = true; try { nat.removeEventListener('message', onMsg); } catch (e) {} clearTimeout(timer); fn(v); };
+      const onMsg = (ev) => {
+        try {
+          const d = JSON.parse(ev && ev.data);
+          if (!d || d.t !== 'http' || d.id !== id) return;
+          if (d.e) done(reject, new Error(d.e));
+          else if (d.s >= 200 && d.s < 300) done(resolve, d.b);
+          else done(reject, new Error('HTTP ' + d.s));
+        } catch (e) { /* رسالة أخرى */ }
+      };
+      const timer = setTimeout(() => done(reject, new Error('native-timeout')), 30000);
+      try { nat.addEventListener('message', onMsg); } catch (e) { done(reject, new Error('no-native')); return; }
+      try { And.httpGet(id, url); } catch (e) { done(reject, e); }
+    });
+  },
+
   async _fetchJson(url) {
     const proxy = this._proxy();
     const attempts = [];
-    if (proxy) attempts.push(proxy.replace(/\/$/, '') + '/lib?u=' + encodeURIComponent(url));
-    attempts.push(url);
+    attempts.push({ kind: 'native', url: url });
+    if (proxy) attempts.push({ kind: 'proxy', url: proxy.replace(/\/$/, '') + '/lib?u=' + encodeURIComponent(url) });
+    attempts.push({ kind: 'direct', url: url });
     let lastErr = null;
-    for (const u of attempts) {
+    for (const a of attempts) {
       try {
-        const r = await fetch(u, { headers: { 'Accept': 'application/json' } });
+        let txt;
+        if (a.kind === 'native') {
+          txt = await this._nativeGet(a.url);
+          return typeof txt === 'string' ? JSON.parse(txt) : txt;
+        }
+        const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        const t = ctrl ? setTimeout(() => ctrl.abort(), 12000) : null;
+        const r = await fetch(a.url, { headers: { 'Accept': 'application/json' }, signal: ctrl ? ctrl.signal : undefined });
+        if (t) clearTimeout(t);
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return await r.json();
       } catch (e) { lastErr = e; }
@@ -159,46 +198,100 @@ const LibraryService = {
   },
 
   // ============ التنزيل ============
-  // تنزيل نطاق صفحات [start..end] مع تقرير التقدّم. يُخزَّن كل شيء في IndexedDB.
+  // v1.0.125 — تنزيل نطاق صفحات [start..end] بتصحيح جوهري:
+  //  • الصفحة الفاشلة لا تُحسب منجزة (كانت done++ تُحسب مع الفشل).
+  //  • إعادة محاولة ٣ مرات بتراجع أُسّي؛ بعدها تُسجَّل في failed فقط.
+  //  • توقّف «نهاية الكتاب» لا يحدث إلا بصفحات فارغة متتالية بلا أي خطأ.
+  //  • يعيد failed/complete ليُكتبا على الرفّ بدل علامة ✅ كاذبة.
   async downloadRange(id, start, end, onProgress, shouldStop) {
     const total = Math.max(1, end - start + 1);
     let done = 0;
-    const CONC = 4;
+    const failed = [];
+    const CONC = 3;
     let cursor = start;
     let emptyRun = 0;
+    let lastProgressAt = Date.now();
     while (cursor <= end) {
+      if (shouldStop && shouldStop()) return { done, total, failed, stopped: true, complete: false };
       const batch = [];
       for (let i = 0; i < CONC && cursor <= end; i++, cursor++) batch.push(cursor);
-      const results = await Promise.all(batch.map(async (n) => {
-        if (shouldStop && shouldStop()) return { n, skipped: true };
-        try { const p = await this.page(id, n); return { n, text: p.text }; }
-        catch (e) { return { n, err: true }; }
-      }));
+      const results = await Promise.all(batch.map(n => this._pageWithRetry(id, n)));
       for (const r of results) {
-        if (r.skipped) return { done, total, stopped: true };
-        done++;
-        if (r.text) emptyRun = 0; else emptyRun++;
-        if (onProgress) onProgress(done, total);
+        if (r.ok) {
+          done++;
+          if (r.empty) emptyRun++; else emptyRun = 0;
+        } else {
+          failed.push(r.n);
+          emptyRun = 0; // خطأ شبكة ليس نهاية كتاب
+        }
       }
-      if (emptyRun >= CONC * 3) break; // نهاية الكتاب (صفحات فارغة متتالية)
+      if (onProgress) onProgress(done, total);
+      if (emptyRun >= 8) break; // نهاية الكتاب فعلًا
+      lastProgressAt = Date.now();
     }
-    return { done, total, reachedEnd: emptyRun >= CONC * 3 };
+    const complete = failed.length === 0 && done >= total;
+    return { done, total, failed, complete, reachedEnd: emptyRun >= 8 };
   },
 
-  // تنزيل الكتاب كاملًا (حتى maxPage، بحدّ أقصى آمن)
+  async _pageWithRetry(id, n) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const p = await this.page(id, n, attempt > 0);
+        const txt = p && p.text ? String(p.text).trim() : '';
+        return { ok: true, n: n, empty: !txt };
+      } catch (e) {
+        if (attempt < 2) await new Promise(r => setTimeout(r, 400 * Math.pow(2, attempt)));
+      }
+    }
+    return { ok: false, n: n };
+  },
+
+  // استكمال التنزيل من آخر نقطة بدل البدء من جديد
+  dlState(id) {
+    try { return Storage.get('lib_dl_' + id) || null; } catch (e) { return null; }
+  },
+  _setDlState(id, st) { try { Storage.set('lib_dl_' + id, st); } catch (e) { /* تجاهل */ } },
+
+  // تنزيل الكتاب كاملًا (حتى maxPage، بحدّ أقصى آمن) مع استكمال
   async downloadBook(id, info, onProgress, shouldStop) {
     if (this._inflight[id]) return this._inflight[id];
-    const maxPage = (info && info.maxPage) || (await this.bookInfo(id).catch(() => ({}))).maxPage;
     const cap = 1200;
+    const maxPage = (info && info.maxPage) || (await this.bookInfo(id).catch(() => ({}))).maxPage;
     const end = Math.min(maxPage || cap, cap);
-    this._inflight[id] = this.downloadRange(id, 1, end, onProgress, shouldStop);
+    const prev = this.dlState(id);
+    const start = (prev && !prev.complete && prev.next && prev.next > 1 && prev.next <= end) ? prev.next : 1;
+    this._inflight[id] = this.downloadRange(id, start, end, (d, t) => {
+      this._setDlState(id, { next: start + d, done: d, total: t, complete: false, at: Date.now() });
+      if (onProgress) onProgress(d, t);
+    }, shouldStop);
     try {
       const res = await this._inflight[id];
-      await this.addToShelf(info || (await this.bookInfo(id)), { maxPage });
+      const complete = !!(res && res.complete) && !res.stopped;
+      this._setDlState(id, { next: complete ? end + 1 : (start + ((res && res.done) || 0)), done: (res && res.done) || 0, total: (res && res.total) || 0, complete, failed: ((res && res.failed) || []).length, at: Date.now() });
+      await this.addToShelf(Object.assign({}, info || (await this.bookInfo(id)), {
+        maxPage, complete, pages: (res && res.done) || 0, failedCount: ((res && res.failed) || []).length,
+      }), { maxPage, complete, pages: (res && res.done) || 0 });
       return res;
     } finally {
       delete this._inflight[id];
     }
+  },
+
+  // جلب مسبق للصفحة التالية (تقليب فوري بلا انتظار الشبكة)
+  async prefetch(id, n) {
+    if (!n || n < 1) return;
+    try { await this.page(id, n); } catch (e) { /* تجاهل */ }
+  },
+
+  // يطلب من النظام عدم مسح IndexedDB تحت ضغط التخزين
+  async requestPersist() {
+    try {
+      if (navigator.storage && navigator.storage.persist) {
+        if (await navigator.storage.persisted()) return true;
+        return await navigator.storage.persist();
+      }
+    } catch (e) { /* تجاهل */ }
+    return false;
   },
 
   // ============ المفضّلة (v1.0.80) ============

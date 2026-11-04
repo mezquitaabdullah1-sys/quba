@@ -122,7 +122,78 @@ const CITY_LIST = [
 const Cities = {
   LIST: CITY_LIST,
 
-  byId(id) { return CITY_LIST.find(c => c.id === id) || null; },
+  // ══ v132: تسمية الأراضي المحتلة ══
+  // كل مكان تقع إحداثياته في فلسطين التاريخية أو يسمّيه المزوّد Israel /
+  // Palestine يُعرض «فلسطين المحتلة» بعلمها، لا باسم الكيان.
+  PALESTINE: ['israel', 'il', 'isr', 'state of israel', 'palestine', 'palestina', 'ps', 'pse',
+    'palestinian territories', 'palestinian territory', 'occupied palestinian territory',
+    'west bank', 'gaza', 'gaza strip', 'إسرائيل', 'اسرائيل', 'فلسطين', 'الضفة الغربية',
+    'قطاع غزة', 'ישראל', 'palestina ocupada', 'occupied palestine', 'فلسطين المحتلة'],
+
+  isPalestine(name) {
+    if (!name) return false;
+    const n = String(name).toLowerCase().trim()
+      .replace(/^the\s+/, '').replace(/[.,;()]/g, '').replace(/\s+/g, ' ');
+    return this.PALESTINE.indexOf(n) !== -1;
+  },
+
+  /** يضع العلم وعلَم «محتلة» على أي سجل بلده فلسطين أو الكيان. */
+  _applyPalestine(c) {
+    if (!c) return c;
+    if (this.isPalestine(c.country) || this.isPalestine(c.countryAr)) {
+      c.occupied = true;
+      c.flag = '🇵🇸';
+      c.countryAr = 'فلسطين المحتلة';
+      c.country = 'Palestina ocupada';
+    }
+    return c;
+  },
+
+  /** نصّ البلد بلغة الواجهة، مع احترام التسمية. */
+  countryText(c, lang) {
+    if (!c) return '';
+    const l = lang || (typeof currentLocale !== 'undefined' ? currentLocale : 'es');
+    if (c.occupied || this.isPalestine(c.country) || this.isPalestine(c.countryAr)) {
+      return l === 'ar' ? 'فلسطين المحتلة' : (l === 'en' ? 'Occupied Palestine' : 'Palestina ocupada');
+    }
+    return l === 'ar' ? (c.countryAr || c.country || '') : (c.country || c.countryAr || '');
+  },
+
+  /** يسمّي بلدًا خامًا (قادمًا من GPS أو خدمة خارجية) بالتسمية الصحيحة. */
+  normalizeCountryName(name) {
+    const l = (typeof currentLocale !== 'undefined' ? currentLocale : 'es');
+    return this.countryText({ country: name, countryAr: name }, l);
+  },
+
+  byId(id) { if (!id) return null; return CITY_LIST.find(c => c.id === id) || null; },
+
+  /**
+   * v133: يضمن أن مدينة قادمة من البحث العالمي صارت في القائمة المحلية
+   * (بلا تكرار)، حتى تعمل كل الدوال التي تعتمد `byId` — أهمها المدينة
+   * الثانوية التي كانت تُحفظ بالمعرّف فقط ثم تعود null بعد إعادة التشغيل.
+   */
+  _ensureListed(city) {
+    if (!city) return null;
+    const lat = Number(city.lat != null ? city.lat : city.latitude);
+    const lon = Number(city.lon != null ? city.lon : city.longitude);
+    if (!isFinite(lat) || !isFinite(lon)) return null;
+    const id = city.id || ('remote_' + lat.toFixed(4) + '_' + lon.toFixed(4));
+    const found = CITY_LIST.find(c => c.id === id);
+    if (found) return found;
+    const entry = this._applyPalestine({
+      id: id,
+      name: String(city.name || city.ar || ''),
+      ar: String(city.ar || city.name || ''),
+      country: String(city.country || ''),
+      countryAr: String(city.countryAr || city.country || ''),
+      flag: city.flag && city.flag !== '🌍' ? city.flag : '📍',
+      lat: lat, lon: lon,
+      tz: city.tz || '',
+      online: true,
+    });
+    CITY_LIST.push(entry);
+    return entry;
+  },
 
   /**
    * Ciudad de la lista más cercana a unas coordenadas (±0.15° ≈ ~15 km) o
@@ -150,8 +221,12 @@ const Cities = {
   /** Etiqueta legible según el idioma actual: «اسم المدينة، البلد» o «Ciudad, País» */
   label(c) {
     if (!c) return '';
-    const isAr = (typeof currentLocale !== 'undefined' ? currentLocale : 'es') === 'ar';
-    return isAr ? `${c.flag} ${c.ar}، ${c.countryAr}` : `${c.flag} ${c.name}, ${c.country}`;
+    const lang = (typeof currentLocale !== 'undefined' ? currentLocale : 'es');
+    const isAr = lang === 'ar';
+    const country = this.countryText(c, lang);
+    const city = isAr ? (c.ar || c.name) : (c.name || c.ar);
+    const flag = c.occupied ? '🇵🇸' : (c.flag || '📍');
+    return country ? `${flag} ${city}${isAr ? '، ' : ', '}${country}` : `${flag} ${city}`;
   },
 
   /** Texto plano (sin bandera) para guardar como nombre de ubicación */
@@ -161,8 +236,7 @@ const Cities = {
   },
 
   plainCountry(c) {
-    const isAr = (typeof currentLocale !== 'undefined' ? currentLocale : 'es') === 'ar';
-    return isAr ? c.countryAr : c.country;
+    return this.countryText(c, (typeof currentLocale !== 'undefined' ? currentLocale : 'es'));
   },
 
   _norm(s) {
@@ -189,31 +263,224 @@ const Cities = {
    * يُستخدم كتوسعة للقائمة المحلية عندما لا يجد البحث المحلي نتيجة.
    * @returns {Promise<Array>} مدن بالشكل {name, ar, country, countryAr, lat, lon, online:true}
    */
-  async remoteSearch(query) {
-    const q = String(query || '').trim();
-    if (q.length < 2 || typeof fetch !== 'function') return [];
-    const lang = (typeof currentLocale !== 'undefined' ? currentLocale : 'ar') === 'ar' ? 'ar' : 'en';
+  async _fetchJson(url, ms) {
+    if (typeof fetch !== 'function') return null;
+    const opts = { cache: 'no-store', headers: { 'Accept': 'application/json' } };
+    try { if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) opts.signal = AbortSignal.timeout(ms || 8000); } catch (e) {}
+    try {
+      const res = await fetch(url, opts);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) { return null; }
+  },
+
+  _mk(o) {
+    const lat = Number(o.lat), lon = Number(o.lon);
+    if (!isFinite(lat) || !isFinite(lon)) return null;
+    return this._applyPalestine({
+      id: 'remote_' + (o.id || (lat.toFixed(4) + '_' + lon.toFixed(4))),
+      name: o.name || '', ar: o.ar || o.name || '',
+      country: o.country || '', countryAr: o.countryAr || o.country || '',
+      admin: o.admin || '', lat: lat, lon: lon, latitude: lat, longitude: lon,
+      tz: o.tz || '', flag: '🌍', online: true,
+    });
+  },
+
+  /** Open-Meteo Geocoding — مدن وبلدات، تسميات بلغتين وأسماء المناطق. */
+  async _remoteMeteo(q, lang) {
     const url = 'https://geocoding-api.open-meteo.com/v1/search?count=20&format=json'
       + '&language=' + lang + '&name=' + encodeURIComponent(q);
+    const j = await this._fetchJson(url, 8000);
+    return ((j && j.results) || []).map(r => this._mk({
+      id: r.id, name: r.name, ar: lang === 'ar' ? r.name : '',
+      country: r.country || '', admin: r.admin1 || '',
+      lat: r.latitude, lon: r.longitude, tz: r.timezone || '',
+    })).filter(Boolean);
+  },
+
+  /** Photon (Komoot) — قرى وأحياء وأماكن صغيرة، أسماء عربية حين تتوفر. */
+  async _remotePhoton(q, lang) {
+    const url = 'https://photon.komoot.io/api/?limit=15&lang=' + lang + '&q=' + encodeURIComponent(q);
+    const j = await this._fetchJson(url, 9000);
+    const fs = (j && j.features) || [];
+    return fs.map(f => {
+      const p = f.properties || {};
+      const c = (f.geometry && f.geometry.coordinates) || [];
+      const nm = p.name || p.city || p.town || p.village || p.street || '';
+      const admin = p.state || p.county || p.city || '';
+      return this._mk({
+        id: (p.osm_id || '') + '_' + (p.osm_type || ''),
+        name: nm, ar: nm, country: p.country || '', admin: admin,
+        lat: c[1], lon: c[0], tz: '',
+      });
+    }).filter(r => r && r.name);
+  },
+
+  /** Nominatim (OpenStreetMap) — آخر شبكة أمان: أي مكان على الأرض. */
+  async _remoteNominatim(q, lang) {
+    const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=12&addressdetails=1'
+      + '&accept-language=' + lang + '&q=' + encodeURIComponent(q);
+    const j = await this._fetchJson(url, 9000);
+    if (!Array.isArray(j)) return [];
+    return j.map(r => {
+      const a = r.address || {};
+      const nm = r.name || a.city || a.town || a.village || a.hamlet || a.county || String(r.display_name || '').split(',')[0];
+      return this._mk({
+        id: r.osm_id, name: nm, ar: nm,
+        country: a.country || '', admin: a.state || a.county || a.city || '',
+        lat: r.lat, lon: r.lon, tz: '',
+      });
+    }).filter(Boolean);
+  },
+
+  /**
+   * v132: بحث في كل مدن وأماكن الأرض — ثلاثة مزوّدات بالتتابع حتى ينجح أحدها،
+   * لأن بعض الشبكات تحجب أحدها (Open-Meteo ثم Photon ثم Nominatim).
+   */
+  async remoteSearch(query) {
+    const q = String(query || '').trim();
+    if (q.length < 2) return [];
+    const lang = (typeof currentLocale !== 'undefined' ? currentLocale : 'ar') === 'ar' ? 'ar' : 'en';
+    let rows = [];
+    try { rows = await this._remoteMeteo(q, lang); } catch (e) { rows = []; }
+    if (!rows.length) { try { rows = await this._remotePhoton(q, lang); } catch (e) { rows = []; } }
+    if (!rows.length) { try { rows = await this._remoteNominatim(q, lang); } catch (e) { rows = []; } }
+    return rows;
+  },
+
+  /** الساعة الآن في مكان: بالمنطقة الزمنية إن توفرت، وإلا بفرق الشمس (CityClock). */
+  clockFor(c) {
     try {
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) return [];
-      const j = await res.json();
-      return (j.results || []).map(r => ({
-        id: 'remote_' + r.id,
-        name: r.name,
-        ar: r.name,
-        country: r.country || '',
-        countryAr: r.country || '',
-        admin: r.admin1 || '',
-        lat: r.latitude,
-        lon: r.longitude,
-        latitude: r.latitude,
-        longitude: r.longitude,
-        flag: '🌍',
-        online: true,
-      }));
-    } catch (e) { return []; }
+      if (c && c.tz) {
+        return new Intl.DateTimeFormat('en-GB', { timeZone: c.tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+      }
+      if (typeof CityClock !== 'undefined' && CityClock.deltaMsFor) {
+        const d = new Date(Date.now() + CityClock.deltaMsFor(c.lat, c.lon, new Date()));
+        return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      }
+    } catch (e) {}
+    return '';
+  },
+
+  /** يعيّن مكانًا مدينةً للتطبيق (كل الصفحات) ثم يعيد رسم الصفحة الحالية. */
+  applyCity(o) {
+    const lat = Number(o && o.lat), lon = Number(o && o.lon);
+    if (!isFinite(lat) || !isFinite(lon)) return;
+    if (typeof LocationService === 'undefined' || !LocationService.setManual) return;
+    LocationService.setManual(lat, lon, o.name || '', o.country || '');
+    try { if (typeof Storage !== 'undefined' && Storage.clearPrayerCache) Storage.clearPrayerCache(); } catch (e) {}
+    if (typeof AppState !== 'undefined') AppState.timings = null;
+    try { if (typeof closeModal === 'function') closeModal(); } catch (e) {}
+    if (typeof showToast === 'function') showToast('🌍 ' + (o.name || '') + (o.country ? ', ' + o.country : ''), 2200);
+    try {
+      const cur = (typeof Router !== 'undefined' && Router.current) ? Router.current.name : '';
+      const r = (typeof Router !== 'undefined' && Router.current) ? Router.current.route : null;
+      const box = document.getElementById('main-content');
+      if (!box) return;
+      if (cur === 'home' && typeof HomePage !== 'undefined') { HomePage.render(box); return; }
+      if (r && r.page) {
+        const m = r.method || 'render';
+        if (typeof r.page[m] === 'function' && cur !== 'profile') { r.page[m](box, (Router.current.params || {})); return; }
+      }
+      if (typeof ProfilePage !== 'undefined' && ProfilePage.renderGroup) ProfilePage.renderGroup('prayer');
+    } catch (e) {}
+  },
+
+  /**
+   * v132: نافذة «التوقيت في أي مدينة» — بحث في كل العالم، ساعة كل نتيجة،
+   * وزر لتعيينها مدينةً للتطبيق. كانت موجودة في نسخة APK سابقة وفُقدت.
+   */
+  openWorldSearch() {
+    const overlay = document.getElementById('modal-overlay');
+    const content = document.getElementById('modal-content');
+    if (!overlay || !content) return;
+    const lang = (typeof currentLocale !== 'undefined' ? currentLocale : 'ar');
+    const isAr = lang === 'ar';
+    const T = (k, fb) => {
+      try { const v = (typeof t === 'function') ? t(k) : ''; return (v && v !== k) ? v : fb; } catch (e) { return fb; }
+    };
+
+    content.innerHTML = `
+      <div class="modal-header">
+        <div class="modal-title"><i class="fas fa-earth-americas"></i> ${escapeHtml(T('worldTimeTitle', isAr ? 'التوقيت في أي مدينة' : 'Time anywhere'))}</div>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="wt-body">
+        <input type="search" id="wt-input" class="city-search-input" autocomplete="off"
+               placeholder="${escapeAttr(T('worldTimeSearchPlaceholder', isAr ? 'اكتب اسم مدينة أو مكان…' : 'Type a city or place…'))}">
+        <div class="city-world-hint"><i class="fas fa-earth-americas"></i> ${escapeHtml(T('worldTimeHint', isAr ? 'ابحث بأي لغة — مدن وقرى ومناطق من كل العالم' : 'Any language — cities, towns and places worldwide'))}</div>
+        <div id="wt-list" class="city-picker-list"></div>
+      </div>`;
+    overlay.classList.remove('hidden');
+
+    const list = content.querySelector('#wt-list');
+    const inp = content.querySelector('#wt-input');
+    let seq = 0, timer = null;
+
+    const rowHtml = (c) => {
+      const lat = Number(c.lat != null ? c.lat : c.latitude);
+      const lon = Number(c.lon != null ? c.lon : c.longitude);
+      const nm = isAr ? (c.ar || c.name) : (c.name || c.ar);
+      const country = this.countryText(c, lang);
+      const flag = c.occupied ? '🇵🇸' : (c.flag && c.flag !== '🌍' ? c.flag : '🌍');
+      const clock = this.clockFor({ lat: lat, lon: lon, tz: c.tz });
+      return `<div class="wt-row" data-lat="${lat}" data-lon="${lon}"
+                   data-name="${escapeAttr(c.name || c.ar || '')}" data-country="${escapeAttr(country)}"
+                   role="button" tabindex="0">
+        <span class="wt-flag">${flag}</span>
+        <span class="wt-main"><b>${escapeHtml(nm)}</b><small>${escapeHtml(country)}</small></span>
+        <span class="wt-clock">${clock || '—'}</span>
+        <span class="wt-set" data-wt-set="1" title="${escapeAttr(T('worldTimeUse', isAr ? 'تعيين' : 'Use'))}"><i class="fas fa-location-arrow"></i></span>
+      </div>`;
+    };
+
+    const paint = (rows) => {
+      if (!list) return;
+      list.innerHTML = rows.length ? rows.map(rowHtml).join('')
+        : `<div class="city-empty-note">${escapeHtml(T('worldTimeNoResults', isAr ? 'لا نتائج — تحقق من الإملاء أو الاتصال' : 'No results — check spelling or connection'))}</div>`;
+    };
+
+    const run = async (q) => {
+      const s = String(q || '').trim();
+      const local = this.search(s).slice(0, 8);
+      paint(local);
+      if (s.length < 2) return;
+      const mine = ++seq;
+      if (list) list.insertAdjacentHTML('beforeend',
+        `<div class="city-remote-hint" id="wt-hint"><i class="fas fa-spinner fa-spin"></i> ${escapeHtml(T('worldTimeSearching', isAr ? 'جارٍ البحث…' : 'Searching…'))}</div>`);
+      const remote = await this.remoteSearch(s);
+      if (mine !== seq) return;
+      const hint = content.querySelector('#wt-hint');
+      if (hint) hint.remove();
+      const known = new Set(local.map(x => this._norm(x.name || x.ar)));
+      const extra = remote.filter(r => !known.has(this._norm(r.name)));
+      if (extra.length) paint(local.concat(extra));
+    };
+
+    if (!content._wtBound) {
+      content._wtBound = true;
+      content.addEventListener('click', (ev) => {
+        const set = ev.target.closest('[data-wt-set]');
+        const row = set && set.closest('.wt-row');
+        if (!row) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        this.applyCity({
+          lat: parseFloat(row.dataset.lat), lon: parseFloat(row.dataset.lon),
+          name: row.dataset.name || '', country: row.dataset.country || '',
+        });
+      });
+    }
+    if (inp) {
+      inp.addEventListener('input', () => {
+        const v = inp.value;
+        clearTimeout(timer);
+        paint(this.search(v).slice(0, 8));
+        timer = setTimeout(() => run(v), 320);
+      });
+      setTimeout(() => inp.focus(), 90);
+    }
+    run('');
   },
 
   /**
@@ -241,7 +508,7 @@ const Cities = {
       <div class="modal-option city-option city-online-option" data-remote="1"
            data-name="${escapeAttr(r.name)}" data-country="${escapeAttr(r.country || '')}"
            data-lat="${r.lat}" data-lon="${r.lon}">
-        🌍 ${escapeHtml(r.name)}${r.admin ? ', ' + escapeHtml(r.admin) : ''}${r.country ? ' — ' + escapeHtml(r.country) : ''}
+        ${r.occupied ? '🇵🇸' : '🌍'} ${escapeHtml(r.name)}${r.admin ? ', ' + escapeHtml(r.admin) : ''}${this.countryText(r, (typeof currentLocale !== 'undefined' ? currentLocale : 'ar')) ? ' — ' + escapeHtml(this.countryText(r, (typeof currentLocale !== 'undefined' ? currentLocale : 'ar'))) : ''}
       </div>`;
 
     // تفويض واحد للنقر: يعمل مع كل النتائج المحلية والعالمية بعد كل تحديث

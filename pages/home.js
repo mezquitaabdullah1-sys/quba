@@ -212,9 +212,9 @@ const HomePage = {
       <!-- v102: بطاقة الرأس — خلفية سماء/مسجد متغيّرة + صلاة قادمة + تاريخ + شريط الصلوات داخلها -->
       <div class="home-header home-hero hsx-hero hsx-ink-${this._skyInk(skyKey)}" id="home-hero">
         <!-- v105: الصورة إلى نهاية بطاقة التاريخ فقط — شريط الصلوات أسفلها على خلفية البطاقة -->
-        <div class="hsx-photo">
         <div class="hsx-bg" style="background-image:url('assets/sky/${skyKey}.jpg')"></div>
         <div class="hsx-veil"></div>
+        <div class="hsx-photo">
         <div class="hh-inner hsx-inner">
 
           <!-- الصف الأول: الإعدادات · اللغة · المظهر · رمضان · المدينة والبلد -->
@@ -234,7 +234,7 @@ const HomePage = {
             <div class="hsx-next" id="hsx-next">
               <div class="hsx-next-head">
                 <span class="hsx-k"><i class="fas fa-mosque"></i> ${hxl.nextLbl}</span>
-                <span class="hsx-np"><b id="next-prayer-name">${t('prayers.' + nextPrayer.name)}</b><span class="hsx-t" id="next-prayer-time">${formatTime12h(nextPrayer.time)}</span></span>
+                <span class="hsx-np"><b id="next-prayer-name">${t('prayers.' + nextPrayer.name)}</b><span class="hsx-t" id="next-prayer-time">${formatTime12h(nextPrayer.time)}</span><span class="hsx-remain" id="hsx-remain">${this._remainText(nextPrayer.diffMs)}</span></span>
               </div>
               <div class="hsx-metrics">
                 <span class="hsx-metric">
@@ -271,7 +271,7 @@ const HomePage = {
             <div class="hsx-strip">
               ${six.map(p => {
                 const isNext = nextPrayer && nextPrayer.name === p.name;
-                return `<div class="hsx-cell prayer-row${isNext ? ' next' : ''}${p.name === 'Sunrise' ? ' is-sunrise' : ''}" data-prayer="${p.name}">
+                return `<div class="hsx-cell${isNext ? ' next' : ''}${p.name === 'Sunrise' ? ' is-sunrise' : ''}" data-prayer="${p.name}">
                   <span class="hsx-cn">${t('prayers.' + p.name)}</span>
                   <span class="hsx-ci">${this._prayerIcon(p.name, 17)}</span>
                   <span class="hsx-ct">${formatTime12h(p.time)}</span>
@@ -347,7 +347,7 @@ const HomePage = {
               <span>${t('quickDuas')}</span>
             </button>
             <button class="hsx-serv" onclick="Router.go('daily')" aria-label="${escapeAttr(dailyLbl)}" title="${escapeAttr(dailyLbl)}">
-              <span class="hsx-serv-ic"><i class="fas fa-list-check"></i></span>
+              <span class="hsx-serv-ic hsx-ic-day"><i class="fas fa-list-check"></i></span>
               <span>${escapeHtml(dailyLbl)}</span>
             </button>
             <button class="hsx-serv" onclick="Router.go('wisdom/courses')" aria-label="${escapeAttr(t('quickCourses'))}" title="${escapeAttr(t('quickCourses'))}">
@@ -727,8 +727,9 @@ const HomePage = {
               if (String(local[n] || '') !== String(remote[n] || '')) { changed = true; break; }
             }
           }
-          const box = document.getElementById('hsx-dual');
-          if (changed && box) box.innerHTML = this._dualBodyHtml(city, remote);
+          // v131 (H6): تحديث النصوص فقط — إعادة البناء كانت تُفقد المستمعين
+          // وتعيد إنشاء الشبكة كل دورة عدّ تنازلي.
+          if (changed) this._patchDual(remote);
         }).catch(() => {});
       }
       return html;
@@ -739,12 +740,12 @@ const HomePage = {
     const names = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
     const cells = names.map(n => `<div class="hsx-dual-cell">
         <span class="hsx-dual-n">${t('prayers.' + n)}</span>
-        <span class="hsx-dual-t">${formatTime12h(String((timings && timings[n]) || '--:--').split(' ')[0])}</span>
+        <span class="hsx-dual-t" data-dual-n="${n}">${formatTime12h(String((timings && timings[n]) || '--:--').split(' ')[0])}</span>
       </div>`).join('');
     const country = (city && city.country) ? Cities.plainCountry(city) : '';
     return `<div class="hsx-dual" id="hsx-dual">
       <div class="hsx-dual-head">
-        <span class="hsx-dual-city">${escapeHtml(Cities.plainName(city))}${country ? ' · ' + escapeHtml(country) : ''}</span>
+        <span class="hsx-dual-city" id="hsx-dual-city">${escapeHtml(Cities.plainName(city))}${country ? ' · ' + escapeHtml(country) : ''}</span>
         <span class="hsx-dual-actions">
           <button class="hsx-dual-btn" onclick="DualTiming.openPicker()">${escapeHtml(t('dualChange') || '')}</button>
           <button class="hsx-dual-btn" onclick="event.stopPropagation(); DualTiming.remove()">${escapeHtml(t('dualRemove') || '')}</button>
@@ -752,6 +753,19 @@ const HomePage = {
       </div>
       <div class="hsx-dual-grid">${cells}</div>
     </div>`;
+  },
+
+  // v131 (H6): تحديث قيم التوقيت الثانوي دون لمس البنية
+  _patchDual(timings) {
+    const box = document.getElementById('hsx-dual');
+    if (!box || !box.querySelector('[data-dual-n]')) return;
+    const names = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+    for (const n of names) {
+      const el = box.querySelector('[data-dual-n="' + n + '"]');
+      if (!el) continue;
+      const v = formatTime12h(String((timings && timings[n]) || '--:--').split(' ')[0]);
+      if (el.textContent !== v) el.textContent = v;
+    }
   },
 
   _prayerBellHtml(name) {
@@ -843,9 +857,21 @@ const HomePage = {
     `;
   },
 
+  // v131 (H4): صنف على body يوقف حركة الشمس، ومراقبة ظهور الصفحة مرة واحدة
+  _bindPageVisibility() {
+    if (this._visBound) return;
+    this._visBound = true;
+    const sync = () => { document.body.classList.toggle('is-hidden', document.hidden); };
+    sync();
+    document.addEventListener('visibilitychange', sync);
+  },
+
   startCountdown() {
     if (this.countdownInterval) clearInterval(this.countdownInterval);
+    this._bindPageVisibility();
     this.countdownInterval = setInterval(() => {
+      // v131 (H4): لا DOM ولا حسابات عندما يكون التطبيق في الخلفية
+      if (document.hidden) return;
       // v60: العد التنازلي لرمضان مستقل عن مواقيت الصلاة
       this._tickRamadan();
       try { this._tickHero(); } catch (e) {}
@@ -854,6 +880,8 @@ const HomePage = {
       if (!np) return;
       const el = document.getElementById('countdown');
       if (el) el.textContent = formatCountdown(np.diffMs);
+      const remLine = document.getElementById('hsx-remain');
+      if (remLine) remLine.textContent = this._remainText(np.diffMs);
       // v38/v40: actualizar también el «tiempo restante» bajo la hora de la
       // próxima oración. Al cambiar de oración se actualizan SOLO los nodos
       // afectados (tarjeta + filas), sin re-render completo: antes el
@@ -870,6 +898,17 @@ const HomePage = {
         }
       }
     }, 1000);
+  },
+
+  // v132 (D1): «متبقٍ 2س 14د» — نصّ ثابت الحجم لا يهتزّ كل ثانية
+  _remainText(ms) {
+    const loc = (typeof currentLocale !== 'undefined' ? currentLocale : 'ar');
+    let total = Math.max(0, Math.floor(Number(ms || 0) / 60000));
+    if (!total) return { ar: 'متبقٍ أقل من دقيقة', es: 'falta menos de 1 min', en: 'less than 1 min left' }[loc] || '—';
+    const h = Math.floor(total / 60), m = total % 60;
+    if (loc === 'ar') return 'متبقٍ ' + (h ? h + 'س ' : '') + (m || !h ? m + 'د' : '').trim();
+    if (loc === 'es') return 'faltan ' + (h ? h + ' h ' : '') + (m || !h ? m + ' min' : '').trim();
+    return (h ? h + 'h ' : '') + (m || !h ? m + 'm' : '') + ' left';
   },
 
   // v40: cambio de oración SIN re-render — actualiza en su sitio la tarjeta
@@ -999,45 +1038,18 @@ const HomePage = {
   },
 
   // ============ v95: أيقونة لكل صلاة (SVG مدمج — مُضمَنة في كل الحالات) ============
-  _prayerIcon(name, size) {
-    const s = size || 20;
-    const open = '<svg viewBox="0 0 24 24" width="' + s + '" height="' + s + '" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
-    const sun = (cx, cy, r) => `<circle cx="${cx}" cy="${cy}" r="${r}"/>`;
-    const rays = (cx, cy, r, len) => {
-      let d = '';
-      for (let i = 0; i < 8; i++) {
-        const a = (Math.PI / 4) * i;
-        const x1 = cx + Math.cos(a) * (r + 1.4), y1 = cy + Math.sin(a) * (r + 1.4);
-        const x2 = cx + Math.cos(a) * (r + 1.4 + len), y2 = cy + Math.sin(a) * (r + 1.4 + len);
-        d += `<path d="M${x1.toFixed(1)} ${y1.toFixed(1)}L${x2.toFixed(1)} ${y2.toFixed(1)}"/>`;
-      }
-      return d;
+  // v131: أيقونات الصلوات من FontAwesome — نفس نظام أيقونات التطبيق كلّه
+  // (كانت SVG مضمّنة بينما بقية الصفحة FontAwesome → تناقض بصري وأوزان مختلفة)
+  _prayerIcon(name) {
+    const map = {
+      Fajr: 'fa-star-and-crescent',
+      Sunrise: 'fa-mountain-sun',
+      Dhuhr: 'fa-sun',
+      Asr: 'fa-cloud-sun',
+      Maghrib: 'fa-cloud-moon',
+      Isha: 'fa-moon',
     };
-    const crescent = '<path d="M15.6 5.2a6 6 0 1 0 3.1 8.6 6.9 6.9 0 0 1-3.1-8.6z" fill="currentColor" stroke="none"/>';
-    const star = (x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="currentColor" stroke="none"/>`;
-    let body = '';
-    if (name === 'Fajr') {
-      // فجر: هلال الفجر + سطر الأفق
-      body = crescent + star(5.2, 7.4, 0.95) + star(3.4, 11.6, 0.7) + '<path d="M4 18.4h16"/>';
-    } else if (name === 'Sunrise') {
-      // شروق: نصف شمس فوق الأفق + سهم صاعد
-      body = '<path d="M3.4 17.6h17.2"/><path d="M6.6 17.6a5.4 5.4 0 0 1 10.8 0"/>'
-        + '<path d="M12 3.4v2.4"/><path d="M5.6 6.2l1.4 1.4"/><path d="M18.4 6.2l-1.4 1.4"/>';
-    } else if (name === 'Dhuhr') {
-      body = sun(12, 12, 4) + rays(12, 12, 4, 2.1);
-    } else if (name === 'Asr') {
-      // عصر: شمس مع غيمة
-      body = sun(9.6, 9.6, 3.1) + rays(9.6, 9.6, 3.1, 1.6)
-        + '<path d="M8.6 18.4h9.2a3.1 3.1 0 0 0 .2-6.2 4.3 4.3 0 0 0-8.2 1 2.7 2.7 0 0 0-1.2 5.2z" fill="none"/>';
-    } else if (name === 'Maghrib') {
-      // مغرب: شمس تغيب تحت الأفق + سهم هابط
-      body = '<path d="M3.4 15.2h17.2"/><path d="M6.6 15.2a5.4 5.4 0 0 1 10.8 0"/>'
-        + '<path d="M12 19.6v2.2"/><path d="M9.9 19.9l2.1 2.1 2.1-2.1"/>';
-    } else {
-      // عشاء: هلال + نجوم
-      body = crescent + star(5.4, 7, 1.05) + star(3.2, 11.2, 0.75) + star(7.8, 17.4, 0.85) + star(17.2, 18.6, 0.7);
-    }
-    return open + body + '</svg>';
+    return `<i class="fas ${map[name] || 'fa-circle'}"></i>`;
   },
 
   // ============ v95: أسهم شريط الأيقونات (تدلّ على وجود مزيد من الأيقونات) ============

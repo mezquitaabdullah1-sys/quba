@@ -1,0 +1,249 @@
+
+/* =====================================================================
+   v134 — سطوع الترويسة · اسم المدينة · أيقونة «يومي» · إمساكية مصمّمة
+   ===================================================================== */
+
+/* ---------- 1) تخفيف سطوع خلفية الرأس في الثيم الفاتح والزمردي ---------- */
+html[data-theme="light"] .hsx-veil,
+html[data-theme="emerald"] .hsx-veil {
+  background: linear-gradient(180deg,
+    rgba(5, 30, 22, .62) 0%,
+    rgba(5, 30, 22, .34) 42%,
+    rgba(5, 30, 22, .50) 100%);
+}
+/* الصفحات الداخلية: طبقة تعتيم واحدة بلا عناصر إضافية */
+html[data-theme="light"] .page-header,
+html[data-theme="emerald"] .page-header,
+html[data-theme="light"] .lib-header,
+html[data-theme="emerald"] .lib-header {
+  box-shadow: inset 0 0 0 9999px rgba(5, 30, 22, .20),
+              0 10px 26px -16px rgba(0, 0, 0, .60);
+}
+html[data-theme="light"] .page-header h1,
+html[data-theme="light"] .page-header .sub,
+html[data-theme="emerald"] .page-header h1,
+html[data-theme="emerald"] .page-header .sub {
+  text-shadow: 0 1px 4px rgba(3, 20, 14, .55);
+}
+
+/* ---------- 2) اسم المدينة: كان أبيض على صورة فاتحة فلا يُقرأ ---------- */
+.hsx-city {
+  color: #FFE9B5;
+  text-shadow: 0 1px 3px rgba(3, 20, 14, .90), 0 0 10px rgba(3, 20, 14, .55);
+}
+.hsx-city i { color: #FFD98A; filter: drop-shadow(0 1px 2px rgba(3, 20, 14, .8)); }
+html[data-theme="light"] .hsx-city,
+html[data-theme="emerald"] .hsx-city,
+html[data-theme="brown"] .hsx-city {
+  color: #FFF3D2;
+  background: rgba(6, 32, 24, .46);
+  border: 1px solid rgba(255, 240, 200, .26);
+  border-radius: 999px;
+  padding: 3px 9px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .22);
+}
+html[data-theme="light"] .hsx-city span { font-weight: 800; }
+
+/* ---------- 3) أيقونة «يومي»: خلفية ميدالية بدل دائرة فارغة ---------- */
+.hsx-serv-ic.hsx-ic-day {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(232, 217, 160, .46);
+  background:
+    radial-gradient(120% 120% at 28% 16%, rgba(255, 214, 120, .52) 0%, rgba(255, 214, 120, 0) 58%),
+    linear-gradient(152deg, #175845 0%, #0B3A2B 58%, #06231B 100%);
+  box-shadow: inset 0 0 0 1px rgba(232, 217, 160, .22),
+              inset 0 -6px 14px rgba(0, 0, 0, .38),
+              0 4px 12px rgba(0, 0, 0, .26);
+}
+.hsx-serv-ic.hsx-ic-day::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath d='M7 0l1.9 5.1L14 7l-5.1 1.9L7 14 5.1 8.9 0 7l5.1-1.9z' fill='%23E8D9A0'/%3E%3C/svg%3E");
+  background-size: 15px 15px;
+  opacity: .26;
+}
+.hsx-serv-ic.hsx-ic-day::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 236, 186, .28);
+}
+.hsx-serv-ic.hsx-ic-day i {
+  position: relative;
+  z-index: 2;
+  color: #FFE4A3;
+  font-size: 1.02rem;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .65);
+}
+
+/* ---------- 4) إمساكية رمضان: ورقة الشهر المزخرفة ---------- */
+.imsk-sheet {
+  position: relative;
+  margin: 12px 14px 0;
+  padding: 12px 8px 10px;
+  border-radius: 20px;
+  background:
+    radial-gradient(120% 80% at 50% -6%, rgba(212, 175, 55, .16) 0%, rgba(212, 175, 55, 0) 62%),
+    linear-gradient(180deg, #FFFDF6 0%, #FBF5E6 62%, #F6EEDA 100%);
+  border: 1px solid rgba(201, 162, 39, .50);
+  box-shadow: 0 14px 34px rgba(15, 76, 58, .16), inset 0 0 0 5px rgba(255, 255, 255, .55);
+  overflow: hidden;
+}
+.imsk-sheet::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cg fill='none' stroke='%23C9A227' stroke-width='1'%3E%3Cpath d='M30 3l6 9h11l-5.5 9.5L47 30l-11 3-6 9-6-9-11-3 5.5-8.5L13 12h11z' opacity='.55'/%3E%3Ccircle cx='30' cy='30' r='26' opacity='.20'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 78px 78px;
+  opacity: .30;
+}
+.imsk-sheet > * { position: relative; z-index: 1; }
+.imsk-sheet-head {
+  text-align: center;
+  padding: 4px 4px 10px;
+  border-bottom: 1px dashed rgba(201, 162, 39, .45);
+  margin-bottom: 8px;
+}
+.imsk-sheet-title {
+  font-family: var(--font-arabic);
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: #0F4C3A;
+  letter-spacing: .2px;
+}
+.imsk-sheet-title i { color: #C9A227; font-size: .82rem; margin-inline-end: 4px; }
+.imsk-sheet-sub { margin-top: 3px; font-size: .62rem; font-weight: 600; color: #8A6A3A; }
+.imsk-sheet .imsk-tablewrap {
+  margin: 0;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 76, 58, .18);
+  box-shadow: none;
+  background: transparent;
+}
+.imsk-sheet .imsk-table tbody tr:nth-child(even) td { background: rgba(201, 162, 39, .07); }
+.imsk-sheet .imsk-table tbody tr.is-today td { background: rgba(15, 118, 110, .16); }
+
+/* أزرار التحميل والمشاركة */
+.imsk-actions { display: flex; gap: 8px; margin: 14px 14px 0; }
+.imsk-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 14px;
+  padding: 12px 10px;
+  font-family: inherit;
+  font-size: .72rem;
+  font-weight: 800;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .15s ease;
+}
+.imsk-act:active { transform: scale(.97); }
+.imsk-act-main {
+  flex: 1 1 auto;
+  background: linear-gradient(135deg, #175845 0%, #0B3A2B 60%, #06231B 100%);
+  color: #F6E7BC;
+  box-shadow: 0 8px 20px rgba(15, 76, 58, .30), inset 0 1px 0 rgba(255, 235, 180, .18);
+}
+.imsk-act-main i { color: #FFD98A; }
+.imsk-act-sec {
+  flex: 0 0 56px;
+  background: rgba(15, 76, 58, .09);
+  border: 1px solid rgba(15, 76, 58, .20);
+  color: #0F4C3A;
+}
+.imsk-toast {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 86px;
+  margin: 0 auto;
+  width: max-content;
+  max-width: 86%;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(9, 46, 35, .94);
+  color: #F6E7BC;
+  font-size: .72rem;
+  font-weight: 700;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .35);
+  z-index: 9999;
+  animation: imskToast .28s ease;
+}
+@keyframes imskToast { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* الثيم الداكن */
+[data-theme="dark"] .imsk-sheet {
+  background:
+    radial-gradient(120% 80% at 50% -6%, rgba(212, 175, 55, .14) 0%, rgba(212, 175, 55, 0) 62%),
+    linear-gradient(180deg, #14231E 0%, #101B17 100%);
+  border-color: rgba(212, 175, 55, .34);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, .45), inset 0 0 0 5px rgba(255, 255, 255, .03);
+}
+[data-theme="dark"] .imsk-sheet-title { color: #F0DCA6; }
+[data-theme="dark"] .imsk-sheet-sub { color: #B9A57A; }
+[data-theme="dark"] .imsk-sheet::before { opacity: .18; }
+[data-theme="dark"] .imsk-act-sec { color: #EBD9A8; background: rgba(212, 175, 55, .10); border-color: rgba(212, 175, 55, .28); }
+
+.imsk-city-tz {
+  font-size: .56rem;
+  font-weight: 700;
+  color: var(--text-secondary, #6B6151);
+  background: rgba(15, 76, 58, .10);
+  border-radius: 999px;
+  padding: 2px 7px;
+  margin-inline-start: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* v134b: الجدول أوسع من الشاشة — تمرير أفقي بدل قصّ الأعمدة */
+.imsk-sheet .imsk-tablewrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.imsk-sheet .imsk-tablewrap { overflow-x: hidden; }
+.imsk-sheet .imsk-table { min-width: 0; width: 100%; table-layout: fixed; font-size: 10px; }
+.imsk-sheet .imsk-table th { padding: 7px 1px; font-size: 8.4px; letter-spacing: 0; }
+.imsk-sheet .imsk-table td { padding: 6px 1px; font-size: 10px; }
+.imsk-sheet .imsk-table th.imsk-th-day, .imsk-sheet .imsk-td-day { width: 12%; }
+.imsk-sheet .imsk-td-hijri, .imsk-sheet .imsk-td-greg { font-size: 8.6px; }
+.imsk-sheet .imsk-daynum { font-size: 11px; }
+.imsk-sheet .imsk-wd { font-size: 7.4px; }
+.imsk-sheet .imsk-today-badge { font-size: 6.6px; padding: 0 3px; }
+.imsk-sheet .imsk-tablewrap::-webkit-scrollbar { height: 4px; }
+.imsk-sheet .imsk-tablewrap::-webkit-scrollbar-thumb { background: rgba(201,162,39,.45); border-radius: 999px; }
+/* زر المشاركة بنصّه حتى لا يبدو مربعًا فارغًا */
+.imsk-act-sec { flex: 0 0 auto; padding-inline: 14px; gap: 6px; font-size: .66rem; }
+
+/* v134c: زوايا ذهبية للورقة على غرار الملصق المطبوع */
+.imsk-sheet { position: relative; }
+.imsk-sheet::after {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: 14px;
+  border: 1px solid rgba(201, 162, 39, .30);
+  background-image:
+    radial-gradient(circle at 0 0, rgba(201,162,39,.85) 0 2.4px, transparent 2.6px),
+    radial-gradient(circle at 100% 0, rgba(201,162,39,.85) 0 2.4px, transparent 2.6px),
+    radial-gradient(circle at 0 100%, rgba(201,162,39,.85) 0 2.4px, transparent 2.6px),
+    radial-gradient(circle at 100% 100%, rgba(201,162,39,.85) 0 2.4px, transparent 2.6px);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  pointer-events: none;
+}
+.imsk-sheet-head { position: relative; }
+.imsk-sheet-head::after {
+  content: '❁';
+  display: block;
+  margin-top: 5px;
+  font-size: .58rem;
+  color: rgba(201, 162, 39, .75);
+  letter-spacing: 6px;
+}

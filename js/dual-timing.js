@@ -20,14 +20,49 @@ const DualTiming = {
   /** Ciudad secundaria configurada (o null) */
   getCity() {
     try {
-      const id = AppState.settings && AppState.settings.secondaryCityId;
+      const s = (AppState && AppState.settings) || {};
+      // v133: المدينة الثانوية تُحفظ ككائن كامل، لأن المدن القادمة من
+      // البحث العالمي ليست في CITY_LIST فكان `byId` يعيد null بعد إغلاق
+      // التطبيق → تختفي أوقات الصلاة للمدينة الثانوية.
+      const saved = s.secondaryCity;
+      if (saved && isFinite(Number(saved.lat)) && isFinite(Number(saved.lon))) {
+        return {
+          id: saved.id || ('secondary_' + Number(saved.lat).toFixed(4) + '_' + Number(saved.lon).toFixed(4)),
+          name: saved.name || saved.ar || '', ar: saved.ar || saved.name || '',
+          country: saved.country || '', countryAr: saved.countryAr || saved.country || '',
+          flag: saved.flag || '📍', lat: Number(saved.lat), lon: Number(saved.lon),
+          tz: saved.tz || '', online: true,
+        };
+      }
+      const id = s.secondaryCityId;
       if (!id || typeof Cities === 'undefined') return null;
       return Cities.byId(id);
     } catch (e) { return null; }
   },
 
   setCity(city) {
-    AppState.settings.secondaryCityId = city ? city.id : null;
+    const S = AppState.settings || (AppState.settings = {});
+    if (!city) {
+      S.secondaryCityId = null;
+      S.secondaryCity = null;
+      Storage.saveSettings();
+      return;
+    }
+    const lat = Number(city.lat != null ? city.lat : city.latitude);
+    const lon = Number(city.lon != null ? city.lon : city.longitude);
+    if (!isFinite(lat) || !isFinite(lon)) return;
+    let tz = city.tz || '';
+    if (!tz && typeof Cities !== 'undefined' && Cities._ensureListed) {
+      const listed = Cities._ensureListed(city);
+      if (listed && listed.tz) tz = listed.tz;
+    }
+    S.secondaryCityId = city.id || ('remote_' + lat.toFixed(4) + '_' + lon.toFixed(4));
+    S.secondaryCity = {
+      id: S.secondaryCityId,
+      name: city.name || city.ar || '', ar: city.ar || city.name || '',
+      country: city.country || '', countryAr: city.countryAr || city.country || '',
+      flag: city.flag || '📍', lat: lat, lon: lon, tz: tz,
+    };
     Storage.saveSettings();
   },
 
@@ -152,9 +187,8 @@ const DualTiming = {
    */
   _getOfflineTimings(city) {
     if (!city || typeof PrayerCalc === 'undefined') return null;
-    const tz = this._tzFor(city);
     const now = new Date();
-    const offset = tz ? this._tzOffsetMs(tz, now) : 0;
+    const offset = this.deltaMsForCity(city, now);
     const shifted = new Date(now.getTime() + offset);
     // v36/v44: método EFECTIVO de la ciudad (misma resolución que el
     // horario principal y la tabla mensual): Jordania → 19 (Awqaf,
@@ -282,7 +316,36 @@ const DualTiming = {
   },
 
   /** Zona horaria IANA aproximada según la longitud (suficiente para la franja) */
+  /**
+   * v133: فرق (توقيت المدينة − توقيت الجهاز) بالمللي ثانية لأي مدينة،
+   * محفوظة كانت أو نتيجة بحث عالمي: منطقة IANA المحفوظة → خريطة الأسماء →
+   * تقدير بالطول الجغرافي (كل 15° = ساعة). بلا هذا كانت المدن الجديدة
+   * تُحسب بتوقيت الجهاز فتظهر أوقاتها خاطئة.
+   */
+  deltaMsForCity(city, date) {
+    const d = date || new Date();
+    try {
+      let tz = (city && city.tz) ? city.tz : null;
+      if (!tz && city && typeof Cities !== 'undefined') {
+        const listed = Cities.byId(city.id) || Cities.match(Number(city.lat), Number(city.lon));
+        if (listed) tz = this._tzFor(listed);
+      }
+      if (tz) {
+        const ms = this._tzOffsetMs(tz, d);
+        if (isFinite(ms)) return ms;
+      }
+      if (city && isFinite(Number(city.lon))) {
+        const cityH = Math.round(Number(city.lon) / 15);
+        const devH = -d.getTimezoneOffset() / 60;
+        return Math.round((cityH - devH) * 3600000);
+      }
+    } catch (e) { /* cae al 0 */ }
+    return 0;
+  },
+
   _tzFor(city) {
+    if (!city) return null;
+    if (city.tz) return city.tz;
     // Mapa de ciudades con DST/zonas no triviales; el resto se deduce por país
     const TZ = {
       // América Latina
@@ -380,6 +443,9 @@ const DualTiming = {
 
   /** HTML de la franja con ciudad configurada. */
   _stripHtml(city, timings, estimated) {
+    // v1.0.128: مدينة كوبية ثانوية → نفس تصحيح التوقيت الصيفي الدائم
+    if (timings && typeof CubaTime !== 'undefined' && CubaTime.appliesToCity(city) && CubaTime.needsShift())
+      timings = CubaTime.shiftTimings(timings);
     const names = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
     const cells = timings ? names.map(n => `
       <div class="dual-cell">

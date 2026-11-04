@@ -10,6 +10,7 @@ const CalendarPage = {
   async render(container) {
     container.innerHTML = `
       <div class="sub-topbar cal-topbar"><button class="sub-topbar-btn" onclick="Router.go('home')" aria-label="${LibraryData.L('libBack')}"><i class="fas ${document.documentElement.dir === 'rtl' ? 'fa-arrow-right' : 'fa-arrow-left'}"></i></button><div><div class="sub-topbar-title">${t('hijriCalendar')}</div><div class="sub-topbar-sub">${t('hijriCalendarSub') || ''}</div></div></div>
+  <div class="cal-page">
       <div class="cal-header-v16">
         <div class="cal-header-title" id="cal-title"></div>
         <div class="cal-header-sub" id="cal-sub"></div>
@@ -28,6 +29,7 @@ const CalendarPage = {
 
       <!-- Upcoming events countdowns -->
       <div id="cal-countdowns" class="cal-countdowns"></div>
+      </div>
     `;
 
     // v19: load into the WRAP, not the page container. Passing `container`
@@ -243,8 +245,12 @@ const CalendarPage = {
     if (hijriMonth === 12 && hijriDay >= 10 && hijriDay <= 13) return 'eid';
     // Day of Arafah: Dhul-Hijjah 9
     if (hijriMonth === 12 && hijriDay === 9) return 'arafah';
+    // Days of Tashreeq: Dhul-Hijjah 11-13
+    if (hijriMonth === 12 && hijriDay >= 11 && hijriDay <= 13) return 'tashreeq';
     // First 10 of Dhul-Hijjah (1-8)
     if (hijriMonth === 12 && hijriDay >= 1 && hijriDay <= 8) return 'tendh';
+    // Six days of Shawwal (recommended fasting)
+    if (hijriMonth === 10 && hijriDay >= 2 && hijriDay <= 7) return 'sixshawwal';
     // Laylat al-Qadr probable: Ramadan 27
     if (hijriMonth === 9 && hijriDay === 27) return 'qadr';
     // Ramadan: month 9
@@ -282,6 +288,8 @@ const CalendarPage = {
       newyear:     { es:'Año Nuevo Hijri',  ar:'رأس السنة',        en:'Hijri New Year' },
       mawlid:      { es:'Mawlid an-Nabi',   ar:'المولد النبوي',    en:'Mawlid an-Nabi' },
       white:       { es:'Día blanco',       ar:'الأيام البيض',     en:'White day' },
+      tashreeq:    { es:'Tashreeq',          ar:'أيام التشريق',     en:'Tashreeq' },
+      sixshawwal:  { es:'6 de Shawwal',      ar:'ست من شوال',       en:'6 of Shawwal' },
     };
 
     // Priority order for overlapping events
@@ -289,7 +297,7 @@ const CalendarPage = {
     if (hijriMonth === 10 && hijriDay >= 2 && hijriDay <= 3) return labels.eid_fitr[langKey];
     if (hijriMonth === 12 && hijriDay === 9) return labels.arafah[langKey];
     if (hijriMonth === 12 && hijriDay === 10) return labels.eid_adha[langKey];
-    if (hijriMonth === 12 && hijriDay >= 11 && hijriDay <= 13) return labels.eid_adha[langKey];
+    if (hijriMonth === 12 && hijriDay >= 11 && hijriDay <= 13) return labels.tashreeq[langKey];
     if (hijriMonth === 12 && hijriDay >= 1 && hijriDay <= 8) return labels.tendh ? null : null; // generic marker only
     if (hijriMonth === 9 && hijriDay === 27) return labels.qadr[langKey];
     if (hijriMonth === 9 && hijriDay >= 21) return labels.last10[langKey];
@@ -300,6 +308,7 @@ const CalendarPage = {
     if (hijriMonth === 1 && hijriDay === 10) return labels.ashura[langKey];
     if (hijriMonth === 1 && hijriDay === 1) return labels.newyear[langKey];
     if (hijriMonth === 3 && hijriDay === 12) return labels.mawlid[langKey];
+    if (hijriMonth === 10 && hijriDay >= 2 && hijriDay <= 7) return labels.sixshawwal[langKey];
     if ([13,14,15].includes(hijriDay)) return labels.white[langKey];
     return null;
   },
@@ -309,6 +318,8 @@ const CalendarPage = {
     // Re-render grid to update 'is-selected' visual state
     const container = document.getElementById('calendar-wrap');
     if (container) this.renderGrid(container);
+    // v1.0.80: نُحدّث بطاقة «فضل هذا اليوم» مباشرة (فضل + مناسبات اليوم)
+    this.renderSelectedDay();
   },
 
   renderSelectedDay() {
@@ -328,6 +339,10 @@ const CalendarPage = {
     const weekdayName = getWeekdayName(dayOfWeek, langKey);
     const holidayName = getHolidayName(hijriMonth, hijriDay, langKey);
     const virtue = getDailyVirtue(hijriMonth, hijriDay, dayOfWeek, langKey);
+    // v1.0.80: فضائل إضافية لهذا اليوم (لا تُخفي الفضل الأساسي)
+    const extras = (typeof getDayExtras === 'function')
+      ? getDayExtras(hijriMonth, hijriDay, dayOfWeek, langKey, virtue && virtue.title)
+      : [];
 
     // Official 2026 calendar data (Mosque Abdullah Havana) — if exists
     let officialInfo = null;
@@ -350,27 +365,38 @@ const CalendarPage = {
         </div>
 
         ${dayOfWeek === 5 ? `
-          <div class="jumuah-notice">
-            <div class="jumuah-notice-title"><i class="fas fa-mosque"></i> ${t('jumuahNoticeTitle') || '⚠️ Aviso importante — Oración del Jumuah'}</div>
-            <div class="jumuah-notice-body">${t('jumuahNoticeBody') || 'La oración del Jumuah es a las 2:10 PM hora de La Habana.'}</div>
-            <div class="jumuah-notice-time"><i class="fas fa-clock"></i> ${t('jumuahNoticeTime') || '2:10 PM — La Habana'}</div>
+          
+        ` : ''}
+
+        ${virtue ? `
+          <div class="virtue-box">
+            <div class="virtue-box-title"><i class="fas fa-star-and-crescent"></i> ${escapeHtml(virtue.title)}</div>
+            ${virtue.text ? `<div class="virtue-box-text">${escapeHtml(virtue.text)}</div>` : ''}
+            ${virtue.verse ? `<div class="virtue-box-quote">${escapeHtml(virtue.verse)}</div>` : ''}
+            ${virtue.source ? `<div class="virtue-box-source">— ${escapeHtml(virtue.source)}</div>` : ''}
+          </div>
+        ` : ''}
+
+        ${extras.length ? `
+          <div class="day-extras">
+            <div class="day-extras-title"><i class="fas fa-plus"></i> ${escapeHtml(({ar:'أيضًا في هذا اليوم', es:'También este día', en:'Also this day'})[langKey])}</div>
+            ${extras.map(e => `
+              <div class="day-extra">
+                <div class="day-extra-head">${escapeHtml(e.title)}</div>
+                ${e.verse ? `<div class="day-extra-quote">${escapeHtml(e.verse)}</div>` : ''}
+                ${e.source ? `<div class="day-extra-source">— ${escapeHtml(e.source)}</div>` : ''}
+              </div>`).join('')}
           </div>
         ` : ''}
 
         ${officialInfo ? `
-          <div class="virtue-box" style="border-left-color:#D4AF37;">
+          <div class="virtue-box official">
             <div class="virtue-box-title">${officialInfo['title_'+langKey] || officialInfo.title_es || ''}</div>
             <div class="virtue-box-text">${escapeHtml(officialInfo['virtue_'+langKey] || officialInfo.virtue_es || '')}</div>
             ${(officialInfo['quote_'+langKey] || officialInfo.quote_es) ? `<div class="virtue-box-quote">"${escapeHtml(officialInfo['quote_'+langKey] || officialInfo.quote_es)}"</div>` : ''}
             <div class="virtue-box-source">— ${escapeHtml(officialInfo['reference_'+langKey] || officialInfo.reference_es || '')}</div>
           </div>
-        ` : (virtue ? `
-          <div class="virtue-box">
-            <div class="virtue-box-title">${escapeHtml(virtue.title)}</div>
-            <div class="virtue-box-text">${escapeHtml(virtue.verse)}</div>
-            <div class="virtue-box-source">— ${escapeHtml(virtue.source)}</div>
-          </div>
-        ` : '')}
+        ` : ''}
       </div>
     `;
   },

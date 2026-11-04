@@ -276,3 +276,77 @@
 }
 .occ-cta i { font-size: 11px; color: #F6E7BC; }
 .occ-cta:active { transform: scale(0.98); }
+
+
+/* ══ v132: شريط مدينة الرزنامة (مستقل عن موقع التطبيق) ══ */
+.imsk-citybar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 14px 2px;
+}
+.imsk-city-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 76, 58, .18);
+  background: rgba(15, 76, 58, .06);
+  color: #0F4C3A;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: start;
+  cursor: pointer;
+}
+.imsk-city-btn > i:first-child { color: #D4AF37; font-size: 13px; }
+.imsk-city-btn span {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.imsk-city-btn em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 600;
+  color: #4B6B5E;
+  max-width: 42%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.imsk-city-edit { font-size: 11px; color: #0F4C3A; opacity: .7; }
+.imsk-city-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 76, 58, .16);
+  background: transparent;
+  color: #0F4C3A;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.imsk-city-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 6px 14px 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(212, 175, 55, .12);
+  border: 1px solid rgba(212, 175, 55, .35);
+  color: #6A5320;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+.imsk-city-note i { margin-top: 2px; font-size: 11px; }

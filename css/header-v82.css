@@ -186,3 +186,110 @@
 
 /* ---------- 7) أزرار الرجوع داخل التقويم والجدول الشهري ---------- */
 .cal-topbar, .monthly-topbar { margin-bottom: 10px; }
+
+/* ============================================================
+   v1.0.128 — الترويسة تتبع الثيم في كل تفاصيلها
+   كانت الأخضر ثابتًا في كل الثيمات ما عدا dark، فتظهر الترويسة
+   خضراء فوق واجهة كستنائية/بنّية/زمردية. هنا تُعرَّف ألوان
+   الترويسة لكل ثيم، وكل العناصر التي كانت بلون ثابت صارت تأخذ
+   متغيّرات الترويسة (--hd-*) تلقائيًا.
+   ============================================================ */
+[data-theme="light"] {
+  --hd1: #0E4636; --hd2: #0A342A; --hd3: #14563F;
+  --hd-ink: #F6F1E4; --hd-ink-2: rgba(246,241,228,.74); --hd-ink-3: rgba(246,241,228,.55);
+  --hd-gold: #E8D9A0; --hd-line: rgba(212,175,55,.32); --hd-bar: #0B3A2C;
+}
+[data-theme="emerald"] {
+  --hd1: #075745; --hd2: #04382C; --hd3: #0A6B52;
+  --hd-ink: #F2FBF6; --hd-ink-2: rgba(242,251,246,.76); --hd-ink-3: rgba(242,251,246,.55);
+  --hd-gold: #F1D89A; --hd-gold-2: #D9BE6B; --hd-line: rgba(241,216,154,.30); --hd-bar: #05382C;
+}
+[data-theme="maroon"] {
+  --hd1: #5B1424; --hd2: #3E0C18; --hd3: #771E33;
+  --hd-ink: #FBF3EA; --hd-ink-2: rgba(251,243,234,.76); --hd-ink-3: rgba(251,243,234,.55);
+  --hd-gold: #F0D49B; --hd-gold-2: #D8AE6A; --hd-line: rgba(240,212,155,.30); --hd-bar: #420F1C;
+}
+[data-theme="brown"] {
+  --hd1: #4A3020; --hd2: #2F1E10; --hd3: #5F3F28;
+  --hd-ink: #FAF2E6; --hd-ink-2: rgba(250,242,230,.76); --hd-ink-3: rgba(250,242,230,.55);
+  --hd-gold: #EBD3A2; --hd-gold-2: #CFAE74; --hd-line: rgba(235,211,162,.30); --hd-bar: #35220F;
+}
+
+/* عناصر كانت بلون ثابت داخل الترويسة */
+[data-theme] .home-header .quick-access-icon,
+[data-theme] .hsx-ibtn,
+[data-theme] .hsx-city,
+[data-theme] .hsx-ram,
+[data-theme] .home-profile-btn,
+[data-theme] .sub-topbar-btn,
+[data-theme] .lib-back,
+[data-theme] .lib-header-btn,
+[data-theme] .top-bar-btn {
+  background: var(--hd-glass);
+  color: var(--hd-ink);
+  border-color: var(--hd-line);
+}
+[data-theme] .hsx-ibtn i,
+[data-theme] .hsx-city i,
+[data-theme] .hsx-ram i,
+[data-theme] .quick-access-icon i { color: var(--hd-gold); }
+[data-theme] .home-header .hsx-k,
+[data-theme] .next-prayer-label,
+[data-theme] .page-subtitle,
+[data-theme] .home-hijri { color: var(--hd-gold); }
+[data-theme] .home-header .hsx-np b,
+[data-theme] .next-prayer-name,
+[data-theme] .home-greeting,
+[data-theme] .page-title,
+[data-theme] .lib-title,
+[data-theme] .sub-topbar-title,
+[data-theme] .top-bar-title { color: var(--hd-ink); }
+[data-theme] .home-header .hsx-t,
+[data-theme] .home-header .hsx-mlbl,
+[data-theme] .next-prayer-time,
+[data-theme] .page-meta,
+[data-theme] .lib-subtitle,
+[data-theme] .sub-topbar-sub { color: var(--hd-ink-2); }
+[data-theme] .home-header .next-prayer-card,
+[data-theme] .next-prayer-card {
+  background: var(--hd-glass);
+  border-color: var(--hd-line);
+}
+
+/* ---------- اتجاه اسم اليوم العربي داخل الرأس ----------
+   النص المختلط (اسم اليوم العربي + تاريخ/أرقام لاتينية) كان يُعاد ترتيبه
+   في حاوية LTR فيظهر مقلوبًا. plaintext يجعل كل مقطع يتبع لغته. */
+.home-hijri,
+.hsx-date,
+.home-greeting,
+.hsx-k,
+.hsx-city span,
+.page-meta,
+.page-subtitle,
+.sub-topbar-sub,
+.next-prayer-name,
+[data-ar-text] {
+  unicode-bidi: plaintext;
+  text-align: start;
+}
+[dir="rtl"] .home-hijri,
+[dir="rtl"] .hsx-date,
+[dir="rtl"] .home-greeting { text-align: right; }
+
+
+/* ============================================================
+   v1.0.129 — ترويسة القرآن والصلاة لا تثبت عند النزول
+   بقية الصفحات تبقى مثبّتة كما هي؛ هاتان الصفحتان تمرّان مع المحتوى
+   لأن فيهما عناصر طويلة (البحث، التبويبات، شريط الصلوات).
+   ============================================================ */
+.page-header.prayer-header,
+.page-header.quran-list-header {
+  position: static !important;
+  top: auto !important;
+  z-index: auto !important;
+}
+
+/* ---------- صورة الرأس الرئيسية تملأ البطاقة كاملة ---------- */
+.home-header.hsx-hero > .hsx-bg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+.home-header.hsx-hero > .hsx-veil { position: absolute; inset: 0; z-index: 1; }
+.home-header.hsx-hero > .hsx-photo { position: relative; z-index: 2; background: transparent !important; }

@@ -79,30 +79,35 @@ const QuranPage = {
     this.listFilter = Storage.get('quran_list_filter') || 'surah';
 
     container.innerHTML = `
-      <div class="page-header quran-list-header">
-        <button class="quran-list-settings-btn" onclick="QuranPage.openReaderSettings()" title="${t('settings_reader') || 'Ajustes'}" aria-label="${t('settings_reader') || 'Ajustes'}">
-          <i class="fas fa-sliders-h"></i>
-        </button>
-        <button class="quran-list-download-btn" id="quran-audio-dl-btn" onclick="QuranPage.openAudioManager()" title="${t('audioDownloadsTitle')}" aria-label="${t('audioDownloadsTitle')}">
-          <i class="fas fa-cloud-arrow-down"></i>
-        </button>
-        <div class="page-title">📖 ${t('tabQuran')}</div>
-        <div class="page-subtitle">القرآن الكريم</div>
-        <div class="page-meta">114 ${t('surahs').toLowerCase()}</div>
+      <div class="quran-list-header qrh">
+        <div class="qrh-top">
+          <button class="qrh-ic" onclick="Router.go('quran/read')" aria-label="${t('backToWisdom')}">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+          <div class="qrh-title">
+            <b>${t('tabQuran')}</b>
+            <em>114 ${t('surahs').toLowerCase()}</em>
+          </div>
+          <button class="qrh-ic" onclick="QuranPage.openAudioManager()" title="${t('audioDownloadsTitle')}" aria-label="${t('audioDownloadsTitle')}">
+            <i class="fas fa-cloud-arrow-down"></i>
+          </button>
+          <button class="qrh-ic" onclick="QuranPage.openReaderSettings()" title="${t('settings_reader') || 'Ajustes'}" aria-label="${t('settings_reader') || 'Ajustes'}">
+            <i class="fas fa-sliders-h"></i>
+          </button>
+        </div>
         <div class="search-box quran-unified-search">
           <i class="fas fa-search"></i>
           <input type="text" id="quran-unified-search" placeholder="${t('mushafSearchGo')}" autocomplete="off">
           <button class="qus-clear-btn hidden" id="qus-clear" onclick="QuranPage.clearUnifiedSearch()" aria-label="×"><i class="fas fa-xmark"></i></button>
         </div>
         <div class="quran-unified-results hidden" id="quran-unified-results"></div>
-        <button class="quran-ayah-search-btn quran-mushaf-entry-btn" onclick="QuranPage.openMushaf()" aria-label="${t('mushafOpenBtn')}">
-          <i class="fas fa-book-open quran-ayah-search-icon"></i>
+        <button class="qrh-fullpage" onclick="QuranPage.openMushaf()">
+          <i class="fas fa-book-open"></i>
           <span>${t('mushafOpenBtn')}</span>
-          <span class="quran-ayah-search-badge">📖</span>
+          <i class="fas fa-chevron-left qrh-fp-arw"></i>
         </button>
       </div>
-      <div id="offline-download-banner"></div>
-      <div id="bookmarks-entry"></div>
+            <div id="bookmarks-entry"></div>
       <div class="quran-list-filter-bar">
         <div class="quran-list-filter-label" id="quran-list-filter-label"></div>
         <!-- v50: شريط وصول سريع بجانب زر الفلتر — سور وآيات كثيرة القراءة -->
@@ -133,7 +138,7 @@ const QuranPage = {
       }
       if (isStale()) return;
       this.renderFilteredList();
-      this.renderOfflineBanner();
+      this.autoDownloadOffline();
       this.renderBookmarksEntry();
       this._attachAudioEvents();
       this.updateAudioDownloadBadge();
@@ -166,35 +171,29 @@ const QuranPage = {
   // v21: banner de "descargar Corán para uso sin conexión" (TEXTO solamente,
   // es ligero y automático). v27: el audio ya no forma parte del banner — se
   // gestiona con permiso desde el icono de descarga (esquina) por sura.
-  async renderOfflineBanner() {
-    const el = document.getElementById('offline-download-banner');
-    if (!el || typeof QuranOfflineService === 'undefined') return;
+  // v1.0.131: أُزيلت بطاقة «تحميل القرآن» — التنزيل يبدأ تلقائيًا وبصمت عند فتح
+  // الصفحة (النص فقط، بلا صوت)، ويُتابَع في الخلفية إن انقطع الاتصال.
+  async autoDownloadOffline() {
+    if (typeof QuranOfflineService === 'undefined') return;
     const translation = AppState.settings.translation;
     const reciter = AppState.settings.reciter;
-    const status = await QuranOfflineService.getDownloadStatus(translation, reciter);
-
-    const downloading = QuranOfflineService._downloading;
-    const textDone = status.downloaded >= status.total;
-
-    // Solo el texto: se oculta al completarse las 114 suras
-    if (textDone) { el.innerHTML = ''; return; }
-
-    const pct = Math.round((status.downloaded / status.total) * 100);
-    const title = downloading ? t('quranDownloading') : t('downloadQuranOffline');
-    const subtitle = `${status.downloaded}/${status.total} ${t('surahs').toLowerCase()}${navigator.onLine ? '' : ' · ' + t('quranDownloadPaused')}`;
-
-    el.innerHTML = `
-      <div class="offline-download-card">
-        <div class="offline-download-icon"><i class="fas fa-${downloading ? 'spinner fa-spin' : 'cloud-arrow-down'}"></i></div>
-        <div class="offline-download-body">
-          <div class="offline-download-title">${title}</div>
-          <div class="offline-download-subtitle">${subtitle}</div>
-          <div class="offline-download-progress-track"><div class="offline-download-progress-fill" style="width:${pct}%"></div></div>
-        </div>
-        ${!downloading ? `<button class="offline-download-btn" onclick="QuranPage.startOfflineDownload()">${t('downloadQuranOffline').split(' ')[0]}</button>` : ''}
-      </div>
-    `;
+    try {
+      if (QuranOfflineService._downloading) return;
+      if (!navigator.onLine) return;
+      const status = await QuranOfflineService.getDownloadStatus(translation, reciter);
+      if (status.downloaded >= status.total) return;
+      if (!this._offlineListenerAttached) {
+        this._offlineListenerAttached = true;
+        QuranOfflineService.onProgress(async () => {
+          this._downloadedNumbers = await QuranOfflineService.getDownloadedNumbers(translation, reciter);
+          this._refreshOfflineBadges();
+        });
+      }
+      QuranOfflineService.downloadAll(translation, reciter);
+    } catch (e) {}
   },
+
+  renderOfflineBanner() {},
 
   startOfflineDownload() {
     if (typeof QuranOfflineService === 'undefined') return;
@@ -205,7 +204,7 @@ const QuranPage = {
       this._offlineListenerAttached = true;
       QuranOfflineService.onProgress(async (evt) => {
         this._downloadedNumbers = await QuranOfflineService.getDownloadedNumbers(translation, reciter);
-        this.renderOfflineBanner();
+        this.autoDownloadOffline();
         // Actualiza discretamente las insignias visibles sin recargar toda la lista
         this._refreshOfflineBadges();
         if (evt.type === 'complete') showToast('✅ ' + t('quranDownloaded'));
@@ -1098,7 +1097,7 @@ const QuranPage = {
   // ============ NAVIGATION ============
   backToList() {
     this.cleanup();
-    Router.go('quran');
+    Router.go('quran/read');
   },
 
   goToSurah(num) {

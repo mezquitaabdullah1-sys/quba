@@ -26,9 +26,16 @@
     // الموضع، الترجمة الحية) يبقى في radio-service.js بلا ازدواج.
     // this.audio يبقى عنصراً حقيقياً بلا src (لا يلمس الشبكة أبداً).
     R._nPos = 0; R._nDur = 0; R._nAt = 0; R._nPlaying = false;
+    // v1.0.126: الملفات المنزَّلة (blob:/data:) تُشغَّل بعنصر <audio> في WebView —
+    // ExoPlayer يرفض أي رابط غير https، والتشغيل المحلي لا يحتاج خدمة أمامية.
+    const base = {
+      load: R._load.bind(R), resume: R._resume.bind(R), pause: R._pause.bind(R),
+      seek: R._seek.bind(R), pos: R._posMs.bind(R), dur: R._durMs.bind(R), stop: R._stopOut.bind(R),
+    };
     R._load = function (url, meta) {
       this.ensureAudio();
       const u = typeof url === 'string' ? url : (url && url.url) || '';
+      if (this._localPlay || /^(blob:|data:|file:)/i.test(u)) { this._nPos = 0; this._nDur = 0; return base.load(url, meta); }
       const resolve = !!(url && typeof url === 'object' && url.resolve);
       this._nPos = (meta && meta.startMs) || 0; this._nDur = 0; this._nAt = Date.now(); this._nPlaying = false;
       Android.playStream(JSON.stringify({
@@ -36,12 +43,12 @@
         title: (meta && meta.title) || 'Quba', artist: (meta && meta.artist) || 'Quba', live: !!(meta && meta.live),
       }));
     };
-    R._resume = function () { Android.togglePlayback('play'); };
-    R._pause = function () { Android.togglePlayback('pause'); };
-    R._seek = function (ms) { this._nPos = ms; this._nAt = Date.now(); Android.restartCurrentTrack(Math.max(0, Math.round(ms))); };
-    R._posMs = function () { return this._nPlaying ? this._nPos + (Date.now() - this._nAt) : this._nPos; };
-    R._durMs = function () { return this._nDur > 0 ? this._nDur : 0; };
-    R._stopOut = function () { Android.stopPlayback(); this._nPlaying = false; };
+    R._resume = function () { if (this._localPlay) return base.resume(); Android.togglePlayback('play'); };
+    R._pause = function () { if (this._localPlay) return base.pause(); Android.togglePlayback('pause'); };
+    R._seek = function (ms) { if (this._localPlay) return base.seek(ms); this._nPos = ms; this._nAt = Date.now(); Android.restartCurrentTrack(Math.max(0, Math.round(ms))); };
+    R._posMs = function () { if (this._localPlay) return base.pos(); return this._nPlaying ? this._nPos + (Date.now() - this._nAt) : this._nPos; };
+    R._durMs = function () { if (this._localPlay) return base.dur(); return this._nDur > 0 ? this._nDur : 0; };
+    R._stopOut = function () { if (this._localPlay) { this._localPlay = false; return base.stop(); } Android.stopPlayback(); this._nPlaying = false; };
 
     // togglePlayback('play'|'pause') صريح (لا تبديل أعمى)؛ restartCurrentTrack(ms) = تقديم.
 

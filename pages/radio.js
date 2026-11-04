@@ -30,7 +30,14 @@ const RadioPage = {
           <i class="fas fa-chevron-${this._loc() === 'ar' ? 'right' : 'left'}"></i>
         </button>
         <div class="top-bar-title"><i class="fas fa-radio"></i> ${RadioData.L('radioTitle')}</div>
-        <div style="width:30px;"></div>
+        <div class="radio-top-actions">
+          <button class="top-bar-btn radio-top-btn" onclick="RadioPage.openFavSheet()" aria-label="${RadioData.L('favTitle')}">
+            <i class="fas fa-heart"></i><span class="rtb-badge" id="rtb-fav-b" style="display:none">0</span>
+          </button>
+          <button class="top-bar-btn radio-top-btn" onclick="RadioPage.openDlSheet()" aria-label="${RadioData.L('dlTitle')}">
+            <i class="fas fa-circle-down"></i><span class="rtb-badge" id="rtb-dl-b" style="display:none">0</span>
+          </button>
+        </div>
       </div>
 
       <div class="radio-tabs" id="radio-tabs">
@@ -46,6 +53,7 @@ const RadioPage = {
     this._renderHero();
     this._renderBody();
     RadioService._updateBar();
+    this._updateTopBadges();
   },
 
   switchTab(tab) {
@@ -256,6 +264,7 @@ const RadioPage = {
       return `
         <div class="station-card ${cur ? 'active' : ''}" data-station-id="${st.id}" style="background-image:${RadioData.bgImage(RadioData.imgUrl(st.img) || RadioData.IMG.kaaba)}" onclick="RadioPage.playStation('${st.id}')">
           <div class="station-overlay"></div>
+          <button class="st-fav ${RadioLib.isFav({ t: 'station', stId: st.id }) ? 'on' : ''}" onclick="event.stopPropagation();RadioPage.favStation('${st.id}')" aria-label="${RadioData.L('favAdd')}"><i class="fas fa-heart"></i></button>
           <div class="station-info">
             <div class="station-name">${st.badge ? st.badge + ' ' : ''}${escapeHtml(RadioData.name(st))}</div>
             <div class="station-desc">${st.descKey ? RadioData.L(st.descKey) : (cur ? RadioData.L('nowPlaying') : RadioData.L('tapToListen'))}</div>
@@ -290,6 +299,7 @@ const RadioPage = {
               <span class="rc-name">${escapeHtml(RadioData.name(r))}</span>
               <span class="rc-meta">${n} ${RadioData.L('surahsCount')}${r.live && r.live.length ? ' • <i class="fas fa-tower-broadcast"></i> ' + RadioData.L('live') : ''}</span>
             </span>
+            <span class="rc-fav ${RadioLib.isFav({ t: 'reciter', rid: r.id }) ? 'on' : ''}" role="button" tabindex="0" onclick="event.stopPropagation();RadioPage.favReciter('${r.id}')" aria-label="${RadioData.L('favAdd')}"><i class="fas fa-heart"></i></span>
             <span class="station-eq rc-eq ${cur && S.state === 'playing' ? 'on' : ''}"><i></i><i></i><i></i></span>
             <i class="fas fa-chevron-down rc-chev"></i>
           </button>
@@ -309,7 +319,11 @@ const RadioPage = {
         <button class="rc-opt ${this.openMode === 'surah' ? 'on' : ''}" onclick="RadioPage.toggleSurahPicker('${r.id}')">
           <i class="fas fa-list-ol"></i> ${RadioData.L('pickSurah')}
         </button>
+        <button class="rc-opt rc-dlall" onclick="RadioPage.dlAll('${r.id}')">
+          <i class="fas fa-cloud-arrow-down"></i> ${RadioData.L('dlAllSurahs')} • ${RadioData.surahsFor(r).filter(n => !RadioLib.has(r.id, n)).length}
+        </button>
       </div>
+      <div class="rc-dlbox" id="rc-dlbox">${this._dlAllHtml(r.id)}</div>
       ${this.openMode === 'surah' ? `
         <div class="rc-surahs">
           <div class="tl-search">
@@ -343,6 +357,7 @@ const RadioPage = {
             <div class="surah-name">${escapeHtml(nm)}</div>
             <div class="surah-meta">${s[1]} • ${s[4]} ${RadioData.L('ayah')}</div>
           </div>
+          ${this._surahActions(r.id, s[0])}
           <i class="fas ${cur ? 'fa-volume-high' : 'fa-play'} surah-play-ic"></i>
         </div>`;
     }).join('') || `<div class="tl-note">—</div>`;
@@ -442,6 +457,7 @@ const RadioPage = {
             <div class="surah-name">${escapeHtml(nm)}</div>
             <div class="surah-meta">${s[1]} • ${s[4]} ${RadioData.L('ayah')}</div>
           </div>
+          ${this._surahActions(r.id, s[0])}
           <i class="fas ${cur ? 'fa-volume-high' : 'fa-play'} surah-play-ic"></i>
         </div>`;
     }).join('') || `<div class="tl-note">—</div>`;
@@ -534,6 +550,7 @@ const RadioPage = {
                 <div class="surah-name">${escapeHtml(nm)}</div>
                 <div class="surah-meta">${info.ar} • ${info.ayahs} ${RadioData.L('ayah')}</div>
               </div>
+              ${this._surahActions(RadioData.SLEEP_RECITER, n)}
               <i class="fas ${cur ? 'fa-volume-high' : 'fa-play'} surah-play-ic"></i>
             </div>`;
         }).join('')}
@@ -621,6 +638,252 @@ const RadioPage = {
     this._renderHero();
   },
 
+  // ================= v1.0.126: التنزيلات + المفضلة =================
+  _surahActions(rid, n) {
+    const fav = RadioLib.isFav({ t: 'quran', rid, surah: n });
+    const has = RadioLib.has(rid, n);
+    return `<span class="srx-wrap">
+            <button class="srx ${fav ? 'on' : ''}" onclick="event.stopPropagation();RadioPage.favSurah('${rid}',${n})" aria-label="${RadioData.L(fav ? 'favRemove' : 'favAdd')}"><i class="fas fa-heart"></i></button>
+            <button class="srx ${has ? 'done' : ''}" onclick="event.stopPropagation();RadioPage.dlSurah('${rid}',${n})" aria-label="${RadioData.L('download')}"><i class="fas fa-${has ? 'circle-check' : 'arrow-down'}"></i></button>
+          </span>`;
+  },
+
+  _toastFav(added) {
+    if (typeof showToast === 'function') showToast((added ? '❤️ ' : '🤍 ') + RadioData.L(added ? 'favAdded' : 'favRemoved'), 1600);
+  },
+
+  favSurah(rid, n) {
+    this._toastFav(RadioLib.toggleFav({ t: 'quran', rid, surah: Number(n) }));
+    this._renderBody(); this._updateTopBadges();
+  },
+  favReciter(rid) {
+    this._toastFav(RadioLib.toggleFav({ t: 'reciter', rid }));
+    this._renderBody(); this._updateTopBadges();
+  },
+  favStation(stId) {
+    const inExtra = RadioData.EXTRA.some(x => x.id === stId);
+    this._toastFav(RadioLib.toggleFav({ t: 'station', stId, tab: inExtra ? 'extra' : 'main' }));
+    this._renderBody(); this._updateTopBadges();
+  },
+
+  async dlSurah(rid, n) {
+    if (RadioLib.has(rid, n)) {
+      if (typeof showToast === 'function') showToast('✔ ' + RadioData.L('dlAlready'), 1600);
+      return;
+    }
+    if (typeof showToast === 'function') showToast('⏳ ' + RadioData.L('downloadingAudio'), 2500);
+    const bytes = await RadioLib.save(rid, n);
+    if (typeof showToast === 'function') showToast(bytes ? '💾 ' + RadioData.L('downloadDone') : '⚠️ ' + RadioData.L('downloadFail'), 2500);
+    this._renderBody(); this._updateTopBadges();
+  },
+
+  _dlAllHtml(rid) {
+    const d = this._dlAll;
+    if (!d || d.rid !== rid) return '';
+    const pct = Math.min(100, Math.round((d.i / Math.max(1, d.total)) * 100));
+    if (!d.running) {
+      return `<div class="rc-dlbar"><span style="width:100%"></span></div>
+        <div class="rc-dlmeta"><span>${d.total} / ${d.total}</span><span class="rc-dldone"><i class="fas fa-check"></i> ${RadioData.L('dlAllDone')}</span></div>`;
+    }
+    return `<div class="rc-dlbar"><span style="width:${pct}%"></span></div>
+      <div class="rc-dlmeta"><span>${d.i} / ${d.total} • ${RadioLib.size(d.bytes)}</span>
+      <button class="rc-dlcancel" onclick="RadioPage.dlAllCancel()">${RadioData.L('dlCancel')}</button></div>`;
+  },
+
+  _dlAllPaint(rid) {
+    const box = document.getElementById('rc-dlbox');
+    if (box && this._dlAll && this._dlAll.rid === rid) box.innerHTML = this._dlAllHtml(rid);
+  },
+
+  async dlAll(rid) {
+    const r = RadioData.reciter(rid);
+    if (!r) return;
+    if (this._dlAll && this._dlAll.running) return;
+    const list = RadioData.surahsFor(r).filter(n => !RadioLib.has(rid, n));
+    if (!list.length) {
+      if (typeof showToast === 'function') showToast('✔ ' + RadioData.L('dlAllDone'), 2000);
+      return;
+    }
+    this._dlAll = { rid, i: 0, total: list.length, bytes: 0, running: true, cancel: false };
+    this._dlAllPaint(rid);
+    let done = 0, failed = 0;
+    for (let i = 0; i < list.length; i++) {
+      if (this._dlAll.cancel) break;
+      const bytes = await RadioLib.save(rid, list[i]);
+      if (bytes) { this._dlAll.bytes += bytes; done++; } else failed++;
+      this._dlAll.i = i + 1;
+      this._dlAllPaint(rid);
+      if (i % 5 === 0) this._updateTopBadges();
+    }
+    const stopped = this._dlAll.cancel;
+    this._dlAll.running = false;
+    this._dlAll.i = done;
+    this._dlAll.total = done;
+    this._dlAllPaint(rid);
+    if (typeof showToast === 'function') {
+      let msg = stopped ? '⏹ ' + RadioData.L('dlStopped')
+        : '✔ ' + RadioData.L('dlAllDone') + ' • ' + RadioLib.size(this._dlAll.bytes);
+      if (failed) msg += ' • ⚠️ ' + String(RadioData.L('dlFailed') || '').replace('{n}', failed);
+      showToast(msg, 3000);
+    }
+    this._updateTopBadges();
+  },
+
+  dlAllCancel() { if (this._dlAll) this._dlAll.cancel = true; },
+
+  // ---------- أوراق التنزيلات والمفضلة ----------
+  openDlSheet() { this._sheet('dl'); },
+  openFavSheet() { this._sheet('fav'); },
+
+  closeSheet() {
+    const o = document.getElementById('rl-sheet-ov');
+    if (o) o.remove();
+    this._sheetKind = null;
+  },
+
+  _sheet(kind) {
+    this._sheetKind = kind;
+    const isDl = kind === 'dl';
+    const items = isDl ? RadioLib.list() : RadioLib.favs();
+    if (!isDl) this._favList = items;
+    const old = document.getElementById('rl-sheet-ov');
+    if (old) old.remove();
+    const rows = items.map((it, i) => this._sheetRow(it, isDl, i)).join('');
+    const ov = document.createElement('div');
+    ov.id = 'rl-sheet-ov';
+    ov.className = 'rl-overlay';
+    ov.onclick = (e) => { if (e.target === ov) this.closeSheet(); };
+    ov.innerHTML = `<div class="rl-sheet">
+      <div class="rl-head"><i class="fas ${isDl ? 'fa-circle-down' : 'fa-heart'}"></i>
+        <span>${RadioData.L(isDl ? 'dlTitle' : 'favTitle')}</span>
+        ${isDl && items.length ? `<span class="rl-total">${items.length} • ${RadioLib.size(RadioLib.totalBytes())}</span>` : ''}
+        ${isDl && items.length ? `<button class="rl-head-act" onclick="RadioPage.dlAllToDevice()" title="${RadioData.L('saveAllDevice')}" aria-label="${RadioData.L('saveAllDevice')}"><i class="fas fa-mobile-screen-button"></i></button>` : ''}
+        <button class="rl-x" onclick="RadioPage.closeSheet()" aria-label="close">×</button>
+      </div>
+      <div class="rl-list">${rows || `<div class="rl-empty"><i class="fas ${isDl ? 'fa-box-open' : 'fa-heart-crack'}"></i><div>${RadioData.L(isDl ? 'dlEmpty' : 'favEmpty')}</div></div>`}</div>
+    </div>`;
+    document.body.appendChild(ov);
+  },
+
+  _favMeta(it) {
+    if (it.t === 'station') {
+      const st = RadioData.MAIN.concat(RadioData.EXTRA).find(x => x.id === it.stId);
+      return { ic: '<i class="fas fa-tower-broadcast"></i>', title: st ? RadioData.name(st) : it.stId, sub: RadioData.L('live') };
+    }
+    if (it.t === 'live') {
+      const r = RadioData.reciter(it.rid);
+      return { ic: r ? RadioData.avatarHtml(r, 'rl-av') : '<i class="fas fa-tower-broadcast"></i>', title: r ? RadioData.name(r) : it.rid, sub: RadioData.L('liveStream') };
+    }
+    if (it.t === 'reciter') {
+      const r = RadioData.reciter(it.rid);
+      return { ic: r ? RadioData.avatarHtml(r, 'rl-av') : '<i class="fas fa-user"></i>', title: r ? RadioData.name(r) : it.rid, sub: RadioData.L('favReciter') };
+    }
+    const r = RadioData.reciter(it.rid);
+    return { ic: '<i class="fas fa-book-quran"></i>', title: RadioData.surahName(it.surah), sub: (r ? RadioData.name(r) : '') };
+  },
+
+  _sheetRow(it, isDl, i) {
+    if (isDl) {
+      const r = RadioData.reciter(it.rid);
+      return `<div class="rl-row">
+        <span class="rl-ic"><i class="fas fa-file-audio"></i></span>
+        <span class="rl-txt"><b>${escapeHtml(RadioData.surahName(it.surah))}</b><small>${escapeHtml(r ? RadioData.name(r) : it.rid)} • ${RadioLib.size(it.bytes)}</small></span>
+        <button class="rl-btn play" onclick="RadioPage.playDl('${it.rid}',${it.surah})" aria-label="${RadioData.L('playNow')}"><i class="fas fa-play"></i></button>
+        <button class="rl-btn save" onclick="RadioPage.dlToDevice('${it.rid}',${it.surah})" title="${RadioData.L('saveToDevice')}" aria-label="${RadioData.L('saveToDevice')}"><i class="fas fa-mobile-screen-button"></i></button>
+        <button class="rl-btn del" onclick="RadioPage.delDl('${it.rid}',${it.surah})" aria-label="delete"><i class="fas fa-trash"></i></button>
+      </div>`;
+    }
+    const m = this._favMeta(it);
+    return `<div class="rl-row">
+      <span class="rl-ic">${m.ic}</span>
+      <span class="rl-txt"><b>${escapeHtml(m.title)}</b><small>${escapeHtml(m.sub)}</small></span>
+      <button class="rl-btn play" onclick="RadioPage.favPlayAt(${i})" aria-label="${RadioData.L('playNow')}"><i class="fas fa-play"></i></button>
+      <button class="rl-btn del" onclick="RadioPage.delFavAt(${i})" aria-label="delete"><i class="fas fa-trash"></i></button>
+    </div>`;
+  },
+
+  // v1.0.130: نسخ صوت منزَّل إلى ملف على الجهاز
+  async dlToDevice(rid, n) {
+    const ok = await RadioLib.saveToDevice(rid, n);
+    if (typeof showToast === 'function') {
+      showToast(ok ? '📱 ' + RadioData.L('deviceSaved') : '⚠️ ' + RadioData.L('deviceFailed'), 2600);
+    }
+    return ok;
+  },
+
+  async dlAllToDevice() {
+    const list = RadioLib.list();
+    if (!list.length) {
+      if (typeof showToast === 'function') showToast('⚠️ ' + RadioData.L('noAudioYet'), 2200);
+      return;
+    }
+    if (this._savingAll) return;
+    this._savingAll = true;
+    let ok = 0;
+    for (let i = 0; i < list.length; i++) {
+      const done = await RadioLib.saveToDevice(list[i].rid, list[i].surah);
+      if (done) ok++;
+      await new Promise(r => setTimeout(r, 320));   // مهلة بين الملفات لتفادي الازدحام
+    }
+    this._savingAll = false;
+    if (typeof showToast === 'function') {
+      showToast(ok ? '📱 ' + RadioData.L('deviceSaved') + ' • ' + ok + '/' + list.length
+                   : '⚠️ ' + RadioData.L('deviceFailed'), 2800);
+    }
+  },
+
+  async playDl(rid, n) {
+    this.closeSheet();
+    await RadioService.playLocal(rid, n);
+    this._renderHero();
+  },
+
+  async delDl(rid, n) {
+    await RadioLib.remove(rid, n);
+    if (RadioService.quran && RadioService.quran.local && RadioService.quran.rid === rid && RadioService.quran.surah === Number(n)) RadioService.stopAll();
+    this._sheet('dl'); this._renderBody(); this._updateTopBadges();
+  },
+
+  delFavAt(i) {
+    const it = (this._favList || [])[i];
+    if (!it) return;
+    RadioLib.removeFav(it.k);
+    this._toastFav(false);
+    this._sheet('fav'); this._renderBody(); this._updateTopBadges();
+  },
+
+  favPlayAt(i) {
+    const it = (this._favList || [])[i];
+    if (!it) return;
+    this.closeSheet();
+    const onRadio = typeof Router !== 'undefined' && Router.current && Router.current.name === 'radio';
+    if (it.t === 'station') {
+      if (onRadio) { this.tab = it.tab || 'main'; this._renderHero(); this._renderBody(); this.playStation(it.stId); }
+      else { Router.go('radio', { tab: it.tab || 'main' }); setTimeout(() => this.playStation(it.stId), 140); }
+      return;
+    }
+    if (it.t === 'live') {
+      if (onRadio) { this.tab = 'reciters'; this._renderHero(); this._renderBody(); this.playLive(it.rid, it.liveIdx || 0); }
+      else { Router.go('radio', { tab: 'reciters' }); setTimeout(() => this.playLive(it.rid, it.liveIdx || 0), 140); }
+      return;
+    }
+    const r = RadioData.reciter(it.rid);
+    const n = it.surah || (r ? RadioData.surahsFor(r)[0] : 1);
+    RadioService.playQuran({ rid: it.rid, surah: n, lang: null, prefer: 'whole' });
+    if (onRadio) { this.tab = 'reciters'; this.open = it.rid; this.openMode = 'surah'; this._renderHero(); this._renderBody(); }
+    else Router.go('radio', { tab: 'reciters' });
+  },
+
+  _updateTopBadges() {
+    try {
+      const f = RadioLib.favs().length, d = RadioLib.list().length;
+      const fb = document.getElementById('rtb-fav-b');
+      if (fb) { fb.textContent = f; fb.style.display = f ? 'block' : 'none'; }
+      const db = document.getElementById('rtb-dl-b');
+      if (db) { db.textContent = d; db.style.display = d ? 'block' : 'none'; }
+    } catch (e) {}
+  },
+
   _fmtSec(s) {
     const m = Math.floor(s / 60), ss = s % 60;
     return `${m}:${String(ss).padStart(2, '0')}`;
@@ -629,6 +892,7 @@ const RadioPage = {
   cleanup() {
     // ⚠️ لا نوقف الصوت هنا — الاستماع يستمر بعد مغادرة الصفحة (مطلوب)
     this.closeSleepModal();
+    this.closeSheet();
     RadioService._updateBar();
   },
 };

@@ -48,6 +48,9 @@ const QuranMushafPage = {
 
   render(container, params = {}, navToken = null) {
     this.fontSize = Storage.get('mushaf_font') || 'medium';
+    const ms = Storage.get('mushaf_settings') || {};
+    this.paper = ms.paper || 'auto';
+    this.lineHeight = ms.lineHeight || 'normal';
     this.tajweed = !!Storage.get('mushaf_tajweed'); // v51: ألوان التجويد في المصحف
     let p = parseInt(params.page, 10);
     if (!(p >= 1 && p <= this.TOTAL_PAGES)) {
@@ -68,7 +71,7 @@ const QuranMushafPage = {
         <div class="empty-state">
           <div class="empty-state-icon">⚠️</div>
           <div class="empty-state-text">${t('error')}</div>
-          <button class="btn-primary empty-state-btn" onclick="Router.go('quran')">${t('backToWisdom')}</button>
+          <button class="btn-primary empty-state-btn" onclick="Router.go('quran/read')">${t('backToWisdom')}</button>
         </div>`;
       return;
     }
@@ -116,7 +119,7 @@ const QuranMushafPage = {
     return `
       <div class="msh-wrap" dir="rtl">
         <div class="top-bar msh-top-bar">
-          <button class="top-bar-btn" onclick="Router.go('quran')" aria-label="${t('backToWisdom')}">
+          <button class="top-bar-btn" onclick="Router.go('quran/read')" aria-label="${t('backToWisdom')}">
             <i class="fas fa-chevron-right"></i>
           </button>
           <div class="top-bar-title-container">
@@ -134,6 +137,10 @@ const QuranMushafPage = {
           </button>
         </div>
 
+        <button class="msh-set-fab" onclick="QuranMushafPage.openSettings(event)" aria-label="${t('settings_reader') || 'Ajustes'}">
+          <i class="fas fa-sliders-h"></i>
+        </button>
+
         <div class="msh-pager-bar">
           <button class="msh-nav-btn" onclick="QuranMushafPage.prevPage()" ${p <= 1 ? 'disabled' : ''}>
             <i class="fas fa-chevron-right"></i> ${t('mushafPrev')}
@@ -146,7 +153,7 @@ const QuranMushafPage = {
           </button>
         </div>
 
-        <div class="msh-page font-${this.fontSize}" id="msh-page">
+        <div class="msh-page font-${this.fontSize} msh-paper-${this.paper || 'auto'}" id="msh-page">
           <div class="msh-flow">${parts.join('')}</div>
           <div class="msh-page-footer">❁ ${this.arDigits(p)} ❁</div>
         </div>
@@ -287,6 +294,85 @@ const QuranMushafPage = {
   prevPage() {
     if (this.page <= 1 || this._animating) return;
     this.showPage(null, this.page - 1, -1);
+  },
+
+  openSettings(ev) {
+    if (ev) ev.stopPropagation();
+    this.closeSettings();
+    const ms = Storage.get('mushaf_settings') || {};
+    const cur = {
+      size: Storage.get('mushaf_font') || 'medium',
+      lh: ms.lineHeight || 'normal',
+      paper: ms.paper || 'auto',
+      tj: !!Storage.get('mushaf_tajweed'),
+    };
+    const chip = (grp, val, label, on) =>
+      `<button class="msh-set-chip ${on ? 'on' : ''}" onclick="QuranMushafPage.setOpt('${grp}','${val}')">${label}</button>`;
+
+    const veil = document.createElement('div');
+    veil.className = 'msh-set-veil';
+    veil.onclick = () => QuranMushafPage.closeSettings();
+    const sheet = document.createElement('div');
+    sheet.className = 'msh-set-sheet';
+    sheet.id = 'msh-settings-sheet';
+    sheet.innerHTML = `
+      <div class="msh-set-grab"></div>
+      <div class="msh-set-h"><b>${t('settings_reader') || 'Ajustes de lectura'}</b>
+        <button onclick="QuranMushafPage.closeSettings()" aria-label="×"><i class="fas fa-xmark"></i></button></div>
+
+      <div class="msh-set-grp"><div class="msh-set-lbl">${t('fontSize') || 'حجم الخط'}</div>
+        <div class="msh-set-chips">
+          ${chip('size', 'small', 'صغير', cur.size === 'small')}
+          ${chip('size', 'medium', 'متوسط', cur.size === 'medium')}
+          ${chip('size', 'large', 'كبير', cur.size === 'large')}
+          ${chip('size', 'xlarge', 'كبير جدًا', cur.size === 'xlarge')}
+        </div></div>
+
+      <div class="msh-set-grp"><div class="msh-set-lbl">تباعد الأسطر</div>
+        <div class="msh-set-chips">
+          ${chip('lh', 'tight', 'مضغوط', cur.lh === 'tight')}
+          ${chip('lh', 'normal', 'عادي', cur.lh === 'normal')}
+          ${chip('lh', 'wide', 'واسع', cur.lh === 'wide')}
+        </div></div>
+
+      <div class="msh-set-grp"><div class="msh-set-lbl">ورق الصفحة</div>
+        <div class="msh-set-chips">
+          ${chip('paper', 'auto', 'تلقائي', cur.paper === 'auto')}
+          ${chip('paper', 'sepia', 'عاجي', cur.paper === 'sepia')}
+          ${chip('paper', 'white', 'أبيض', cur.paper === 'white')}
+          ${chip('paper', 'dark', 'ليلي', cur.paper === 'dark')}
+        </div></div>
+
+      <div class="msh-set-grp"><div class="msh-set-lbl">ألوان التجويد</div>
+        <div class="msh-set-chips">
+          ${chip('tj', 'on', 'مفعّلة', cur.tj)}
+          ${chip('tj', 'off', 'مطفأة', !cur.tj)}
+        </div></div>
+    `;
+    document.body.appendChild(veil);
+    document.body.appendChild(sheet);
+  },
+
+  closeSettings() {
+    document.querySelectorAll('.msh-set-sheet, .msh-set-veil').forEach(el => el.remove());
+  },
+
+  setOpt(grp, val) {
+    if (grp === 'size') {
+      Storage.set('mushaf_font', val);
+      this.fontSize = val;
+    } else {
+      const ms = Storage.get('mushaf_settings') || {};
+      if (grp === 'lh') ms.lineHeight = val;
+      if (grp === 'paper') ms.paper = val;
+      if (grp === 'tj') Storage.set('mushaf_tajweed', val === 'on');
+      Storage.set('mushaf_settings', ms);
+      if (grp === 'lh') this.lineHeight = val;
+      if (grp === 'paper') this.paper = val;
+      if (grp === 'tj') this.tajweed = val === 'on';
+    }
+    this.openSettings();
+    this.showPage(null, this.page, 0);
   },
 
   cycleFont() {

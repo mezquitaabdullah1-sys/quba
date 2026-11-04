@@ -2,7 +2,8 @@
 const Router = {
   routes: {
     home: { page: HomePage, tabId: 'home' },
-    quran: { page: QuranPage, tabId: 'quran' },
+    quran: { page: QuranHubPage, tabId: 'quran' },
+    'quran/read': { page: QuranPage, tabId: 'quran' },
     prayer: { page: PrayerPage, tabId: 'prayer' },
     calendar: { page: CalendarPage, tabId: null },
     // v98: إمساكية رمضان — جدول مواعيد الشهر كامل ولخمس رمضانات قادمة

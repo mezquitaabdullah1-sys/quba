@@ -464,14 +464,168 @@ const CoursesPage = {
         </div>
 
         <div class="cx-units">
-          ${course.units.map((u, ui) => this._renderUnit(course, u, ui, prog, lang, ui === openUnit)).join('')}
+          ${this._renderMap(course, prog, lang)}
         </div>
       </div>`;
+    this._mapWatch();
     if (opts.scrollToStation) {
       setTimeout(() => {
         const el = document.getElementById('st-' + opts.scrollToStation);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 60);
+    }
+  },
+
+  // ============ v1.0.127: خريطة المراحل المتصلة (أسلوب Candy Crush) ============
+  // كل المحطات في مسار واحد متّصل بخيط مرسوم (SVG) — لا صناديق تُفتح وتُغلق،
+  // ولكل محطة ثيمها الخاص (مزرعة/خياطة/مقهى/ملعب/فضاء/حديقة/سوق/بحر).
+  CMAP_THEMES: [
+    { id: 'farm',   t1: '#9CCC65', t2: '#33691E', p: ['🌻', '🌿', '🐓'], n: { ar: 'المزرعة', es: 'La granja', en: 'The farm' } },
+    { id: 'sew',    t1: '#F48FB1', t2: '#AD1457', p: ['🧵', '✂️', '🪡'], n: { ar: 'الخياطة', es: 'La costura', en: 'Sewing' } },
+    { id: 'cafe',   t1: '#D7A86E', t2: '#6D4C41', p: ['☕', '🍃', '🫖'], n: { ar: 'المقهى', es: 'El café', en: 'The café' } },
+    { id: 'sport',  t1: '#4FC3F7', t2: '#01579B', p: ['⚽', '🏆', '🥇'], n: { ar: 'الملعب', es: 'El estadio', en: 'The pitch' } },
+    { id: 'space',  t1: '#9575CD', t2: '#311B92', p: ['🪐', '✨', '🌙'], n: { ar: 'الفضاء', es: 'El espacio', en: 'Space' } },
+    { id: 'garden', t1: '#AED581', t2: '#2E7D32', p: ['🌷', '🦋', '🌼'], n: { ar: 'الحديقة', es: 'El jardín', en: 'The garden' } },
+    { id: 'market', t1: '#FFB74D', t2: '#E65100', p: ['🧺', '🍎', '🛒'], n: { ar: 'السوق', es: 'El mercado', en: 'The market' } },
+    { id: 'sea',    t1: '#4DD0E1', t2: '#00695C', p: ['⛵', '🐚', '🐟'], n: { ar: 'البحر', es: 'El mar', en: 'The sea' } },
+  ],
+
+  _mapTheme(s, seq) {
+    if (s && s.theme) {
+      const f = this.CMAP_THEMES.find(x => x.id === s.theme);
+      if (f) return f;
+    }
+    return this.CMAP_THEMES[seq % this.CMAP_THEMES.length];
+  },
+
+  // حروف عربية متبعثرة بأحجام/ميلان متفاوت — مولّدة بتسلسل ثابت (لا تتغيّر بين renderين)
+  _mapLetters() {
+    const L = ['ا', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق', 'ك', 'ل', 'م', 'ن', 'ه', 'و', 'ي'];
+    let seed = 20261103;
+    const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    let h = '';
+    for (let i = 0; i < 30; i++) {
+      const ch = L[Math.floor(rnd() * L.length)];
+      const top = Math.round(rnd() * 97);
+      const left = Math.round(rnd() * 94);
+      const size = 24 + Math.round(rnd() * 62);
+      const rot = Math.round(rnd() * 74 - 37);
+      const o = (0.045 + rnd() * 0.085).toFixed(3);
+      h += `<span style="top:${top}%;left:${left}%;font-size:${size}px;transform:rotate(${rot}deg);--o:${o}">${ch}</span>`;
+    }
+    return h;
+  },
+
+  _renderMap(course, prog, lang) {
+    const units = course.units || [];
+    let seq = 0;
+    const parts = [];
+    units.forEach((u, ui) => {
+      const doneCount = u.stations.filter(st => prog.completedStations.includes(st.id)).length;
+      parts.push(`<div class="cxm-chapter ${doneCount === u.stations.length ? 'done' : ''}" data-unit="${ui}">
+          <span>${u.icon || '📖'}</span>
+          <span>${this.X(u.title)}</span>
+          <span class="cxc-n">${doneCount}/${u.stations.length}</span>
+        </div>`);
+      u.stations.forEach(st => {
+        parts.push(this._renderMapNode(course, st, prog, seq++));
+      });
+    });
+    return `<div class="cxmap" id="cxmap">
+      <div class="cxmap-letters" aria-hidden="true">${this._mapLetters()}</div>
+      <svg class="cxmap-thread" id="cxmap-thread" aria-hidden="true"></svg>
+      ${parts.join('')}
+    </div>`;
+  },
+
+  _renderMapNode(course, s, prog, seq) {
+    const idx = this._globalStationIndex(course, s.id);
+    const isDone = prog.completedStations.includes(s.id);
+    const prevId = idx > 0 ? course.stations[idx - 1].id : null;
+    const isLocked = !isDone && prevId && !prog.completedStations.includes(prevId);
+    const resume = prog.stationProgress && prog.stationProgress[s.id];
+    const inProgress = !isDone && resume && resume.lessonIdx > 0;
+    const isCurrent = !isDone && !isLocked;
+    const th = this._mapTheme(s, seq);
+    const side = seq % 2 === 0 ? 'l' : 'r';
+    const canSkip = isLocked && this._canSkipTest(course, s, idx, prog);
+    const wasSkipped = isDone && (prog.skippedStations || []).includes(s.id);
+    const title = this.L(s.title);
+    const letter = String(title || '').replace(/[^\u0600-\u06FF]/g, '').charAt(0) || String(seq + 1);
+    const onClick = isLocked ? `CoursesPage.showLocked()` : `CoursesPage.startStation('${course.id}', '${s.id}')`;
+    const themeName = th.n[this.lang()] || th.n.ar;
+    const inner = isDone ? '<i class="fas fa-check"></i>'
+      : (isLocked ? '<i class="fas fa-lock"></i>' : `<span class="cxm-letter">${escapeHtml(letter)}</span>`);
+    const ava = (isCurrent || inProgress) ? `<div class="cxm-ava" aria-hidden="true">
+        <div class="cxm-ava-b">${(typeof Mascot !== 'undefined' && Mascot.render) ? Mascot.render('happy', 'small', '') : '<i class="fas fa-child"></i>'}</div>
+        <div class="cxm-ava-tip"></div>
+      </div>` : '';
+    return `
+      <div class="cxm-node cxm-${side} ${isDone ? 'done' : ''} ${isLocked ? 'locked' : ''} ${isCurrent ? 'current' : ''}"
+           id="st-${s.id}" data-theme-id="${th.id}" style="--t1:${th.t1};--t2:${th.t2}">
+        ${ava}
+        <div class="cxm-platform">
+          <span class="cxm-prop p1">${th.p[0]}</span>
+          <span class="cxm-prop p2">${th.p[1]}</span>
+          <span class="cxm-prop p3">${th.p[2]}</span>
+          <button class="cxm-btn" onclick="${onClick}" aria-label="${escapeHtml(title)}">${inner}</button>
+        </div>
+        <div class="cxm-label">${this.X(s.title)}</div>
+        <div class="cxm-theme">${escapeHtml(themeName)}</div>
+        <div class="cxm-meta">
+          ${isDone ? `<span class="cxm-chip ok"><i class="fas fa-check"></i> ${t('cxCompleted') || 'مكتملة'}</span>` : ''}
+          ${inProgress ? `<span class="cxm-chip">${resume.lessonIdx}/${(s.lessons || []).length}</span>` : ''}
+          ${!isDone && !isLocked ? `<span class="cxm-chip">${(s.lessons || []).length} ${t('lessons') || 'دروس'}</span>` : ''}
+        </div>
+        ${wasSkipped ? `<div class="cxm-was"><i class="fas fa-forward"></i> ${t('cxSkipped') || 'متخطّاة'}</div>` : ''}
+        ${canSkip ? `<button class="cxm-skip" onclick="event.stopPropagation();CoursesPage.offerSkipTest('${course.id}','${s.id}')"><i class="fas fa-forward-fast"></i> ${t('cxSkipStation') || 'تخطَّ'}</button>` : ''}
+      </div>`;
+  },
+
+  // يرسم خيط المسار بين مراكز المحطات (يُعاد عند تغيّر المقاس)
+  _mapPaint() {
+    const box = document.getElementById('cxmap');
+    const svg = document.getElementById('cxmap-thread');
+    if (!box || !svg) return;
+    const nodes = Array.apply(null, box.querySelectorAll('.cxm-node'));
+    if (nodes.length < 2) { svg.innerHTML = ''; return; }
+    const rb = box.getBoundingClientRect();
+    const W2 = box.clientWidth, H2 = box.scrollHeight;
+    const pts = nodes.map(node => {
+      const pl = node.querySelector('.cxm-platform');
+      const b = (pl || node).getBoundingClientRect();
+      return { x: b.left - rb.left + b.width / 2, y: b.top - rb.top + b.height / 2, locked: node.classList.contains('locked') };
+    });
+    let road = '', dash = '';
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const my = (a.y + b.y) / 2;
+      const d = `M${a.x.toFixed(1)} ${a.y.toFixed(1)} C ${a.x.toFixed(1)} ${my.toFixed(1)}, ${b.x.toFixed(1)} ${my.toFixed(1)}, ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
+      road += d + ' ';
+      if (b.locked || a.locked) dash += d + ' ';
+    }
+    svg.setAttribute('viewBox', `0 0 ${W2} ${H2}`);
+    svg.setAttribute('width', W2);
+    svg.setAttribute('height', H2);
+    svg.innerHTML = `<path class="cxt-road" d="${road}"/><path class="cxt-inner" d="${road}"/>`
+      + (dash ? `<path class="cxt-locked" d="${dash}"/>` : '');
+  },
+
+  _mapWatch() {
+    const paint = () => { try { this._mapPaint(); } catch (e) {} };
+    requestAnimationFrame(paint);
+    setTimeout(paint, 120);
+    setTimeout(paint, 480);
+    if (this._mapRO) { try { this._mapRO.disconnect(); } catch (e) {} }
+    const box = document.getElementById('cxmap');
+    if (box && typeof ResizeObserver !== 'undefined') {
+      this._mapRO = new ResizeObserver(paint);
+      this._mapRO.observe(box);
+    }
+    if (!this._mapWin) {
+      this._mapWin = true;
+      window.addEventListener('resize', paint);
+      window.addEventListener('orientationchange', () => setTimeout(paint, 220));
     }
   },
 

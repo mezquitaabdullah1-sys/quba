@@ -64,11 +64,13 @@
   <link rel="stylesheet" href="css/screens.css">
   <link rel="stylesheet" href="css/wisdom.css">
   <link rel="stylesheet" href="css/courses.css">
-  <link rel="stylesheet" href="css/courses-v2.css"> <!-- v64: كورس اللغة العربية الجديد -->
+  <link rel="stylesheet" href="css/courses-v2.css">
+  <link rel="stylesheet" href="css/courses-map.css"> <!-- v1.0.127: خريطة المراحل المتصلة --> <!-- v64: كورس اللغة العربية الجديد -->
   <link rel="stylesheet" href="css/calendar-v16.css">
   <link rel="stylesheet" href="css/qibla-v17.css">
   <link rel="stylesheet" href="css/quran-reader.css">
   <link rel="stylesheet" href="css/mushaf.css">
+  <link rel="stylesheet" href="css/quran-hub.css"> <!-- v1.0.131: بوابة القرآن -->
   <link rel="stylesheet" href="css/glass-theme.css">
   <link rel="stylesheet" href="css/themes-colorful.css">
   <link rel="stylesheet" href="css/restyle-layout.css">
@@ -76,11 +78,13 @@
   <link rel="stylesheet" href="css/offline.css">
   <link rel="stylesheet" href="css/share-card.css">
   <link rel="stylesheet" href="css/radio.css"> <!-- v56: الراديو الإسلامي -->
+  <link rel="stylesheet" href="css/radio-v126.css"> <!-- v1.0.126: تنزيلات ومفضلة الراديو -->
   <link rel="stylesheet" href="css/clips.css"> <!-- v57: مقتطفات دينية (فيديوهات يوتيوب) -->
   <link rel="stylesheet" href="css/library.css"> <!-- v73: المكتبة الإسلامية -->
   <link rel="stylesheet" href="css/library-v82.css">
   <link rel="stylesheet" href="./css/library-v83.css">
-  <link rel="stylesheet" href="./css/library-v84.css"> <!-- v82: أبواب المكتبة + الأطفال/الآباء + الرفّ -->
+  <link rel="stylesheet" href="./css/library-v84.css">
+  <link rel="stylesheet" href="./css/library-v85.css"> <!-- v1.0.125: شبكة الجامع صفوف + قارئ PDF --> <!-- v82: أبواب المكتبة + الأطفال/الآباء + الرفّ -->
   <link rel="stylesheet" href="css/compact-v68.css"> <!-- v68: ماسكوتا أصغر + شاشات تتّسع بلا تمرير -->
   <link rel="stylesheet" href="css/home-v94.css">
   <link rel="stylesheet" href="css/home-v95.css">
@@ -90,20 +94,17 @@
   <link rel="stylesheet" href="css/prayers-v125.css"> <!-- v125: لوح الصلوات الموحّد + شريط التقدّم -->
   <link rel="stylesheet" href="css/imsakiyah.css"> <!-- v98: إمساكية رمضان --> <!-- v94: الرئيسية المبسّطة (رأس ثابت + بطاقة صلوات مضغوطة + تبويبات الوسائط) -->
 
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Amiri:wght@400;700&family=Scheherazade+New:wght@400;700&family=Noto+Naskh+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
-
-  <!-- Font Awesome (SRI removido en v14 para evitar fallos de carga que ocultaban los iconos) -->
-  <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-        crossorigin="anonymous"
-        referrerpolicy="no-referrer">
+  <!-- v131: الخطوط والأيقونات محليّة داخل التطبيق (تعمل بلا إنترنت) -->
+  <link rel="stylesheet" href="assets/fonts/fonts.css">
+  <link rel="stylesheet" href="assets/vendor/fontawesome/all.min.css">
 
   <!-- jsPDF — generación de PDF en cliente (local: funciona offline y sin CSP externo) -->
   <script src="js/vendor/jspdf.umd.min.js"></script>
   <link rel="stylesheet" href="css/header-v82.css"> <!-- v82: الترويسة الخضراء الموحّدة (ثابتة ومضغوطة) -->
+  <link rel="stylesheet" href="css/beads-v131.css">
+  <link rel="stylesheet" href="css/world-v132.css">
+  <link rel="stylesheet" href="css/imsak-v134.css">
+  <link rel="stylesheet" href="css/prayer-v135.css"> <!-- v135: صلوات الأسبوع + أزرار دائرية + القبلة + المسبحة --> <!-- v134: سطوع الرأس + إمساكية مصمّمة --> <!-- v131: جلود الخرز + ورقة التخصيص -->
 </head>
 <body>
   <!-- 🌟 Splash Screen — Simple logo + fast spinner (no heavy animation) -->
@@ -179,6 +180,7 @@
   <!-- v26: check-in diario de oraciones (✔ por oración, se reinicia cada día) -->
   <script src="js/prayer-tracker.js"></script>
   <script src="js/quran-offline.js"></script>
+  <script src="js/cuba-time.js"></script>
   <script src="js/api.js"></script>
   <script src="js/qibla.js"></script>
   <script src="js/duas.js"></script>
@@ -202,9 +204,11 @@
   <script src="js/radio-data.js"></script> <!-- v56: بيانات الراديو -->
   <script src="js/videos-data.js"></script> <!-- v57: بيانات المقتطفات الدينية -->
   <script src="js/library-data.js"></script> <!-- v73: بيانات المكتبة الإسلامية -->
+  <script src="assets/vendor/pdfjs/pdf.min.js"></script> <!-- v1.0.125: عارض PDF محلي يعمل أوفلاين -->
   <script src="js/library-service.js"></script> <!-- v73: تنزيل الكتب وتخزينها للأوفلاين -->
   <script src="js/library-sources.js"></script> <!-- v1.0.84: مصادر متعددة اللغات (HadeethEnc / IslamHouse) -->
   <script src="js/radio-service.js"></script> <!-- v56: محرّك التشغيل العالمي -->
+  <script src="js/radio-library.js"></script> <!-- v1.0.126: تنزيلات القراءات + المفضلة -->
   <script src="js/adhan.js"></script>
   <script src="js/toggle-feedback.js"></script>
   <script src="js/notif-perm.js"></script>
@@ -285,6 +289,7 @@
   <script src="js/onboarding.js"></script> <!-- v49: صفحات الترحيب عند أول تشغيل -->
   <script src="pages/home.js"></script>
   <script src="pages/quran.js"></script>
+  <script src="pages/quran-hub.js"></script>
   <script src="pages/quran-mushaf.js"></script>
   <script src="pages/prayer.js"></script>
   <script src="pages/calendar.js"></script>
@@ -302,8 +307,10 @@
   <script src="pages/wisdom.js"></script>
   <script src="pages/radio.js"></script> <!-- v56: صفحة الراديو الإسلامي -->
   <script src="pages/videos.js"></script> <!-- v57: صفحة المقتطفات الدينية -->
+  <script src="js/pdf-reader.js"></script>
   <script src="pages/wisdom/library.js"></script>
   <script src="pages/features.js"></script> <!-- v103: فهرس الميزات -->
+  <script src="js/imsak-poster.js"></script> <!-- v134: مولّد صورة الإمساكية -->
   <script src="pages/imsakiyah.js"></script> <!-- v98: إمساكية رمضان --> <!-- v73: صفحة المكتبة الإسلامية -->
 
   <!-- App core -->
@@ -314,5 +321,7 @@
 
   <script src="js/duas-extra.js"></script>
   <script src="js/hadith-extra.js"></script>
+  <script src="js/settings-search.js"></script>
+  <script src="js/home-tasks.js"></script>
 </body>
 </html>

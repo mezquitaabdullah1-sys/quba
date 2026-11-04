@@ -77,24 +77,28 @@ const TasbihPage = {
     { id: 'octagon', ar: 'ثماني',  es: 'Octógono', en: 'Octagon' },
   ],
 
-  // v130: تصاميم خرز حقيقية (خامات وعرق) — الأسود هو الأساسي
+  // v131: 18 خامة حقيقية — المعاينة تُرسم بنفس طبقات الخرزة (beads-v131.css)
   BEAD_DESIGNS: [
-    { id: 'black',     ar: 'أسود لامع',  es: 'Negro',        en: 'Glossy black' },
-    { id: 'onyx',      ar: 'أونيكس',     es: 'Ónix',         en: 'Onyx' },
-    { id: 'marble',    ar: 'رخام',       es: 'Mármol',       en: 'Marble' },
-    { id: 'striped',   ar: 'مخطّط',      es: 'Rayado',       en: 'Striped' },
-    { id: 'banded',    ar: 'عقيق مخطّط', es: 'Ágata rayada', en: 'Banded agate' },
-    { id: 'wood',      ar: 'خشب',        es: 'Madera',       en: 'Wood' },
-    { id: 'turquoise', ar: 'فيروز',      es: 'Turquesa',     en: 'Turquoise' },
-    { id: 'emerald',   ar: 'زمرد',       es: 'Esmeralda',    en: 'Emerald' },
-    { id: 'carnelian', ar: 'عقيق أحمر',  es: 'Cornalina',    en: 'Carnelian' },
-    { id: 'lapis',     ar: 'لازورد',     es: 'Lapislázuli',  en: 'Lapis lazuli' },
-    { id: 'amber',     ar: 'عنبر',       es: 'Ámbar',        en: 'Amber' },
-    { id: 'pearl',     ar: 'لؤلؤ',       es: 'Perla',        en: 'Pearl' },
-    { id: 'gold',      ar: 'ذهب',        es: 'Oro',          en: 'Gold' },
-    { id: 'silver',    ar: 'فضة',        es: 'Plata',        en: 'Silver' },
-    { id: 'speckled',  ar: 'مرقّط',      es: 'Moteada',      en: 'Speckled' },
-    { id: 'carbon',    ar: 'كربون',      es: 'Carbono',      en: 'Carbon' },
+    { id: 'black',      ar: 'أسود لامع',   es: 'Negro pulido',    en: 'Polished black' },
+    { id: 'onyx',       ar: 'أونيكس مطفي', es: 'Ónix mate',       en: 'Matte onyx' },
+    { id: 'marble',     ar: 'رخام',        es: 'Mármol',          en: 'Marble' },
+    { id: 'wood',       ar: 'خشب كوكا',    es: 'Madera de kuka',  en: 'Kuka wood' },
+    { id: 'sandalwood', ar: 'صندل',        es: 'Sándalo',         en: 'Sandalwood' },
+    { id: 'striped',    ar: 'خشب مخطّط',   es: 'Madera rayada',   en: 'Striped wood' },
+    { id: 'banded',     ar: 'عقيق مخطّط',  es: 'Ágata bandeada',  en: 'Banded agate' },
+    { id: 'turquoise',  ar: 'فيروز',       es: 'Turquesa',        en: 'Turquoise' },
+    { id: 'lapis',      ar: 'لازورد',      es: 'Lapislázuli',     en: 'Lapis lazuli' },
+    { id: 'carnelian',  ar: 'عقيق أحمر',   es: 'Cornalina',       en: 'Carnelian' },
+    { id: 'emerald',    ar: 'زمرد',        es: 'Esmeralda',       en: 'Emerald' },
+    { id: 'amber',      ar: 'عنبر',        es: 'Ámbar',           en: 'Amber' },
+    { id: 'crystal',    ar: 'زجاج بلوري',  es: 'Cristal claro',   en: 'Clear crystal' },
+    { id: 'pearl',      ar: 'لؤلؤ',        es: 'Perla',           en: 'Pearl' },
+    { id: 'gold',       ar: 'ذهب',         es: 'Oro',             en: 'Gold' },
+    { id: 'silver',     ar: 'فضة',         es: 'Plata',           en: 'Silver' },
+    { id: 'speckled',   ar: 'حجر مرقّط',   es: 'Jaspe moteado',   en: 'Speckled jasper' },
+    { id: 'carbon',     ar: 'ألياف كربون', es: 'Fibra de carbono',en: 'Carbon fiber' },
+    { id: 'iron',       ar: 'حديد مطروق',  es: 'Hierro forjado',  en: 'Wrought iron' },
+    { id: 'olivewood',  ar: 'خشب زيتون',   es: 'Olivo',           en: 'Olive wood' },
   ],
 
   /** نص بثلاث لغات بلا الاعتماد على مفاتيح i18n */
@@ -108,82 +112,184 @@ const TasbihPage = {
     return this.BEAD_DESIGNS.some(x => x.id === d) ? d : 'black';
   },
 
+  /** v131 (TD5): التسميات من i18n أولًا ثم من الكائن المحلي كاحتياط */
+  _i18nOr(key, fallback) {
+    try {
+      if (typeof t === 'function') {
+        const v = t(key);
+        if (v && v !== key) return v;
+      }
+    } catch (e) {}
+    return fallback;
+  },
+
   _designLabel(id) {
     const d = this.BEAD_DESIGNS.find(x => x.id === id);
     if (!d) return id;
     const l = (typeof currentLocale !== 'undefined') ? currentLocale : 'ar';
-    return l === 'es' ? d.es : (l === 'en' ? d.en : d.ar);
+    const fb = l === 'es' ? d.es : (l === 'en' ? d.en : d.ar);
+    return this._i18nOr('bead' + id.charAt(0).toUpperCase() + id.slice(1), fb);
   },
 
   setBeadDesign(id, opts) {
     if (!this.BEAD_DESIGNS.some(x => x.id === id)) return;
-    const same = this._settings().beadDesign === id;
+    const same = this._beadDesign() === id;
     this._saveSettings({ beadDesign: id });
     const wrap = document.getElementById('misbaha-wrap');
     if (wrap) wrap.setAttribute('data-design', id);
-    // الخرزات مبنيّة مرة واحدة وكل واحدة تحمل كلاسات + متغيّرات التصميم؛
-    // إعادة بناء الخرزات تضمن تبدّل اللون فورًا على كل الحالات.
-    this._beadEls = new Map();
-    const host = document.getElementById('misbaha-beads');
-    if (host) host.innerHTML = '';
-    this._layoutBeads();
-    // تحديث المعاينات داخل الصفحة
-    const btnPrev = document.querySelector('#misbaha-wrap .mpb-prev');
-    if (btnPrev) btnPrev.setAttribute('data-design', id);
-    const dot = document.getElementById('misbaha-design-name');
-    if (dot) dot.textContent = this._designLabel(id);
-    document.querySelectorAll('.bd-tile').forEach(t => {
-      t.classList.toggle('active', t.dataset.design === id);
-      t.setAttribute('aria-pressed', t.dataset.design === id ? 'true' : 'false');
-    });
-    if (!same) { try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {} }
+    // الخرزات ترث المتغيّرات من .misbaha-wrap → تبديل اللون بلا أي إعادة بناء
+    const label = document.getElementById('misbaha-design-name');
+    if (label) label.textContent = this._designLabel(id) + ' · ' + this._shapeLabel(this._beadShape());
+    const prev = document.querySelector('.misbaha-custom-btn .mcb-prev');
+    if (prev) prev.setAttribute('data-design', id);
+    this._refreshSheet();
+    // v131 (T1): احترام إعداد الاهتزاز — كان ينادي navigator.vibrate مباشرة
+    if (!same) this._vibrate(12);
   },
 
-  /** يفتح نافذة الألوان والتصاميم (تُفتح تلقائيًا بعد اختيار الشكل) */
-  openDesignPicker() {
+  /* ============ v131: ورقة واحدة للتخصيص والتأكيد (TD3) ============ */
+  _lockScroll(on) {
+    const b = document.body;
+    if (on) {
+      this._scrollY = window.scrollY || 0;
+      b.style.top = '-' + this._scrollY + 'px';
+      b.classList.add('qs-lock');
+    } else {
+      b.classList.remove('qs-lock');
+      b.style.top = '';
+      try { window.scrollTo(0, this._scrollY || 0); } catch (e) {}
+    }
+  },
+
+  _modal(html, opts) {
+    const o = Object.assign({ center: false }, opts || {});
     this.closeDesignPicker();
     const el = document.createElement('div');
-    el.id = 'bd-overlay';
-    el.className = 'bd-overlay';
-    el.innerHTML = this._designSheetHtml();
+    el.className = 'qs-overlay' + (o.center ? ' qs-center' : '');
+    el.innerHTML = html;
     document.body.appendChild(el);
-    el.addEventListener('click', (ev) => { if (ev.target === el) this.closeDesignPicker(); });
-    const cb = el.querySelector('.bd-close');
-    if (cb) cb.addEventListener('click', (ev) => { ev.stopPropagation(); this.closeDesignPicker(); });
-    el.querySelectorAll('.bd-tile').forEach(t => {
-      t.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        this.setBeadDesign(t.dataset.design);
-      });
+    this._lockScroll(true);
+    el._close = (cb) => this._closeModal(el, cb);
+    el.addEventListener('click', (ev) => { if (ev.target === el) el._close(); });
+    el.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', (ev) => {
+      ev.stopPropagation(); el._close();
+    }));
+    el._onKey = (ev) => {
+      if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); el._close(); return; }
+      if (ev.key !== 'Tab') return;
+      const f = Array.from(el.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+        .filter(x => !x.disabled && x.offsetParent !== null);
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (ev.shiftKey && document.activeElement === first) { ev.preventDefault(); last.focus(); }
+      else if (!ev.shiftKey && document.activeElement === last) { ev.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', el._onKey);
+    requestAnimationFrame(() => {
+      el.classList.add('in');
+      const b = el.querySelector('.qs-close') || el.querySelector('.qs-cancel');
+      if (b) { try { b.focus({ preventScroll: true }); } catch (e) {} }
     });
-    requestAnimationFrame(() => el.classList.add('in'));
+    return el;
   },
 
-  closeDesignPicker() {
-    const el = document.getElementById('bd-overlay');
-    if (!el) return;
+  _closeModal(el, cb) {
+    if (!el || el._closed) return;
+    el._closed = true;
+    if (el._onKey) document.removeEventListener('keydown', el._onKey);
+    this._lockScroll(false);
+    if (this._sheetEl === el) this._sheetEl = null;
     el.classList.remove('in');
-    setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 180);
+    el.classList.add('out');
+    setTimeout(() => {
+      if (el.parentNode) el.parentNode.removeChild(el);
+      if (typeof cb === 'function') { try { cb(); } catch (e) {} }
+    }, 190);
   },
 
-  _designSheetHtml() {
+  /** يغلق أي ورقة مفتوحة (يُستدعى أيضًا عند مغادرة الصفحة) */
+  closeDesignPicker() {
+    const el = document.querySelector('.qs-overlay');
+    if (el && el._close) el._close();
+    this._sheetEl = null;
+  },
+
+  /** v131 (TD2): الشكل والخامة في ورقة واحدة → صفحة أقصر واختيار أسرع */
+  openCustomize() {
+    if (document.querySelector('.qs-overlay')) return;
+    const target = document.getElementById('misbaha-wrap');
+    if (!target) return;                     // v131 (T2): لا نافذة شاردة على صفحة أخرى
+    this._sheetEl = this._modal(this._customizeHtml(), {});
+    this._sheetEl.addEventListener('click', (ev) => {
+      const t = ev.target.closest('[data-design]');
+      if (t) { ev.stopPropagation(); this.setBeadDesign(t.dataset.design); return; }
+      const sh = ev.target.closest('[data-shape]');
+      if (sh) { ev.stopPropagation(); this.setBeadShape(sh.dataset.shape); }
+    });
+  },
+
+  // توافق مع الاستدعاءات القديمة
+  openDesignPicker() { this.openCustomize(); },
+
+  _customizeHtml() {
     const cur = this._beadDesign();
+    const shape = this._beadShape();
     return `
-      <div class="bd-card" role="dialog" aria-modal="true" aria-label="${this._l('الألوان والتصاميم', 'Colores y diseños', 'Colors & designs')}">
-        <div class="bd-head">
-          <div class="bd-title"><i class="fas fa-palette" style="color:#D4AF37"></i> ${this._l('الألوان والتصاميم', 'Colores y diseños', 'Colors & designs')}</div>
-          <button class="bd-close" type="button" aria-label="${this._l('إغلاق', 'Cerrar', 'Close')}">×</button>
+      <div class="qs-card" role="dialog" aria-modal="true" aria-labelledby="qs-title">
+        <div class="qs-head">
+          <div class="qs-title" id="qs-title"><i class="fas fa-palette" style="color:#D4AF37"></i> ${this._i18nOr('beadDesignTitle', this._l('تخصيص المسبحة', 'Personalizar', 'Customize'))}</div>
+          <button class="qs-close" type="button" data-close aria-label="${this._l('إغلاق', 'Cerrar', 'Close')}">×</button>
         </div>
-        <div class="bd-sub">${this._l('الشكل:', 'Forma:', 'Shape:')} <b>${this._shapeLabel(this._beadShape())}</b> — ${this._l('اختر خامة الخرز', 'Elige el material', 'Pick a material')}</div>
-        <div class="bd-grid">
+        <div class="qs-sub">${this._i18nOr('beadDesignSub', this._l('اختر الشكل والخامة — يُطبَّق فورًا', 'Forma y material — al instante', 'Shape and material — instantly'))}</div>
+        <div class="qs-preview">
+          <span class="qs-prev-big bead-skin shape-${shape}" data-design="${cur}" id="qs-prev-big"></span>
+          <span class="qs-preview-t">
+            <b id="qs-prev-name">${this._designLabel(cur)}</b>
+            <span id="qs-prev-shape">${this._shapeLabel(shape)}</span>
+          </span>
+        </div>
+        <div class="qs-sec"><i class="fas fa-shapes"></i> ${this._i18nOr('beadDesignShape', this._l('الشكل', 'Forma', 'Shape'))}</div>
+        <div class="qs-shapes">
+          ${this.BEAD_SHAPES.map(sh => `
+            <button class="qs-shape ${shape === sh.id ? 'active' : ''}" type="button" data-shape="${sh.id}"
+                    aria-pressed="${shape === sh.id}" aria-label="${escapeAttr(this._shapeLabel(sh.id))}"
+                    title="${escapeAttr(this._shapeLabel(sh.id))}">
+              <span class="shape-preview bead-skin shape-${sh.id}" data-design="${cur}"></span>
+            </button>`).join('')}
+        </div>
+        <div class="qs-sec"><i class="fas fa-gem"></i> ${this._i18nOr('beadDesignMaterial', this._l('الخامة', 'Material', 'Material'))}</div>
+        <div class="qs-grid" id="qs-grid">
           ${this.BEAD_DESIGNS.map(d => `
-            <button class="bd-tile ${cur === d.id ? 'active' : ''}" type="button" data-design="${d.id}"
-                    aria-pressed="${cur === d.id}">
-              <span class="bd-prev" data-design="${d.id}"></span>
-              <span class="bd-nm">${this._designLabel(d.id)}</span>
+            <button class="qs-tile ${cur === d.id ? 'active' : ''}" type="button" data-design="${d.id}" aria-pressed="${cur === d.id}">
+              <span class="bd-prev bead-skin shape-${shape}" data-design="${d.id}"></span>
+              <span class="qs-nm">${this._designLabel(d.id)}</span>
             </button>`).join('')}
         </div>
       </div>`;
+  },
+
+  _refreshSheet() {
+    const el = this._sheetEl;
+    if (!el) return;
+    const cur = this._beadDesign(), shape = this._beadShape();
+    const big = el.querySelector('#qs-prev-big');
+    if (big) { big.className = 'qs-prev-big bead-skin shape-' + shape; big.setAttribute('data-design', cur); }
+    const nm = el.querySelector('#qs-prev-name'); if (nm) nm.textContent = this._designLabel(cur);
+    const sh = el.querySelector('#qs-prev-shape'); if (sh) sh.textContent = this._shapeLabel(shape);
+    el.querySelectorAll('.qs-tile').forEach(x => {
+      const on = x.dataset.design === cur;
+      x.classList.toggle('active', on);
+      x.setAttribute('aria-pressed', String(on));
+      const pr = x.querySelector('.bd-prev');
+      if (pr) { pr.className = 'bd-prev bead-skin shape-' + shape; pr.setAttribute('data-design', x.dataset.design); }
+    });
+    el.querySelectorAll('.qs-shape').forEach(x => {
+      const on = x.dataset.shape === shape;
+      x.classList.toggle('active', on);
+      x.setAttribute('aria-pressed', String(on));
+      const sp = x.querySelector('.shape-preview');
+      if (sp) { sp.className = 'shape-preview bead-skin shape-' + x.dataset.shape; sp.setAttribute('data-design', cur); }
+    });
   },
 
   _beadShape() {
@@ -195,7 +301,8 @@ const TasbihPage = {
     const loc = (typeof currentLocale !== 'undefined' && currentLocale) || 'es';
     const s = this.BEAD_SHAPES.find(x => x.id === shape);
     if (!s) return shape;
-    return (loc === 'ar' ? s.ar : (loc === 'en' ? s.en : s.es));
+    const fb = (loc === 'ar' ? s.ar : (loc === 'en' ? s.en : s.es));
+    return this._i18nOr('beadShape' + shape.charAt(0).toUpperCase() + shape.slice(1), fb);
   },
 
   /** أبعاد الخرزة حسب الشكل المختار (البيضاوي أعرض وأقصر). */
@@ -205,14 +312,24 @@ const TasbihPage = {
     return { w: g.size, h: g.size };
   },
 
-  /** يبدّل شكل الخرزات ويحفظه. */
+  /** يبدّل شكل الخرزات ويحفظه — بلا سباق ولا نافذة مؤجّلة (T2) */
   setBeadShape(id) {
     if (!this.BEAD_SHAPES.some(x => x.id === id)) return;
+    const same = this._beadShape() === id;
     this._saveSettings({ beadShape: id });
-    this.renderUI(document.getElementById('main-content'));
-    showToast('📿 ' + this._shapeLabel(id), 1200);
-    // بعد اختيار الشكل تظهر الألوان والتصاميم مباشرة
-    setTimeout(() => this.openDesignPicker(), 120);
+    const wrap = document.getElementById('misbaha-wrap');
+    if (wrap) wrap.setAttribute('data-shape', id);
+    const host = document.getElementById('misbaha-beads');
+    if (host) {
+      host.innerHTML = '';
+      this._beadEls = new Map();
+      this._beadGeom = null;
+      this._layoutBeads();
+    }
+    const label = document.getElementById('misbaha-design-name');
+    if (label) label.textContent = this._designLabel(this._beadDesign()) + ' · ' + this._shapeLabel(id);
+    this._refreshSheet();
+    if (!same) this._vibrate(8);
   },
 
   _settings() {
@@ -269,17 +386,29 @@ const TasbihPage = {
     return log;
   },
 
+  // v131 (T4): تجميع الكتابات — كان كل نقرة تكتب localStorage مرة كاملة
+  _pendingDaily: 0,
   recordDailyCount(n) {
+    this._pendingDaily = (this._pendingDaily || 0) + n;
+    if (this._logTimer) clearTimeout(this._logTimer);
+    this._logTimer = setTimeout(() => this.flushDaily(), 700);
+  },
+
+  flushDaily() {
+    if (this._logTimer) { clearTimeout(this._logTimer); this._logTimer = null; }
+    const n = this._pendingDaily || 0;
+    this._pendingDaily = 0;
+    if (!n) return;
     const log = this.getLog();
     const k = this._dayKey();
     log[k] = (log[k] || 0) + n;
     const keys = Object.keys(log).sort();
     while (keys.length > 45) { delete log[keys.shift()]; }
-    Storage.set('tasbih_log', log);
+    try { Storage.set('tasbih_log', log); } catch (e) {}
   },
 
   todayCount() {
-    return this.getLog()[this._dayKey()] || 0;
+    return (this.getLog()[this._dayKey()] || 0) + (this._pendingDaily || 0);
   },
 
   weekCount() {
@@ -360,6 +489,22 @@ const TasbihPage = {
           <span class="tasbih-goal-today-wrap">${t('todayTasbih') || 'Hoy'}: <b id="tasbih-goal-today">${today}</b>/${goal}</span>
         </div>
 
+        <!-- v1.0.129: أزرار الوضع والإعادة في صف أسفل الهدف اليومي (لا خلف الخرز) -->
+        <div class="tasbih-rail-row" role="toolbar" aria-label="${t('tasbihTitle') || 'Tasbih'}">
+          <button class="t-rail-pill" onclick="TasbihPage.toggleMode()"
+                  title="${this.mode === 'beads' ? (t('tapMode') || 'Modo táctil') : (t('beadsMode') || 'Modo misbaha')}"
+                  aria-label="${this.mode === 'beads' ? (t('tapMode') || 'Modo táctil') : (t('beadsMode') || 'Modo misbaha')}">
+            <i class="fas fa-${this.mode === 'beads' ? 'hand-pointer' : 'circle-nodes'}"></i>
+            <span>${this.mode === 'beads' ? (t('tapMode') || 'Modo táctil') : (t('beadsMode') || 'Modo misbaha')}</span>
+          </button>
+          <button class="t-rail-pill" onclick="TasbihPage.reset()"
+                  title="${t('resetCounter') || 'Reiniciar'}" aria-label="${t('resetCounter') || 'Reiniciar'}">
+            <i class="fas fa-rotate-left"></i>
+            <span>${t('resetCounter') || 'Reiniciar'}</span>
+          </button>
+        </div>
+
+        <div class="tasbih-stagewrap">
         ${this.mode === 'beads' ? this._beadsHtml() : `
           <!-- Modo táctil: anillo de progreso -->
           <div class="tasbih-counter ${isComplete ? 'complete' : ''}" id="tasbih-counter" onclick="TasbihPage.increment()">
@@ -379,7 +524,7 @@ const TasbihPage = {
               </defs>
             </svg>
             <div class="tasbih-center">
-              <div class="tasbih-count" id="tasbih-count-val">${this.count}</div>
+              <div class="tasbih-count" id="tasbih-count-val" aria-live="polite" aria-atomic="true">${this.count}</div>
               <div class="tasbih-target" onclick="event.stopPropagation()"><button class="tasbih-target-edit" type="button" title="${t('tasbihTargetTitle') || 'Target'}" aria-label="${t('tasbihTargetTitle') || 'Target'}" onclick="event.stopPropagation(); TasbihPage.pickTarget()"><i class="fas fa-pen"></i></button> / ${this.targetCount}</div>
               <div class="tasbih-hint">${isComplete ? '<i class="fas fa-circle-check"></i> ' + (t('completed') || '¡Completo!') : '<i class="fas fa-hand-point-up"></i> ' + (t('tapToCount') || 'Toca para contar')}</div>
             </div>
@@ -388,27 +533,11 @@ const TasbihPage = {
 
         ${this.mode === 'beads' ? `<div class="tasbih-hint-line"><i class="fas fa-hand-pointer"></i> ${t('dragBeadsHint') || 'Arrastra una cuenta hacia el borde para contar'}</div>` : ''}
 
-        <!-- v129: شريط جانبي — تبديل الوضع وإعادة العدّاد -->
-        <div class="tasbih-rail" role="toolbar" aria-label="${t('tasbihTitle') || 'Tasbih'}">
-          <div class="t-rail-item">
-            <button class="t-rail-btn" onclick="TasbihPage.toggleMode()"
-                    title="${this.mode === 'beads' ? (t('tapMode') || 'Modo táctil') : (t('beadsMode') || 'Modo misbaha')}"
-                    aria-label="${this.mode === 'beads' ? (t('tapMode') || 'Modo táctil') : (t('beadsMode') || 'Modo misbaha')}">
-              <i class="fas fa-${this.mode === 'beads' ? 'hand-pointer' : 'circle-nodes'}"></i>
-            </button>
-            <span class="t-rail-lbl">${this.mode === 'beads' ? (t('tapMode') || 'Modo táctil') : (t('beadsMode') || 'Modo misbaha')}</span>
-          </div>
-          <div class="t-rail-item">
-            <button class="t-rail-btn" onclick="TasbihPage.reset()"
-                    title="${t('resetCounter') || 'Reiniciar'}" aria-label="${t('resetCounter') || 'Reiniciar'}">
-              <i class="fas fa-rotate-left"></i>
-            </button>
-            <span class="t-rail-lbl">${t('resetCounter') || 'Reiniciar'}</span>
-          </div>
+        </div>
         </div>
 
         <!-- Mini tarjeta de estadísticas hoy / semana -->
-        <div class="tasbih-daily-card" id="tasbih-daily-card" onclick="TasbihPage.toggleStatsPanel()" role="button" tabindex="0" aria-expanded="false">
+        <div class="tasbih-daily-card" id="tasbih-daily-card" onclick="TasbihPage.toggleStatsPanel()" role="button" tabindex="0" aria-expanded="false" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();TasbihPage.toggleStatsPanel();}">
           <div class="tasbih-daily-item">
             <div class="tasbih-daily-value" id="tasbih-today-val">${today}</div>
             <div class="tasbih-daily-label"><i class="fas fa-sun"></i> ${t('todayTasbih') || 'Hoy'}</div>
@@ -467,9 +596,12 @@ const TasbihPage = {
     if (this.mode === 'beads') {
       this._bindBeads();
       requestAnimationFrame(() => this._layoutBeads());
-      if (!this._resizeBound) {
-        this._resizeBound = true;
-        window.addEventListener('resize', () => { if (this.mode === 'beads') this._layoutBeads(); });
+      if (!this._onResize) {
+        // v131 (T5): مرجع محفوظ حتى يُزال في cleanup — كان يبقى بعد مغادرة الصفحة
+        this._onResize = () => {
+          if (this.mode === 'beads' && document.getElementById('misbaha-wrap')) this._layoutBeads();
+        };
+        window.addEventListener('resize', this._onResize, { passive: true });
       }
     }
   },
@@ -486,28 +618,20 @@ const TasbihPage = {
     return `
       <div class="misbaha-wrap ${this.count >= this.targetCount ? 'complete' : ''}" id="misbaha-wrap" data-design="${this._beadDesign()}">
         ${this.targetCount > n ? `<div class="misbaha-round" id="misbaha-round">${t('round') || 'Ronda'} ${round}</div>` : `<div class="misbaha-round" id="misbaha-round"></div>`}
-        <div class="misbaha-big-count" id="tasbih-count-val">${this.count}</div>
+        <div class="misbaha-big-count" id="tasbih-count-val" aria-live="polite" aria-atomic="true">${this.count}</div>
         <div class="misbaha-target-line"><button class="misbaha-target-edit" type="button" title="${t('tasbihTargetTitle') || 'Target'}" aria-label="${t('tasbihTargetTitle') || 'Target'}" onclick="event.stopPropagation(); TasbihPage.pickTarget()"><i class="fas fa-pen"></i></button> / ${this.targetCount}</div>
         <div class="misbaha-stage" id="misbaha-stage">
           <svg class="misbaha-svg" id="misbaha-svg" aria-hidden="true"><path class="misbaha-string-path" id="misbaha-string" d=""/></svg>
           <div class="misbaha-beads" id="misbaha-beads"></div>
         </div>
-        <div class="misbaha-shapes" id="misbaha-shapes" role="group" aria-label="${t('beadShape') || 'Forma de las cuentas'}">
-          <span class="misbaha-shapes-label"><i class="fas fa-shapes"></i> ${this._l('شكل الخرز — اضغط أي شكل لعرض الألوان', 'Forma de las cuentas — toca una forma para ver colores', 'Bead shape — tap any shape to see colors')}</span>
-          <div class="misbaha-shapes-row">
-            ${this.BEAD_SHAPES.map(s => `
-              <button class="misbaha-shape ${this._beadShape() === s.id ? 'active' : ''}" data-shape="${s.id}"
-                      title="${escapeAttr ? escapeAttr(this._shapeLabel(s.id)) : this._shapeLabel(s.id)}"
-                      aria-label="${this._shapeLabel(s.id)}" aria-pressed="${this._beadShape() === s.id}"
-                      onclick="event.stopPropagation(); TasbihPage.setBeadShape('${s.id}')">
-                <span class="shape-preview shape-${s.id}"></span>
-              </button>`).join('')}
-          </div>
-        </div>
-        <button class="misbaha-palette-btn" type="button" onclick="event.stopPropagation(); TasbihPage.openDesignPicker()">
-          <span class="mpb-prev bd-prev" data-design="${this._beadDesign()}"></span>
-          <span class="mpb-txt"><i class="fas fa-palette"></i> ${this._l('الألوان والتصاميم', 'Colores y diseños', 'Colors & designs')}</span>
-          <span class="mpb-dot" id="misbaha-design-name">${this._designLabel(this._beadDesign())}</span>
+        <button class="misbaha-custom-btn" type="button" id="misbaha-custom-btn"
+                onclick="event.stopPropagation(); TasbihPage.openCustomize()">
+          <span class="mcb-prev bead-skin shape-${this._beadShape()}" data-design="${this._beadDesign()}"></span>
+          <span class="mcb-txt">
+            <b>${this._i18nOr('beadCustomize', this._l('تخصيص المسبحة', 'Personalizar', 'Customize'))}</b>
+            <span id="misbaha-design-name">${this._designLabel(this._beadDesign())} · ${this._shapeLabel(this._beadShape())}</span>
+          </span>
+          <i class="fas fa-chevron-${currentLocale === 'ar' ? 'left' : 'right'}"></i>
         </button>
       </div>
     `;
@@ -587,7 +711,8 @@ const TasbihPage = {
     const t = this._t;
     const slots = Math.ceil((Math.max(g.cx, g.W - g.cx) - g.gap / 2) / g.spacing) + 3;
     const dims = this._beadDims(g);
-    const shape = this._beadShape();
+    const shape = g.shape || this._beadShape();
+    const design = this._beadDesign();
     const base = Math.floor(t);
     const lo = base - slots, hi = base + slots;
     for (const [i, el] of map) {
@@ -596,20 +721,23 @@ const TasbihPage = {
     for (let i = lo; i <= hi; i++) {
       const x = this._beadX(i - t, g);
       let el = map.get(i);
-      if (x < -g.size || x > g.W + g.size) {       // خارج الشاشة: لا نرسمها
+      if (x < -g.size || x > g.W + g.size) {
         if (el) { el.remove(); map.delete(i); }
         continue;
       }
       if (!el) {
         el = document.createElement('div');
-        el.className = 'misbaha-bead shape-' + shape;
+        el.className = 'misbaha-bead bead-skin shape-' + shape;
+        el.setAttribute('data-design', design);
         el.style.width = dims.w + 'px';
         el.style.height = dims.h + 'px';
         host.appendChild(el);
         map.set(i, el);
       }
       const y = this._beadY(x, g);
-      el.style.transform = `translate3d(${(x - dims.w / 2).toFixed(1)}px, ${(y - dims.h / 2).toFixed(1)}px, 0)`;
+      // v131 (T3): لا نكتب نمطًا إذا لم يتغيّر الموضع — نصف عمليات DOM السابقة
+      const tf = 'translate3d(' + (x - dims.w / 2).toFixed(1) + 'px,' + (y - dims.h / 2).toFixed(1) + 'px,0)';
+      if (el._tf !== tf) { el.style.transform = tf; el._tf = tf; }
     }
   },
 
@@ -973,35 +1101,21 @@ const TasbihPage = {
   // وشرح واضح لما يحدث وما لا يحدث، وزرّان «تأكيد»/«تراجع».
   _confirmReset(opts) {
     const o = Object.assign({ confirmLabel: 'OK', cancelLabel: '', danger: false }, opts || {});
-    const prev = document.getElementById('tdlg-overlay');
-    if (prev && prev.parentNode) prev.parentNode.removeChild(prev);
-    const el = document.createElement('div');
-    el.id = 'tdlg-overlay';
-    el.className = 'tdlg-overlay';
-    el.innerHTML = `
-      <div class="tdlg-card ${o.danger ? 'is-danger' : ''}" role="dialog" aria-modal="true">
-        <div class="tdlg-ic"><i class="fas ${o.icon || 'fa-circle-question'}"></i></div>
-        <div class="tdlg-title">${o.title || ''}</div>
-        <div class="tdlg-msg">${o.message || ''}</div>
-        ${o.note ? `<div class="tdlg-note"><i class="fas fa-circle-info"></i><span>${o.note}</span></div>` : ''}
-        <div class="tdlg-actions">
-          <button class="tdlg-btn tdlg-cancel" type="button">${o.cancelLabel || this._l('تراجع', 'Cancelar', 'Cancel')}</button>
-          <button class="tdlg-btn tdlg-ok" type="button">${o.confirmLabel}</button>
+    const el = this._modal(`
+      <div class="qs-card qs-dialog ${o.danger ? 'is-danger' : ''}" role="dialog" aria-modal="true" aria-labelledby="qs-dtitle">
+        <div class="qs-ic"><i class="fas ${o.icon || 'fa-circle-question'}"></i></div>
+        <div class="qs-dtitle" id="qs-dtitle">${o.title || ''}</div>
+        <div class="qs-dmsg">${o.message || ''}</div>
+        ${o.note ? `<div class="qs-note"><i class="fas fa-circle-info"></i><span>${o.note}</span></div>` : ''}
+        <div class="qs-actions">
+          <button class="qs-btn qs-cancel" type="button" data-close>${o.cancelLabel || this._l('تراجع', 'Cancelar', 'Cancel')}</button>
+          <button class="qs-btn qs-ok" type="button">${o.confirmLabel}</button>
         </div>
-      </div>`;
-    document.body.appendChild(el);
-    const close = () => {
-      el.classList.remove('in');
-      el.classList.add('out');
-      setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 190);
-    };
-    el.querySelector('.tdlg-cancel').addEventListener('click', (ev) => { ev.stopPropagation(); close(); });
-    el.querySelector('.tdlg-ok').addEventListener('click', (ev) => {
-      ev.stopPropagation(); close();
-      try { if (typeof o.onConfirm === 'function') o.onConfirm(); } catch (e) {}
+      </div>`, { center: true });
+    el.querySelector('.qs-ok').addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      el._close(() => { try { if (typeof o.onConfirm === 'function') o.onConfirm(); } catch (e) {} });
     });
-    el.addEventListener('click', (ev) => { if (ev.target === el) close(); });
-    requestAnimationFrame(() => el.classList.add('in'));
   },
 
   reset() {
@@ -1009,7 +1123,10 @@ const TasbihPage = {
       title: t('resetCounter') || 'Reiniciar',
       icon: 'fa-rotate-left',
       message: t('resetConfirmMsg') || '¿Reiniciar el contador del dhikr actual?',
-      note: t('resetConfirmNote') || 'El contador vuelve a 0 y las cuentas regresan al inicio. El histórico y el total de la sesión se conservan.',
+      note: this._i18nOr('beadResetNote', this._l(
+        'العدّاد يعود إلى 0 — مجموع الجلسة (' + this.totalCount + ') والسجل اليومي (' + this.todayCount() + ') لا يُحذفان.',
+        'El contador vuelve a 0 — el total de la sesión (' + this.totalCount + ') y el registro diario (' + this.todayCount() + ') no se borran.',
+        'The counter returns to 0 — the session total (' + this.totalCount + ') and the daily log (' + this.todayCount() + ') are kept.')),
       confirmLabel: t('resetConfirmBtn') || 'Reiniciar',
       cancelLabel: t('cancelAction') || 'Cancelar',
       onConfirm: () => {
@@ -1051,6 +1168,12 @@ const TasbihPage = {
   cleanup() {
     this._cancelAnim();
     this._drag = null;
+    // v131: إزالة أي أثر يبقى بعد مغادرة الصفحة
+    try { this.flushDaily(); } catch (e) {}
+    try { this.closeDesignPicker(); } catch (e) {}
+    if (this._onResize) { window.removeEventListener('resize', this._onResize); this._onResize = null; }
+    if (this._logTimer) { clearTimeout(this._logTimer); this._logTimer = null; }
+    this._sheetEl = null;
     // v60: «حفظ العدّاد عند الخروج» — si está desactivado, el contador de la
     // ronda actual se pierde al salir de la página (el histórico se conserva).
     if (!this._settings().keepCounter && this.count > 0) {

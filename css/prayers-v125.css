@@ -1,239 +1,399 @@
 /* =====================================================================
-   v127 — لوح «صلوات اليوم» و«التوقيت الثانوي» بنفس هوية بطاقة الصلاة القادمة:
-   زجاج شبه شفاف ضبابي بلمسة ذهبية/كريمية، نص كريمي، أيقونات ذهبية.
-   الشمس الصغيرة على شريط التقدّم بأشعّة بسيطة.
+   v131 — لوح «صلوات اليوم» + التوقيت الثانوي (إعادة كتابة نظيفة)
+   ---------------------------------------------------------------------
+   • بلا !important إطلاقًا: النطاق #home-hero (ID) يتفوّق على كل قواعد v102.
+   • بلا backdrop-filter: تدرّجات ثابتة بديلة = رسم أرخص بكثير على الأجهزة الضعيفة.
+   • لوح الصلوات لم يعد يحمل صنف .prayer-row → لا تصل إليه css/prayer-visuals.css
+     أصلًا، فلا حاجة لأي «إلغاء» بـ !important ولا لسلسلة تفعيل/تعطيل.
+   • ألوان البطاقة تتغيّر مع الثيم عبر متغيّرات --hsx-* على #home-hero.
    ===================================================================== */
 
-html body .hsx-hero .hsx-prayers {
-  position: relative !important;
-  padding: 10px 8px 9px !important;
-  border-radius: 20px !important;
-  background:
-    linear-gradient(150deg, rgba(255, 247, 226, .26) 0%, rgba(255, 255, 255, .13) 44%, rgba(212, 175, 55, .20) 100%),
-    rgba(18, 20, 24, .14) !important;
-  border: 1px solid rgba(255, 242, 205, .46) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(135%) !important;
-  backdrop-filter: blur(14px) saturate(135%) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .38), 0 10px 24px rgba(0, 0, 0, .24) !important;
-  overflow: hidden !important;
+/* ---------- 1) ألوان البطاقة حسب الثيم (فاتح/داكن/زمردي/عنابي/بنّي) ---------- */
+#home-hero {
+  --hsx-glass-top: rgba(255, 250, 236, .22);
+  --hsx-glass-bot: rgba(212, 175, 55, .16);
+  --hsx-glass: rgba(26, 28, 26, .30);
+  --hsx-line: rgba(255, 242, 205, .44);
+  --hsx-line-soft: rgba(255, 242, 205, .30);
+  --hsx-panel: rgba(24, 26, 24, .34);
+  --hsx-ink: #FFF4DA;
+  --hsx-ink-strong: #FFE9B5;
+  --hsx-ink-icon: #FFD98A;
+  --hsx-shadow: 0 10px 24px rgba(0, 0, 0, .26);
 }
-html body .hsx-hero .hsx-prayers::after {
-  content: '' !important;
-  position: absolute !important;
-  inset: 0 0 auto 0 !important;
-  height: 46% !important;
-  border-radius: inherit !important;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, 0)) !important;
-  pointer-events: none !important;
+html[data-theme="light"] #home-hero {
+  --hsx-glass-top: rgba(255, 252, 244, .30);
+  --hsx-glass-bot: rgba(212, 175, 55, .18);
+  --hsx-glass: rgba(38, 40, 36, .34);
+  --hsx-panel: rgba(34, 36, 32, .38);
+}
+html[data-theme="dark"] #home-hero {
+  --hsx-glass-top: rgba(16, 44, 36, .55);
+  --hsx-glass-bot: rgba(212, 175, 55, .14);
+  --hsx-glass: rgba(6, 16, 14, .58);
+  --hsx-line: rgba(143, 216, 186, .40);
+  --hsx-line-soft: rgba(143, 216, 186, .26);
+  --hsx-panel: rgba(8, 20, 17, .62);
+  --hsx-ink: #EAF6EF;
+  --hsx-ink-strong: #F6E4B4;
+  --hsx-ink-icon: #9FE3C6;
+  --hsx-shadow: 0 10px 26px rgba(0, 0, 0, .44);
+}
+html[data-theme="emerald"] #home-hero {
+  --hsx-glass-top: rgba(9, 62, 44, .50);
+  --hsx-glass-bot: rgba(212, 175, 55, .16);
+  --hsx-glass: rgba(5, 44, 32, .54);
+  --hsx-line: rgba(180, 236, 208, .40);
+  --hsx-line-soft: rgba(180, 236, 208, .24);
+  --hsx-panel: rgba(6, 46, 34, .56);
+}
+html[data-theme="maroon"] #home-hero {
+  --hsx-glass-top: rgba(74, 14, 26, .50);
+  --hsx-glass-bot: rgba(212, 175, 55, .18);
+  --hsx-glass: rgba(46, 8, 16, .54);
+  --hsx-line: rgba(246, 208, 176, .40);
+  --hsx-line-soft: rgba(246, 208, 176, .24);
+  --hsx-panel: rgba(48, 10, 18, .56);
+}
+html[data-theme="brown"] #home-hero {
+  --hsx-glass-top: rgba(62, 38, 22, .50);
+  --hsx-glass-bot: rgba(212, 175, 55, .20);
+  --hsx-glass: rgba(40, 24, 14, .54);
+  --hsx-line: rgba(240, 214, 176, .40);
+  --hsx-line-soft: rgba(240, 214, 176, .24);
+  --hsx-panel: rgba(40, 24, 14, .56);
+}
+
+/* ---------- 2) لوح الصلوات ---------- */
+#home-hero .hsx-prayers {
+  position: relative;
+  padding: 10px 8px 9px;
+  border-radius: 20px;
+  background:
+    linear-gradient(150deg, var(--hsx-glass-top) 0%, rgba(255, 255, 255, .06) 46%, var(--hsx-glass-bot) 100%),
+    var(--hsx-glass);
+  border: 1px solid var(--hsx-line);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .30), var(--hsx-shadow);
+  overflow: hidden;
+}
+#home-hero .hsx-prayers::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 46%;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .13), rgba(255, 255, 255, 0));
+  pointer-events: none;
   z-index: 1;
 }
 
-/* الصلوات: سطح واحد بلا صناديق */
-html body .hsx-hero .hsx-prayers .hsx-strip { gap: 0 !important; align-items: stretch !important; position: relative; z-index: 2; }
-html body .hsx-hero .hsx-prayers .hsx-cell,
-html body .hsx-hero .hsx-prayers .hsx-cell.next,
-html body .hsx-hero .hsx-prayers .hsx-cell.is-sunrise {
-  background: none !important; border: 0 !important; border-radius: 0 !important;
-  box-shadow: none !important; padding: 7px 2px 6px !important; gap: 3px !important;
-  position: relative; opacity: 1 !important; outline: 0 !important;
+/* الصلوات: سطح واحد بلا صناديق ولا خلفيات صور */
+#home-hero .hsx-prayers .hsx-strip {
+  gap: -0px;
+  gap: 0;
+  align-items: stretch;
+  position: relative;
+  z-index: 2;
 }
+#home-hero .hsx-prayers .hsx-cell {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 3px;
+  padding: 7px 2px 6px;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  position: relative;
+  opacity: 1;
+  outline: 0;
+  color: var(--hsx-ink);
+  -webkit-tap-highlight-color: transparent;
+}
+#home-hero .hsx-prayers .hsx-cell.is-sunrise { opacity: .9; }
 
-/* الأسماء والأوقات: كريمي وذهبي فاتح */
-html body .hsx-hero .hsx-prayers .hsx-cell .hsx-cn,
-html body .hsx-hero .hsx-prayers .hsx-cell .hsx-cn * {
-  color: #FFF4DA !important; -webkit-text-fill-color: #FFF4DA !important;
-  opacity: 1 !important; font-weight: 800 !important; font-size: .62rem !important;
-  letter-spacing: .1px !important; text-shadow: 0 1px 4px rgba(28, 20, 4, .62) !important;
+/* الأسماء والأوقات — v131: أحجام أكبر للقراءة (D2) */
+#home-hero .hsx-prayers .hsx-cell .hsx-cn,
+#home-hero .hsx-prayers .hsx-cell .hsx-cn * {
+  color: var(--hsx-ink);
+  -webkit-text-fill-color: var(--hsx-ink);
+  opacity: 1;
+  font-weight: 800;
+  font-size: .72rem;
+  line-height: 1.25;
+  letter-spacing: .1px;
+  text-shadow: 0 1px 4px rgba(18, 14, 4, .72);
 }
-html body .hsx-hero .hsx-prayers .hsx-cell .hsx-ct,
-html body .hsx-hero .hsx-prayers .hsx-cell .hsx-ct * {
-  color: #FFE9B5 !important; -webkit-text-fill-color: #FFE9B5 !important;
-  opacity: 1 !important; font-weight: 900 !important; font-size: .75rem !important;
-  letter-spacing: -.2px !important; text-shadow: 0 1px 5px rgba(28, 20, 4, .70) !important;
+#home-hero .hsx-prayers .hsx-cell .hsx-ct,
+#home-hero .hsx-prayers .hsx-cell .hsx-ct * {
+  color: var(--hsx-ink-strong);
+  -webkit-text-fill-color: var(--hsx-ink-strong);
+  opacity: 1;
+  font-weight: 900;
+  font-size: .82rem;
+  letter-spacing: -.2px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-shadow: 0 1px 5px rgba(18, 14, 4, .78);
 }
-html body .hsx-hero .hsx-prayers .hsx-cell .hsx-ci,
-html body .hsx-hero .hsx-prayers .hsx-cell .hsx-ci i {
-  color: #FFD98A !important; -webkit-text-fill-color: #FFD98A !important;
-  opacity: 1 !important;
-  filter: drop-shadow(0 1px 3px rgba(28, 20, 4, .55)) !important;
+#home-hero .hsx-prayers .hsx-cell .hsx-ci,
+#home-hero .hsx-prayers .hsx-cell .hsx-ci i {
+  color: var(--hsx-ink-icon);
+  -webkit-text-fill-color: var(--hsx-ink-icon);
+  opacity: 1;
+  font-size: .82rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 3px rgba(18, 14, 4, .60));
 }
-html body .hsx-hero .hsx-prayers .hsx-cell .hsx-ci svg { stroke: #FFD98A !important; filter: drop-shadow(0 1px 3px rgba(28,20,4,.55)); }
-html body .hsx-hero .hsx-prayers .hsx-cell .hsx-ci svg * { stroke: #FFD98A !important; }
-html body .hsx-hero .hsx-prayers .hsx-cell.next .hsx-ci svg * { fill: #FFD98A !important; }
+/* توافق: أي SVG قديم بقي في مكان آخر */
+#home-hero .hsx-prayers .hsx-cell .hsx-ci svg { stroke: var(--hsx-ink-icon); }
+#home-hero .hsx-prayers .hsx-cell .hsx-ci svg * { stroke: var(--hsx-ink-icon); }
 
-/* القادمة: غسلة كريمية + خط ذهبي سفلي */
-html body .hsx-hero .hsx-prayers .hsx-cell.next {
-  background: none !important;
-  background-image: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
+/* الصلاة القادمة: لمعة كريمية + خط ذهبي سفلي */
+#home-hero .hsx-prayers .hsx-cell.next {
+  background: none;
+  background-image: linear-gradient(180deg, rgba(255, 240, 200, .16), rgba(255, 240, 200, 0) 78%);
+  border-radius: 12px;
+  box-shadow: none;
 }
-html body .hsx-hero .hsx-prayers .hsx-cell.next .hsx-cn { color: #FFF8E6 !important; -webkit-text-fill-color: #FFF8E6 !important; }
-html body .hsx-hero .hsx-prayers .hsx-cell.next .hsx-ct { color: #FFF0C4 !important; -webkit-text-fill-color: #FFF0C4 !important; }
-html body .hsx-hero .hsx-prayers .hsx-cell.next::after {
-  content: '' !important; position: absolute !important;
-  inset-inline-start: 50% !important; bottom: 1px !important;
-  width: 24px !important; height: 3px !important; margin-inline-start: -12px !important;
-  border-radius: 3px !important;
-  background: linear-gradient(90deg, rgba(255, 216, 107, .15), #FFD86B 50%, rgba(255, 216, 107, .15)) !important;
-  box-shadow: 0 0 8px rgba(255, 216, 107, .80) !important;
+#home-hero .hsx-prayers .hsx-cell.next .hsx-cn { color: #FFF8E6; -webkit-text-fill-color: #FFF8E6; }
+#home-hero .hsx-prayers .hsx-cell.next .hsx-ct { color: #FFF0C4; -webkit-text-fill-color: #FFF0C4; }
+#home-hero .hsx-prayers .hsx-cell.next::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: 50%;
+  bottom: 1px;
+  width: 24px;
+  height: 3px;
+  margin-inline-start: -12px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(255, 216, 107, .15), #FFD86B 50%, rgba(255, 216, 107, .15));
+  box-shadow: 0 0 8px rgba(255, 216, 107, .80);
 }
+#home-hero .hsx-prayers .hsx-cell .prayer-remaining { display: none; }
 
-/* الشريط */
-html body .hsx-hero .hsx-prayers .hsx-trackwrap { margin: 10px 2px 1px !important; padding-inline: 9px !important; position: relative; z-index: 2; }
-html body .hsx-hero .hsx-prayers .hsx-track {
-  position: relative !important; height: 6px !important; border-radius: 999px !important;
-  background: rgba(255, 255, 255, .22) !important;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .30), 0 1px 0 rgba(255, 255, 255, .22) !important;
-  overflow: visible !important;
+/* ---------- 3) شريط التقدّم + الشمس ---------- */
+#home-hero .hsx-prayers .hsx-trackwrap {
+  margin: 10px 2px 1px;
+  padding-inline: 9px;
+  position: relative;
+  z-index: 2;
 }
-html body .hsx-hero .hsx-prayers .hsx-fill {
-  position: absolute !important; inset-inline-start: 0 !important; top: 0 !important;
-  height: 100% !important; border-radius: 999px !important;
-  background: linear-gradient(90deg, rgba(255, 233, 181, .55) 0%, #F5D98C 45%, #FFEFC2 100%) !important;
-  box-shadow: 0 0 9px rgba(255, 216, 107, .65) !important;
-  transition: width .8s linear !important;
+#home-hero .hsx-prayers .hsx-track {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .20);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .32), 0 1px 0 rgba(255, 255, 255, .20);
+  overflow: visible;
 }
-html body .hsx-hero .hsx-prayers .hsx-tk {
-  position: absolute !important; top: 50% !important;
-  inset-inline-start: var(--p, 0%) !important;
-  width: 2px !important; height: 10px !important;
-  margin-top: -5px !important; margin-inline-start: -1px !important;
-  border-radius: 2px !important; background: rgba(255, 250, 235, .72) !important;
-  box-shadow: 0 0 3px rgba(0, 0, 0, .35) !important; transform: none !important;
+#home-hero .hsx-prayers .hsx-fill {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 233, 181, .55) 0%, #F5D98C 45%, #FFEFC2 100%);
+  box-shadow: 0 0 9px rgba(255, 216, 107, .60);
+  transition: width .8s linear;
 }
-
-/* الشمس الصغيرة: قرص + أشعّة بسيطة */
-html body .hsx-hero .hsx-prayers .hsx-ball {
-  position: absolute !important; top: 50% !important;
-  inset-inline-start: var(--p, 0%) !important;
-  width: 12px !important; height: 12px !important;
-  margin-top: -6px !important; margin-inline-start: -6px !important;
-  border-radius: 50% !important; border: 0 !important; transform: none !important;
-  background: radial-gradient(circle at 36% 30%, #FFFDF2 0%, #FFE7A4 46%, #C89A24 100%) !important;
-  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .88), 0 1px 5px rgba(0, 0, 0, .35), 0 0 11px rgba(255, 216, 107, .95) !important;
-  transition: inset-inline-start .8s linear !important;
-  z-index: 4 !important; pointer-events: none !important;
+/* D5: توسيط بالتحويل لا بهامش سالب — يعمل في RTL وLTR بنفس الدقة */
+#home-hero .hsx-prayers .hsx-tk {
+  position: absolute;
+  top: 50%;
+  inset-inline-start: var(--p, 0%);
+  width: 2px;
+  height: 10px;
+  translate: -50% -50%;
+  border-radius: 2px;
+  background: rgba(255, 250, 235, .70);
+  box-shadow: 0 0 3px rgba(0, 0, 0, .35);
 }
-html body .hsx-hero .hsx-prayers .hsx-ball::before {
-  content: '' !important; position: absolute !important;
-  left: 50% !important; top: 50% !important;
-  width: 26px !important; height: 26px !important;
-  margin: -13px 0 0 -13px !important;
-  border-radius: 50% !important;
-  background: repeating-conic-gradient(from 0deg, rgba(255, 224, 138, .95) 0deg 7deg, rgba(255, 224, 138, 0) 7deg 45deg) !important;
-  -webkit-mask: radial-gradient(circle, transparent 5.6px, #000 6.2px) !important;
-  mask: radial-gradient(circle, transparent 5.6px, #000 6.2px) !important;
+#home-hero .hsx-prayers .hsx-ball {
+  position: absolute;
+  top: 50%;
+  inset-inline-start: var(--p, 0%);
+  width: 12px;
+  height: 12px;
+  translate: -50% -50%;
+  border-radius: 50%;
+  border: 0;
+  background: radial-gradient(circle at 36% 30%, #FFFDF2 0%, #FFE7A4 46%, #C89A24 100%);
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .86), 0 1px 5px rgba(0, 0, 0, .35), 0 0 11px rgba(255, 216, 107, .90);
+  transition: inset-inline-start .8s linear;
+  z-index: 4;
+  pointer-events: none;
+}
+#home-hero .hsx-prayers .hsx-ball::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26px;
+  height: 26px;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 224, 138, .95) 0deg 7deg, rgba(255, 224, 138, 0) 7deg 45deg);
+  -webkit-mask: radial-gradient(circle, transparent 5.6px, #000 6.2px);
+  mask: radial-gradient(circle, transparent 5.6px, #000 6.2px);
   animation: hsxSunSpin 26s linear infinite;
-  pointer-events: none !important;
+  pointer-events: none;
 }
-@keyframes hsxSunSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+/* H4: إيقاف الحركة تمامًا عندما لا تكون الصفحة مرئية */
+body.is-hidden #home-hero .hsx-prayers .hsx-ball::before { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  #home-hero .hsx-prayers .hsx-ball::before { animation: none; }
+  #home-hero .hsx-prayers .hsx-fill,
+  #home-hero .hsx-prayers .hsx-ball { transition: none; }
+}
+@keyframes hsxSunSpin { from { rotate: 0deg; } to { rotate: 360deg; } }
 
-/* التوقيت الثانوي: نفس العائلة البصرية */
-html body .hsx-hero .hsx-dual {
-  position: relative !important; margin-top: 10px !important;
-  padding: 10px 14px 10px !important; border-radius: 18px !important;
+/* ---------- 4) التوقيت الثانوي ---------- */
+#home-hero .hsx-dual {
+  position: relative;
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 18px;
   background:
-    linear-gradient(150deg, rgba(255, 247, 226, .24) 0%, rgba(255, 255, 255, .12) 46%, rgba(212, 175, 55, .18) 100%),
-    rgba(18, 20, 24, .12) !important;
-  border: 1px solid rgba(255, 242, 205, .42) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(130%) !important;
-  backdrop-filter: blur(12px) saturate(130%) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .34), 0 8px 20px rgba(0, 0, 0, .20) !important;
-  overflow: hidden !important;
+    linear-gradient(150deg, var(--hsx-glass-top) 0%, rgba(255, 255, 255, .06) 48%, var(--hsx-glass-bot) 100%),
+    var(--hsx-panel);
+  border: 1px solid var(--hsx-line-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .26), 0 8px 20px rgba(0, 0, 0, .20);
+  overflow: hidden;
 }
-html body .hsx-hero .hsx-dual .hsx-dual-head { position: relative; z-index: 2; }
-html body .hsx-hero .hsx-dual .hsx-dual-city {
-  color: #FFF6E2 !important; -webkit-text-fill-color: #FFF6E2 !important;
-  font-size: .68rem !important; font-weight: 900 !important;
-  text-shadow: 0 1px 4px rgba(28, 20, 4, .62) !important;
+#home-hero .hsx-dual .hsx-dual-head { position: relative; z-index: 2; }
+#home-hero .hsx-dual .hsx-dual-city {
+  color: #FFF6E2;
+  -webkit-text-fill-color: #FFF6E2;
+  font-size: .70rem;
+  font-weight: 900;
+  text-shadow: 0 1px 4px rgba(18, 14, 4, .70);
 }
-html body .hsx-hero .hsx-dual .hsx-dual-grid { position: relative; z-index: 2; grid-auto-rows: auto !important; row-gap: 4px !important; overflow: visible !important; }
-html body .hsx-hero .hsx-dual .hsx-dual-cell {
-  display: flex !important; flex-direction: column !important; align-items: center !important;
-  justify-content: flex-start !important; gap: 3px !important; min-width: 0 !important;
-  height: auto !important; padding: 2px 0 !important; overflow: visible !important;
+#home-hero .hsx-dual .hsx-dual-grid {
+  position: relative;
+  z-index: 2;
+  grid-auto-rows: auto;
+  row-gap: 4px;
+  overflow: visible;
 }
-html body .hsx-hero .hsx-dual .hsx-dual-n,
-html body .hsx-hero .hsx-dual .hsx-dual-t {
-  display: block !important; position: static !important; white-space: nowrap !important;
-  text-overflow: clip !important; overflow: visible !important; transform: none !important; margin: 0 !important;
+#home-hero .hsx-dual .hsx-dual-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 3px;
+  min-width: 0;
+  height: auto;
+  padding: 2px 0;
+  overflow: visible;
 }
-html body .hsx-hero .hsx-dual .hsx-dual-n {
-  color: #FFF2D8 !important; -webkit-text-fill-color: #FFF2D8 !important;
-  font-size: .64rem !important; font-weight: 800 !important; line-height: 1.45 !important;
-  text-shadow: 0 1px 4px rgba(28, 20, 4, .58) !important;
+#home-hero .hsx-dual .hsx-dual-n,
+#home-hero .hsx-dual .hsx-dual-t {
+  display: block;
+  position: static;
+  white-space: nowrap;
+  overflow: visible;
+  margin: 0;
+  transform: none;
 }
-html body .hsx-hero .hsx-dual .hsx-dual-t {
-  color: #FFE9B5 !important; -webkit-text-fill-color: #FFE9B5 !important;
-  font-size: .74rem !important; font-weight: 900 !important; line-height: 1.3 !important;
-  text-shadow: 0 1px 5px rgba(28, 20, 4, .66) !important;
+#home-hero .hsx-dual .hsx-dual-n {
+  color: #FFF2D8;
+  -webkit-text-fill-color: #FFF2D8;
+  font-size: .68rem;
+  font-weight: 800;
+  line-height: 1.45;
+  text-shadow: 0 1px 4px rgba(18, 14, 4, .66);
 }
-html body .hsx-hero .hsx-dual .hsx-dual-btn,
-html body .hsx-hero .hsx-dual .hsx-dual-add {
-  background: rgba(255, 246, 224, .24) !important;
-  border: 1px solid rgba(255, 238, 196, .70) !important;
-  color: #FFF7E6 !important; -webkit-text-fill-color: #FFF7E6 !important;
-  font-size: .58rem !important; font-weight: 900 !important;
-  padding: 5px 10px !important; border-radius: 999px !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .30) !important;
-  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+#home-hero .hsx-dual .hsx-dual-t {
+  color: var(--hsx-ink-strong);
+  -webkit-text-fill-color: var(--hsx-ink-strong);
+  font-size: .80rem;
+  font-weight: 900;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 5px rgba(18, 14, 4, .72);
 }
-html body .hsx-hero .hsx-dual .hsx-dual-btn:active,
-html body .hsx-hero .hsx-dual .hsx-dual-add:active { background: rgba(255, 246, 224, .40) !important; }
+#home-hero .hsx-dual .hsx-dual-btn,
+#home-hero .hsx-dual .hsx-dual-add {
+  background: rgba(255, 246, 224, .22);
+  border: 1px solid rgba(255, 238, 196, .66);
+  color: #FFF7E6;
+  -webkit-text-fill-color: #FFF7E6;
+  font-size: .60rem;
+  font-weight: 900;
+  padding: 5px 10px;
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .26);
+}
+#home-hero .hsx-dual .hsx-dual-btn:active,
+#home-hero .hsx-dual .hsx-dual-add:active { background: rgba(255, 246, 224, .38); }
 
 /* شارة التوقيت التقريبي */
-html body .hsx-inner-foot .estimated-badge {
-  background: rgba(255, 246, 224, .20) !important;
-  border: 1px solid rgba(255, 238, 196, .55) !important;
-  color: #FFF4DA !important; -webkit-text-fill-color: #FFF4DA !important;
-  font-weight: 800 !important;
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+#home-hero .hsx-inner-foot .estimated-badge {
+  background: rgba(255, 246, 224, .18);
+  border: 1px solid rgba(255, 238, 196, .50);
+  color: #FFF4DA;
+  -webkit-text-fill-color: #FFF4DA;
+  font-weight: 800;
 }
 
+/* ---------- 5) شاشات صغيرة ---------- */
 @media (max-width: 380px) {
-  html body .hsx-hero .hsx-prayers { padding: 8px 5px 7px !important; border-radius: 18px !important; }
-  html body .hsx-hero .hsx-prayers .hsx-cell { padding: 6px 1px 5px !important; }
-  html body .hsx-hero .hsx-prayers .hsx-cell .hsx-ct { font-size: .69rem !important; }
-  html body .hsx-hero .hsx-prayers .hsx-cell .hsx-cn { font-size: .57rem !important; }
-  html body .hsx-hero .hsx-dual .hsx-dual-n { font-size: .58rem !important; }
-  html body .hsx-hero .hsx-dual .hsx-dual-t { font-size: .67rem !important; }
+  #home-hero .hsx-prayers { padding: 8px 5px 7px; border-radius: 18px; }
+  #home-hero .hsx-prayers .hsx-cell { padding: 6px 1px 5px; }
+  #home-hero .hsx-prayers .hsx-cell .hsx-cn { font-size: .65rem; }
+  #home-hero .hsx-prayers .hsx-cell .hsx-ct { font-size: .75rem; }
+  #home-hero .hsx-dual .hsx-dual-n { font-size: .62rem; }
+  #home-hero .hsx-dual .hsx-dual-t { font-size: .74rem; }
 }
 
-/* ===================================================================
-   v130 — إزالة أي خلفية بيضاء/صورة خلف صلاة اليوم (كل الثيمات)
-   المصدر كان .prayer-row::before (صورة) و .prayer-row::after (تدرّج أبيض)
-   من css/prayer-visuals.css — نُلغيهما داخل لوح الصلوات فقط.
-   =================================================================== */
-html body .hsx-hero .hsx-prayers .prayer-row::before,
-html body .hsx-hero .hsx-prayers .prayer-row::after,
-html body .hsx-hero .hsx-prayers .hsx-cell::before,
-html body .hsx-hero .hsx-prayers .hsx-cell::after {
-  content: none !important;
-  display: none !important;
-  background: none !important;
-  background-image: none !important;
-  box-shadow: none !important;
+/* ---------- 6) بطاقة الرأس: تلوين حسب الثيم فوق صورة السماء ---------- */
+/* البطاقة كلها (لا اللوح فقط) تأخذ مسحة الثيم فيبدو الرأس متغيّرًا معه */
+#home-hero .hsx-photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(165deg, var(--hsx-glass-top) 0%, rgba(0, 0, 0, 0) 42%, var(--hsx-glass-bot) 100%);
+  opacity: .85;
 }
-html body .hsx-hero .hsx-prayers .hsx-cell,
-html body .hsx-hero .hsx-prayers .hsx-cell.next {
-  background: none !important;
-  background-image: none !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  overflow: visible !important;
+#home-hero .hsx-photo { position: relative; }
+#home-hero .hsx-inner { position: relative; z-index: 2; }
+
+
+/* ══ v132 (D1): فواصل رأسية رقيقة بين الصلوات + سطر المتبقي ══ */
+#home-hero .hsx-prayers .hsx-cell { position: relative; }
+#home-hero .hsx-prayers .hsx-cell + .hsx-cell::before {
+  content: '';
+  position: absolute;
+  inset-block: 16%;
+  inset-inline-start: 0;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, .30) 18%, rgba(255, 255, 255, .30) 82%, transparent);
+  pointer-events: none;
 }
-/* يبقى الخط الذهبي الصغير تحت الصلاة القادمة فقط */
-html body .hsx-hero .hsx-prayers .hsx-cell.next::after {
-  content: '' !important;
-  display: block !important;
-  position: absolute !important;
-  inset-inline-start: 50% !important;
-  bottom: 1px !important;
-  width: 24px !important;
-  height: 3px !important;
-  margin-inline-start: -12px !important;
-  border-radius: 3px !important;
-  background: linear-gradient(90deg, rgba(255,216,107,.15), #FFD86B 50%, rgba(255,216,107,.15)) !important;
-  box-shadow: 0 0 8px rgba(255,216,107,.80) !important;
+#home-hero .hsx-np { flex-wrap: wrap; row-gap: 1px; }
+#home-hero .hsx-remain {
+  display: block;
+  flex: 1 0 100%;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+  font-size: .70rem;
+  font-weight: 700;
+  letter-spacing: .1px;
+  color: var(--hsx-ink, #fff);
+  opacity: .92;
+  text-shadow: 0 1px 4px rgba(18, 14, 4, .72);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+@media (max-width: 380px) {
+  #home-hero .hsx-remain { font-size: .64rem; }
 }

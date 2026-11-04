@@ -138,6 +138,8 @@ const API = {
       if (typeof PrayerCalc !== 'undefined') {
         t = PrayerCalc.applyPrayerOffsets(t);
       }
+      // v1.0.128: كوبا — توقيت صيفي دائم حتى 2027-11-07 (ساعة ناقصة في بيانات التوقيت)
+      if (typeof CubaTime !== 'undefined' && CubaTime.applies()) t = CubaTime.shiftTimings(t);
       const mode = (typeof AppState !== 'undefined' && AppState.settings && AppState.settings.timeShift) || 'auto';
       if (mode === 'auto' || typeof PrayerCalc === 'undefined') return t === data.timings ? data : Object.assign({}, data, { timings: t });
       const delta = mode === 'summer' ? 1 : (mode === 'winter' ? -1 : 0);
@@ -1104,7 +1106,7 @@ const LocationService = {
       };
     } catch (e) {
       const elevation = await elevationPromise.catch(() => null);
-      return { city: '', country: '', elevation };
+      return { city: '', country: (typeof Cities !== 'undefined' && Cities.normalizeCountryName) ? Cities.normalizeCountryName('') : '', elevation };
     }
   },
 

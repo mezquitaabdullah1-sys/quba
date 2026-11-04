@@ -1,0 +1,74 @@
+/* ============ v1.0.125 — شبكة الجامع متعدّدة الصفوف + قارئ PDF محلي ============ */
+
+/* كان .lib-grid في library-v84.css شريطًا أفقيًا بصف واحد (grid-auto-flow: column)
+   فتظهر كل الكتب في صف واحد يُسحب. هنا نعيده شبكة صفوف متعدّدة. */
+.lib-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(94px, 1fr)) !important;
+  grid-auto-flow: row !important;
+  grid-auto-columns: auto !important;
+  gap: 16px 10px !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+  scroll-snap-type: none !important;
+  padding: 0 var(--sp-md) var(--sp-md) !important;
+}
+.lib-jsec { margin: 0 0 4px; }
+.lib-jsec + .lib-jsec { margin-top: 6px; }
+.lib-jsec-h {
+  display: flex; align-items: center; gap: 8px;
+  margin: 16px var(--sp-md) 10px; padding-bottom: 7px;
+  border-bottom: 1px solid rgba(15, 76, 58, .13);
+}
+.lib-jsec-ic {
+  width: 27px; height: 27px; border-radius: 9px; flex: 0 0 27px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: #fff; background: var(--jc, #0F4C3A);
+  box-shadow: 0 3px 8px -3px rgba(15, 76, 58, .5);
+}
+.lib-jsec-t { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 800; color: var(--text-primary, #1A2B4A); }
+.lib-jsec-n {
+  font-size: 10.5px; font-weight: 800; color: #0F4C3A;
+  background: rgba(43, 138, 107, .13); border-radius: 999px; padding: 2px 8px;
+}
+.lib-jsec .lib-gcard-cover { border-radius: 4px; }
+
+/* ============ قارئ PDF المحلي (pdf.js) ============ */
+.lpdf-wrap { display: flex; flex-direction: column; min-height: 0; }
+.lpdf-tools {
+  position: sticky; top: 0; z-index: 3;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px var(--sp-md);
+  background: color-mix(in srgb, var(--bg, #F6F2E7) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border, rgba(15, 76, 58, .12));
+}
+.lpdf-btn {
+  width: 36px; height: 36px; border-radius: 11px; border: 1px solid var(--border, rgba(15,76,58,.14));
+  background: var(--card, #fff); color: #0F4C3A; font-size: 13px;
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.lpdf-btn:disabled { opacity: .38; }
+.lpdf-btn.on { background: #0F4C3A; color: #fff; border-color: #0F4C3A; }
+.lpdf-info {
+  flex: 1; min-width: 0; text-align: center; font-size: 12px; font-weight: 700;
+  color: var(--text-secondary, #55606E); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.lpdf-viewport {
+  flex: 1; min-height: 0; overflow: auto; -webkit-overflow-scrolling: touch;
+  background: #E9E4D6; padding: 10px 0 22px;
+}
+.lpdf-pages { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.lpdf-page {
+  position: relative; background: #fff; border-radius: 4px;
+  box-shadow: 0 6px 18px -8px rgba(0, 0, 0, .4);
+  max-width: 100%; overflow: hidden;
+}
+.lpdf-page canvas { display: block; max-width: 100%; height: auto; }
+.lpdf-ph { display: flex; align-items: center; justify-content: center; color: #9AA3B0; font-size: 11px; }
+.lpdf-loading, .lpdf-err {
+  margin: 30px auto; max-width: 320px; text-align: center; font-size: 13px; line-height: 1.8;
+  color: var(--text-secondary, #55606E);
+}
+.lpdf-err i { font-size: 26px; color: #C0392B; display: block; margin-bottom: 8px; }
+.lpdf-fallback { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; }

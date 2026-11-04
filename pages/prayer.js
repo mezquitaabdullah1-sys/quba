@@ -86,7 +86,7 @@ const PrayerPage = {
 
   renderUI(container, loc, hijri, distance) {
     container.innerHTML = `
-      <div class="page-header">
+      <div class="page-header prayer-header">
         <div class="page-title"><i class="fas fa-mosque"></i> ${t('tabPrayer')}</div>
         ${hijri ? `<div class="page-subtitle">${hijri.day} ${hijri.month?.en} ${hijri.year} هـ</div>` : ''}
         <button class="prayers-location" onclick="ProfilePage.pickCity()" title="${escapeAttr(t('changeCity') || '')}" aria-label="${escapeAttr(t('changeCity') || 'Cambiar ciudad')}">
@@ -212,24 +212,114 @@ const PrayerPage = {
               </button>` : '<span class="prayer-check-spacer" aria-hidden="true"></span>'}
           </div>`;
         }).join('')}
-        <div style="padding: 8px;">
-          <div class="pdf-btn-row">
-            <button class="btn-ghost pdf-btn" onclick="PrayerPdf.downloadDaily(this)" aria-label="${t('downloadPdf') || 'PDF'}">
-              <span><i class="fas fa-file-pdf"></i> ${t('downloadPdf') || 'Descargar PDF'}</span>
-              <i class="fas fa-download"></i>
+        ${this.weekHtml()}
+
+        <div class="pr-actions">
+          <button class="pr-act pr-act-main" id="pr-dl-btn" onclick="PrayerPage.toggleDlMenu(event)"
+                  aria-label="${t('download') || t('downloadPdf') || 'تحميل'}" aria-haspopup="menu" aria-expanded="false">
+            <i class="fas fa-download"></i>
+          </button>
+          <div class="pr-dl-menu hidden" id="pr-dl-menu" role="menu" style="position:static;order:9;flex:1 0 100%;display:flex;justify-content:center;gap:10px;margin-top:10px">
+            <button class="pr-dl-opt" role="menuitem" onclick="PrayerPdf.downloadDaily(this);PrayerPage.closeDlMenu()">
+              <i class="fas fa-file-pdf"></i><span>PDF</span>
             </button>
-            <button class="btn-ghost pdf-btn pdf-btn-img" onclick="PrayerPdf.saveDailyImage(this)" aria-label="${t('saveImage') || 'PNG'}">
-              <span><i class="fas fa-image"></i> ${t('saveImage') || 'حفظ كصورة'}</span>
-              <i class="fas fa-download"></i>
+            <button class="pr-dl-opt" role="menuitem" onclick="PrayerPdf.saveDailyImage(this);PrayerPage.closeDlMenu()">
+              <i class="fas fa-image"></i><span>PNG</span>
             </button>
           </div>
-          <button class="btn-ghost" onclick="Router.go('calendar')">
-            <span><i class="fas fa-calendar"></i> ${t('hijriCalendar')}</span>
-            <i class="fas fa-chevron-${currentLocale === 'ar' ? 'left' : 'right'}"></i>
-          </button>
         </div>
       </div>
     `;
+  },
+
+
+  // ===== v135: صلوات الأسبوع (حساب محلي لسبعة أيام) =====
+  weekHtml() {
+    const loc = AppState.location;
+    if (!loc || typeof PrayerCalc === 'undefined') return '';
+    let raw = null;
+    try {
+      const base = (AppState.settings && AppState.settings.calculationMethod) || 4;
+      const method = (typeof API !== 'undefined' && API._effectiveMethod)
+        ? API._effectiveMethod(loc.latitude, loc.longitude, base) : base;
+      raw = { method: method };
+    } catch (e) { return ''; }
+    const clean = (v) => String(v || '').split(' ')[0].slice(0, 5);
+    const names = [
+      ['Fajr', t('prayers.Fajr') || 'Fajr'],
+      ['Dhuhr', t('prayers.Dhuhr') || 'Dhuhr'],
+      ['Asr', t('prayers.Asr') || 'Asr'],
+      ['Maghrib', t('prayers.Maghrib') || 'Maghrib'],
+      ['Isha', t('prayers.Isha') || 'Isha'],
+    ];
+    const wdShort = (d) => {
+      try { return d.toLocaleDateString(currentLocale, { weekday: 'short' }); }
+      catch (e) { return ''; }
+    };
+    const rows = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setHours(12, 0, 0, 0);
+      d.setDate(d.getDate() + i);
+      let tm = {};
+      try {
+        tm = PrayerCalc.getTimings(loc.latitude, loc.longitude, d, raw.method, loc.country || '', 0) || {};
+      } catch (e) { tm = {}; }
+      const cells = names.map(([k]) => `<span class="wk-t">${clean(tm[k]) || '—'}</span>`).join('');
+      rows.push(`<div class="wk-day">${wdShort(d)}<i>${d.getDate()}/${d.getMonth() + 1}</i></div>${cells}`);
+    }
+    const head = `<div class="wk-hd wk-hd-day">${t('day') || 'اليوم'}</div>` +
+      names.map(([, label]) => `<div class="wk-hd">${label}</div>`).join('');
+    // 7 صفوف: كل صف = 6 عناصر؛ اليوم الأول مميّز
+    let grid = head;
+    for (let i = 0; i < 7; i++) {
+      grid += `<div class="wk-row${i === 0 ? ' wk-row-today' : ''}">${rows[i]}</div>`;
+    }
+    return `
+      <div class="wk-card">
+        <div class="wk-head">
+          <span class="wk-title"><i class="fas fa-calendar-week"></i>${t('weekPrayers') || 'صلوات الأسبوع'}</span>
+          <span class="wk-sub">${t('next7Days') || '٧ أيام'}</span>
+        </div>
+        <div class="wk-grid">${grid}</div>
+      </div>`;
+  },
+
+  toggleDlMenu(ev) {
+    if (ev) ev.stopPropagation();
+    const m = document.getElementById('pr-dl-menu');
+    const b = document.getElementById('pr-dl-btn');
+    if (!m) return;
+    const open = m.classList.contains('hidden');
+    m.classList.toggle('hidden', !open);
+    if (b) b.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) {
+      const close = () => { this.closeDlMenu(); document.removeEventListener('click', close); };
+      setTimeout(() => document.addEventListener('click', close), 0);
+    }
+  },
+
+  closeDlMenu() {
+    const m = document.getElementById('pr-dl-menu');
+    const b = document.getElementById('pr-dl-btn');
+    if (m) m.classList.add('hidden');
+    if (b) b.setAttribute('aria-expanded', 'false');
+  },
+
+  // ===== v135: تدريجات البوصلة وأرقامها =====
+  _dialTicksHtml() {
+    let ticks = '';
+    for (let a = 0; a < 360; a += 6) {
+      const major = (a % 30 === 0);
+      if (a % 90 === 0) continue; // أماكن الجهات الأصلية
+      ticks += `<span class="cmp-tick${major ? ' major' : ''}" style="transform:rotate(${a}deg)"><i></i></span>`;
+    }
+    let nums = '';
+    for (let a = 30; a < 360; a += 30) {
+      if (a % 90 === 0) continue;
+      nums += `<span class="cmp-num" style="transform:rotate(${a}deg)"><b style="transform:rotate(${-a}deg)">${a}</b></span>`;
+    }
+    return `<div class="cmp-ticks">${ticks}</div><div class="cmp-nums">${nums}</div>`;
   },
 
   qiblaTab(distance) {
@@ -275,6 +365,7 @@ const PrayerPage = {
                    the cardinal marks, the magnetic-north dot AND the Kaaba
                    target as children so they all move together. -->
               <div class="compass-ring" id="compass-ring" style="transform: rotate(0deg);">
+                ${this._dialTicksHtml()}
                 <div class="cardinal-mark n"><span class="cardinal-letter">N</span><span class="cardinal-sub">${L.trueNorth[lang]}</span></div>
                 <div class="cardinal-mark e"><span class="cardinal-letter">E</span></div>
                 <div class="cardinal-mark s"><span class="cardinal-letter">S</span></div>
@@ -302,10 +393,13 @@ const PrayerPage = {
               </div>
 
               <!-- Center hub -->
-              <div class="compass-hub">
+              <div class="compass-hub" id="compass-hub">
                 <div class="hub-inner"></div>
               </div>
             </div>
+
+            <!-- v135: زاوية القبلة الحالية -->
+            <div class="cmp-angle-chip"><i class="fas fa-location-arrow"></i> <b id="compass-angle">—</b></div>
 
             <!-- Numeric info panel -->
             <div class="qibla-info-v17">
@@ -516,6 +610,7 @@ const PrayerPage = {
     this._lastAligned = undefined;
     this._pendingHeading = null;
     this._usingAbsolute = false;
+    this._qiblaActive = true;
 
     // Apply the latest smoothed reading once per animation frame instead of
     // once per sensor sample (sensors can fire up to ~60/sec) — this alone
@@ -526,6 +621,9 @@ const PrayerPage = {
       if (this._pendingHeading === null) return;
       const heading = this._pendingHeading;
       this._pendingHeading = null;
+
+      // v135: البوصلة تتوقّف كليًا عند مغادرة الصفحة (اختفاء الحلقة)
+      if (!this._qiblaActive || !document.getElementById('compass-ring')) { this.cleanup(); return; }
 
       const loc = AppState.location;
       const lang = currentLocale === 'ar' ? 'ar' : (currentLocale === 'en' ? 'en' : 'es');
@@ -570,6 +668,16 @@ const PrayerPage = {
       }
 
       // Numeric magnetic-heading readout (magnetic = true − declination)
+      // v135: زاوية القبلة المتبقية داخل مركز البوصلة
+      const angEl = document.getElementById('compass-angle');
+      if (angEl) {
+        let rel = ((this.qiblaBearing - trueHeading) % 360 + 360) % 360;
+        if (rel > 180) rel -= 360;
+        angEl.textContent = (rel > 0 ? '+' : (rel < 0 ? '−' : '')) + Math.abs(Math.round(rel)) + '°';
+        const hubEl = document.getElementById('compass-hub');
+        if (hubEl) hubEl.classList.toggle('aligned', aligned);
+      }
+
       const mhVal = document.getElementById('magnetic-heading-val');
       if (mhVal) {
         const mag = ((trueHeading - computed.magneticDeclination) % 360 + 360) % 360;
@@ -577,8 +685,8 @@ const PrayerPage = {
       }
 
       // Haptic feedback on alignment (debounced)
-      if (aligned && navigator.vibrate && !this._lastAligned) {
-        navigator.vibrate([30, 50, 30]);
+      if (this._qiblaActive && aligned && navigator.vibrate && !this._lastAligned) {
+        try { navigator.vibrate([30, 50, 30]); } catch (e) {}
       }
       this._lastAligned = aligned;
     };
@@ -693,6 +801,8 @@ const PrayerPage = {
   },
 
   cleanup() {
+    this._qiblaActive = false;
+    try { if (navigator.vibrate) navigator.vibrate(0); } catch (e) {}
     if (this.orientationHandlerAbs) {
       window.removeEventListener('deviceorientationabsolute', this.orientationHandlerAbs);
       this.orientationHandlerAbs = null;

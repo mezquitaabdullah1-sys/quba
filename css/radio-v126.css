@@ -1,0 +1,108 @@
+/* v1.0.126 — تنزيلات الراديو + المفضلة + أوراق العرض */
+.radio-top-actions { display: flex; gap: 2px; align-items: center; }
+.radio-top-btn { position: relative; }
+.rtb-badge {
+  position: absolute; top: -2px; inset-inline-end: -3px; min-width: 15px; height: 15px;
+  padding: 0 3px; border-radius: 9px; background: #C0392B; color: #fff;
+  font-size: 9px; font-weight: 700; line-height: 15px; text-align: center;
+  box-shadow: 0 0 0 2px var(--bg,#F7F3EA);
+}
+
+/* أزرار السورة: قلب + تنزيل */
+.srx-wrap { display: inline-flex; gap: 4px; align-items: center; margin-inline-start: 6px; }
+.srx {
+  width: 27px; height: 27px; border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(15,118,110,0.08); color: #0F766E; font-size: 11px;
+  display: inline-flex; align-items: center; justify-content: center; padding: 0;
+}
+.srx:active { transform: scale(0.92); }
+.srx.on { color: #C0392B; background: rgba(192,57,43,0.10); }
+.srx.done { color: #1E8449; background: rgba(30,132,73,0.10); }
+
+/* قلب الإذاعة على البطاقة */
+.st-fav, .rc-fav {
+  position: absolute; top: 8px; inset-inline-end: 8px; z-index: 3;
+  width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(10,20,30,0.38); color: rgba(255,255,255,0.86); font-size: 13px;
+  display: inline-flex; align-items: center; justify-content: center; padding: 0;
+  backdrop-filter: blur(3px);
+}
+.st-fav.on, .rc-fav.on { color: #FF6B6B; }
+.rc-fav { position: static; background: rgba(15,118,110,0.08); color: #8A93A0; width: 28px; height: 28px; font-size: 12px; margin-inline-end: 2px; }
+.rc-fav.on { background: rgba(192,57,43,0.10); }
+
+/* زر تحميل كل السور + شريط التقدم */
+.rc-dlall { border-color: rgba(15,118,110,0.35) !important; color: #0F766E; }
+.rc-dlbox { padding: 0 12px 10px; }
+.rc-dlbar { height: 6px; border-radius: 4px; background: rgba(15,118,110,0.12); overflow: hidden; }
+.rc-dlbar span { display: block; height: 100%; background: linear-gradient(90deg,#0F766E,#2AA198); border-radius: 4px; transition: width .3s ease; }
+.rc-dlmeta { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-secondary,#6B7280); margin-top: 5px; }
+.rc-dlcancel { border: none; background: none; color: #C0392B; font-size: 11.5px; font-weight: 700; cursor: pointer; padding: 2px 6px; }
+.rc-dldone { color: #1E8449; font-weight: 700; }
+
+/* ورقة التنزيلات / المفضلة */
+.rl-overlay {
+  position: fixed; inset: 0; z-index: 9998; background: rgba(8,14,22,0.42);
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: rlFade .18s ease;
+}
+@keyframes rlFade { from { opacity: 0 } to { opacity: 1 } }
+.rl-sheet {
+  width: 100%; max-width: 520px; max-height: 78vh; background: var(--bg-card,#fff);
+  border-radius: 20px 20px 0 0; display: flex; flex-direction: column;
+  box-shadow: 0 -8px 30px rgba(0,0,0,.22); animation: rlUp .22s ease;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+@keyframes rlUp { from { transform: translateY(24px); opacity: .6 } to { transform: none; opacity: 1 } }
+.rl-head {
+  display: flex; align-items: center; gap: 8px; padding: 14px 16px 10px;
+  font-size: 15px; font-weight: 700; color: var(--text,#15212B);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.rl-head > i { color: #0F766E; }
+.rl-total { margin-inline-start: auto; font-size: 11.5px; font-weight: 600; color: var(--text-secondary,#6B7280); }
+.rl-x { margin-inline-start: auto; border: none; background: rgba(0,0,0,0.05); width: 28px; height: 28px; border-radius: 50%; font-size: 17px; line-height: 1; color: #55606B; cursor: pointer; }
+.rl-total + .rl-x { margin-inline-start: 8px; }
+.rl-list { overflow-y: auto; padding: 6px 8px 14px; }
+.rl-row { display: flex; align-items: center; gap: 10px; padding: 9px 8px; border-radius: 12px; }
+.rl-row + .rl-row { border-top: 1px solid rgba(0,0,0,0.045); }
+.rl-ic {
+  width: 34px; height: 34px; border-radius: 10px; flex: 0 0 34px;
+  background: rgba(15,118,110,0.09); color: #0F766E;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 13px; overflow: hidden;
+}
+.rl-ic img { width: 100%; height: 100%; object-fit: cover; }
+.rl-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rl-txt b { font-size: 13.5px; font-weight: 600; color: var(--text,#15212B); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rl-txt small { font-size: 11px; color: var(--text-secondary,#6B7280); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rl-btn {
+  width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 12px; padding: 0;
+}
+.rl-btn.play { background: #0F766E; color: #fff; }
+.rl-btn.del { background: rgba(192,57,43,0.10); color: #C0392B; }
+.rl-btn:active { transform: scale(0.93); }
+.rl-empty { text-align: center; padding: 34px 16px 40px; color: var(--text-secondary,#6B7280); font-size: 13px; }
+.rl-empty i { font-size: 26px; opacity: .45; display: block; margin-bottom: 10px; }
+
+/* v1.0.126b — ضبط صف السورة حتى لا تتزاحم الأزرار الجديدة مع الاسم */
+.surah-row { gap: 8px; }
+.surah-row .surah-names { min-width: 0; flex: 1 1 auto; overflow: hidden; }
+.surah-row .surah-name, .surah-row .surah-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.srx-wrap { gap: 3px; margin-inline-start: 4px; flex: 0 0 auto; }
+.srx { width: 25px; height: 25px; font-size: 10px; }
+@media (max-width: 360px) { .srx { width: 23px; height: 23px; font-size: 9px; } .srx-wrap { gap: 2px; } }
+/* شارات الشريط العلوي فوق كل الخلفيات */
+.radio-top-actions { gap: 4px; }
+.rtb-badge { pointer-events: none; }
+
+
+/* v1.0.130 — أزرار «حفظ على الجهاز» في ورقة التحميلات */
+.rl-head-act {
+  width: 30px; height: 30px; border-radius: 50%; border: none; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(212,175,55,.18); color: #8a5b00; font-size: 12.5px;
+}
+[data-theme="dark"] .rl-head-act { color: #F1D89A; background: rgba(212,175,55,.16); }
+.rl-btn.save { color: #0F4C3A; background: rgba(15,76,58,.10); }
+[data-theme="dark"] .rl-btn.save { color: #9BE0C4; background: rgba(155,224,196,.12); }

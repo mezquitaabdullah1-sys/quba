@@ -1,3 +1,10 @@
+/* v1.0.130: حجم نص ثابت — لا يتأثر بمقياس خط النظام */
+html {
+  -webkit-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+}
+html { font-size: 16px; }
+
 /* 🎨 Quba — Estilos principales y variables CSS */
 
 :root {

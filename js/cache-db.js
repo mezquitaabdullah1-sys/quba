@@ -47,6 +47,26 @@ const CacheDB = {
     }
   },
 
+  // v1.0.130: كتابة تنتظر اكتمال المعاملة فعليًا — store.put() وحدها تُرجع
+  // قبل الحفظ، فتبدو التلاوة «محمّلة» ثم تختفي بعد إعادة التشغيل.
+  async setBlob(key, blob) {
+    try {
+      const db = await this._init();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(this._storeName, 'readwrite');
+        tx.objectStore(this._storeName).put({ value: blob, timestamp: Date.now(), ttl: null }, key);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => reject(tx.error || new Error('tx'));
+        tx.onabort = () => reject(tx.error || new Error('abort'));
+      });
+      this._memCache.set(key, { value: blob, timestamp: Date.now(), ttl: null });
+      return true;
+    } catch (e) {
+      try { console.warn('CacheDB setBlob fail:', e && e.message); } catch (_) {}
+      return false;
+    }
+  },
+
   async get(key) {
     // Buffer sincrono primero
     if (this._memCache.has(key)) {

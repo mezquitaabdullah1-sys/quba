@@ -25,6 +25,7 @@ const RadioService = {
   _cands: [],           // روابط بديلة للبث الحالي
   _candIdx: 0,
   _lastTickEmit: 0,
+  _localPlay: false,   // v1.0.126: تشغيل ملف منزَّل عبر <audio> محلي (لا ExoPlayer)
 
   // ---------- تهيئة ----------
   ensureAudio() {
@@ -72,6 +73,7 @@ const RadioService = {
   playStream(station) {
     this.ensureAudio();
     this._stopTrAudio();
+    this._localPlay = false;
     this.mode = 'stream';
     this.station = station;
     this.quran = null;
@@ -107,6 +109,7 @@ const RadioService = {
     }
     // آية/آية (everyayah) عند الترجمة الحية إن توفر مجلد للقارئ — أدق مزامنة؛ وإلا سورة كاملة
     const ayahMode = cfg.prefer === 'ayah' ? !!r.ea : (cfg.prefer === 'whole' ? false : (!!cfg.lang && !!r.ea));
+    this._localPlay = false;
     this.mode = 'quran';
     this.station = null;
     this.quran = {
@@ -154,6 +157,33 @@ const RadioService = {
     } else {
       this._playAyah(1);
     }
+    this._emit();
+  },
+
+  // v1.0.126: تشغيل نسخة منزَّلة (IndexedDB) — بلا شبكة وبلا ExoPlayer
+  async playLocal(rid, surah) {
+    if (typeof RadioLib === 'undefined' || !RadioData.reciter(rid)) return;
+    const url = await RadioLib.blobUrl(rid, surah);
+    if (!url) {
+      if (typeof showToast === 'function') showToast('⚠️ ' + RadioData.L('downloadFail'), 2500);
+      return;
+    }
+    this.ensureAudio();
+    this._stopTrAudio();
+    const r = RadioData.reciter(rid);
+    const n = Number(surah) || 1;
+    this.mode = 'quran';
+    this.station = null;
+    this._localPlay = true;
+    this.quran = {
+      rid: r.id, reciterName: RadioData.name(r), img: r.img || '', lang: null,
+      surah: n, ayah: 1, total: RadioData.surahInfo(n).ayahs, tr: null, whole: true,
+      folder: null, server: null, read: null, tm: null, tmExact: false,
+      list: RadioData.surahsFor(r), sleep: false, playlist: null, plIdx: 0, local: true,
+    };
+    this.state = 'loading';
+    this._load(url, this._quranMeta());
+    if (typeof showToast === 'function') showToast('📥 ' + RadioData.L('dlPlayLocal'), 1800);
     this._emit();
   },
 
@@ -339,6 +369,7 @@ const RadioService = {
     this.station = null;
     this.quran = null;
     this._cands = [];
+    this._localPlay = false;
     this._stopTrAudio();
     this.clearSleep();
     this.stopAmbience(false);
@@ -573,4 +604,15 @@ const RadioService = {
   },
 };
 
-if (typeof window !== 'undefined') window.RadioService = RadioService;
+// v1.0.126: أزرار إشعار الراديو (تالي / سابق) — يستدعيها Kotlin عبر تقييم JS
+RadioService.notifAction = function (a) {
+  if (!this.mode) return;
+  if (this.mode === 'quran') {
+    if (a === 'next') this.nextAyah();
+    else if (a === 'prev') this.prevAyah();
+  }
+};
+if (typeof window !== 'undefined') {
+  window.RadioService = RadioService;
+  window.__onRadioNotifAction = function (a) { try { RadioService.notifAction(a); } catch (e) {} };
+}

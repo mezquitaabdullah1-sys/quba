@@ -1,0 +1,39 @@
+/* ══ v132: البحث في التوقيت لأي مكان في العالم ══ */
+.wt-body { padding: 0 4px 6px; }
+.wt-body .city-search-input { margin-bottom: 6px; }
+.wt-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px;
+  border-radius: 12px;
+  border-bottom: 1px solid rgba(127, 127, 127, .16);
+  cursor: pointer;
+}
+.wt-row:active { background: rgba(127, 127, 127, .10); }
+.wt-flag { font-size: 18px; line-height: 1; flex: 0 0 auto; }
+.wt-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.wt-main b { font-size: 14px; font-weight: 700; color: inherit; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wt-main small { font-size: 11px; opacity: .62; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wt-clock {
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.2px;
+  opacity: .9;
+  flex: 0 0 auto;
+}
+.wt-set {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 76, 58, .10);
+  color: #0F4C3A;
+  font-size: 12px;
+}
+[data-theme="dark"] .wt-set { background: rgba(212, 175, 55, .16); color: #E8CE85; }
+[data-theme="dark"] .wt-row { border-bottom-color: rgba(255, 255, 255, .10); }
