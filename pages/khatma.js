@@ -549,7 +549,7 @@ const KhatmaPage = {
         <em>${this.ar(w.pages)} ${L('صفحة', 'págs', 'pages')} · ${this.ar(wr.done)}/${this.ar(wr.total)} ${L('مقروءة', 'leídas', 'read')}</em>
       </div>
       ${opt('external', 'fa-book-quran', L('أتممته من مصحف خارجي', 'Lo leí en un mushaf externo', 'Read from an external mushaf'), L('ورقي أو تطبيق آخر — يُحتسب الورد كاملًا', 'Papel u otra app — cuenta el wird completo', 'Paper or another app — full ward counted'))}
-      ${opt('inapp', 'fa-mobile-screen-button', L('قرأته داخل قُبا ونسيت التتبّع', 'Lo leí en Quba sin seguimiento', 'Read in Quba untracked'), L('لم يُحتسب تلقائيًا فأتمّه الآن', 'No se registró — márcalo', 'Not auto-counted — mark it'))}
+      ${opt('inapp', 'fa-mobile-screen-button', L('قرأته داخل قُبَّة ونسيت التتبّع', 'Lo leí en Quba sin seguimiento', 'Read in Quba untracked'), L('لم يُحتسب تلقائيًا فأتمّه الآن', 'No se registró — márcalo', 'Not auto-counted — mark it'))}
       ${opt('catchup', 'fa-clock-rotate-left', L('قضاء ورد فائت', 'Poner al día un wird', 'Catch up a missed ward'), L('أحتسبه لهذا اليوم بدل اليوم الفائت', 'Lo cuento para hoy', 'Count it for today'))}
       ${wr.done > 0 ? `<button class="kht-man-opt kht-man-danger" onclick="KhatmaPage.undoToday()">
         <span class="kht-man-ic"><i class="fas fa-rotate-left"></i></span>

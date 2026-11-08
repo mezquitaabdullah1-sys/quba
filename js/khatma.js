@@ -442,7 +442,7 @@ const KhatmaStore = {
       const w = this.wardToday(k);
       const body = (w && !w.rest && w.pages > 0)
         ? `ورد اليوم: ${w.pages} صفحة · ${this.rangeLabel(k, w)}`
-        : 'وردك اليوم بانتظارك — افتح قُبا';
+        : 'وردك اليوم بانتظارك — افتح قُبَّة';
       B.scheduleWard(JSON.stringify({
         enabled: true, hour: k.remind.hour | 0, minute: k.remind.minute | 0,
         title: 'ورد القرآن اليومي', body, route: 'quran/khatma',

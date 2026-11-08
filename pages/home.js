@@ -1353,7 +1353,8 @@ const HomePage = {
     if (fill) fill.style.width = pct.toFixed(2) + '%';
     const ball = document.getElementById('hsx-ball');
     if (ball) {
-      try { ball.style.setProperty('--p', pct.toFixed(2) + '%'); ball.style.setProperty('inset-inline-start', pct.toFixed(2) + '%'); }
+      const pc = Math.max(0, Math.min(100, pct)).toFixed(2);
+      try { ball.style.setProperty('--p', pc + '%'); ball.style.setProperty('inset-inline-start', pc + '%'); }
       catch (e) { ball.style.left = pct.toFixed(2) + '%'; }
     }
     const hero = document.getElementById('home-hero');

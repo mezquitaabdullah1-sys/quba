@@ -631,7 +631,7 @@ const ImsakiyahPage = {
       <div class="imsk-rstat">${status}</div>
       <div class="imsk-rnote"><i class="fas fa-circle-info"></i> ${B
         ? L('تُجدول المواقيت القادمة (حتى ٤٠ تنبيهًا) في كل فتح للتطبيق — وتُعاد تلقائيًا بعد إعادة التشغيل.', 'Se programan los próximos avisos (hasta 40) al abrir la app; se restauran tras reiniciar.', 'Upcoming reminders (up to 40) are scheduled on each app open and restored after reboot.')
-        : L('إشعارات النظام تعمل داخل تطبيق قُبا (APK). في المتصفح يظهر العدّاد فقط.', 'Las notificaciones del sistema requieren la app Quba.', 'System notifications require the Quba app.')}</div>`;
+        : L('إشعارات النظام تعمل داخل تطبيق قُبَّة (APK). في المتصفح يظهر العدّاد فقط.', 'Las notificaciones del sistema requieren la app Quba.', 'System notifications require the Quba app.')}</div>`;
   },
 
   toggleRemind(kind) {
@@ -1223,7 +1223,7 @@ const ImsakiyahPage = {
       </div>
       <div class="imsk-tv-times">${tiles}</div>
       <div class="imsk-tv-foot">
-        <b>Quba · قُبا</b>
+        <b>Quba · قُبَّة</b>
         <span>${escapeHtml(this._methodName() || '')}</span>
       </div>`;
     document.body.appendChild(el);

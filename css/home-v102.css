@@ -621,7 +621,7 @@
   box-shadow: 0 0 12px rgba(230, 200, 104, .55);
 }
 .hsx-hero .hsx-ball {
-  width: 14px; height: 14px;
+  width: 7px; height: 7px;
   background: radial-gradient(circle at 34% 28%, #FFFDF2 0%, #F0D07E 45%, #B8860B 100%);
   box-shadow: 0 0 0 3px rgba(255, 255, 255, .16), 0 0 16px rgba(243, 214, 138, .95);
   border: 1px solid rgba(255, 255, 255, .55);

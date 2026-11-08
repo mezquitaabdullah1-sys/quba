@@ -217,24 +217,27 @@ html[data-theme="brown"] #home-hero {
   position: absolute;
   top: 50%;
   inset-inline-start: var(--p, 0%);
-  width: 12px;
-  height: 12px;
+  /* v1.0.174: نصف الحجم (12→6) + توسيط دقيق حسب الاتجاه */
+  width: 6px;
+  height: 6px;
   translate: -50% -50%;
   border-radius: 50%;
   border: 0;
   background: radial-gradient(circle at 36% 30%, #FFFDF2 0%, #FFE7A4 46%, #C89A24 100%);
-  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .86), 0 1px 5px rgba(0, 0, 0, .35), 0 0 11px rgba(255, 216, 107, .90);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .9), 0 1px 3px rgba(0, 0, 0, .32), 0 0 7px rgba(255, 216, 107, .85);
   transition: inset-inline-start .8s linear;
   z-index: 4;
   pointer-events: none;
 }
+[dir="rtl"] #home-hero .hsx-prayers .hsx-ball { translate: 50% -50%; }
+[dir="rtl"] #home-hero .hsx-prayers .hsx-tk   { translate: 50% -50%; }
 #home-hero .hsx-prayers .hsx-ball::before {
   content: '';
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 26px;
-  height: 26px;
+  width: 13px;
+  height: 13px;
   translate: -50% -50%;
   border-radius: 50%;
   background: repeating-conic-gradient(from 0deg, rgba(255, 224, 138, .95) 0deg 7deg, rgba(255, 224, 138, 0) 7deg 45deg);

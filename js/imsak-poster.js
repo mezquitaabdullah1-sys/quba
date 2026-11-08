@@ -246,7 +246,7 @@
     }
     ctx.fillStyle = GREEN;
     ctx.font = '800 ' + L.brandSize + 'px ' + NUM;
-    ctx.fillText('Quba  ·  قُبا', W / 2, fy + L.brandGap);
+    ctx.fillText('Quba  ·  قُبَّة', W / 2, fy + L.brandGap);
 
     /* ختم صغير للطباعة: يوضّح أن الورقة A4 */
     if (!L.bgPhoto) {
@@ -396,7 +396,7 @@
     }
     ctx.fillStyle = GREEN;
     ctx.font = '800 26px ' + NUM;
-    ctx.fillText('Quba  ·  قُبا', W / 2, 1810);
+    ctx.fillText('Quba  ·  قُبَّة', W / 2, 1810);
 
     return cv;
   }
