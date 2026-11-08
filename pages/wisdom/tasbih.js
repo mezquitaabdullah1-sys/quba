@@ -66,40 +66,47 @@ const TasbihPage = {
 
   // v1.0.80: أشكال الخرزات — يُبدَّل بينها من أسفل الصفحة في وضع السحب
   BEAD_SHAPES: [
-    { id: 'round',   ar: 'دائري',  es: 'Redonda',  en: 'Round' },
-    { id: 'pearl',   ar: 'لؤلؤة',  es: 'Perla',    en: 'Pearl' },
-    { id: 'oval',    ar: 'بيضاوي', es: 'Ovalada',  en: 'Oval' },
-    { id: 'diamond', ar: 'معيّن',  es: 'Rombo',    en: 'Diamond' },
-    { id: 'hex',     ar: 'سداسي',  es: 'Hexágono', en: 'Hexagon' },
-    { id: 'square',  ar: 'مربّع',  es: 'Cuadrada', en: 'Square' },
-    { id: 'ring',    ar: 'حلقة',   es: 'Anillo',   en: 'Ring' },
-    { id: 'star',    ar: 'نجمة',   es: 'Estrella', en: 'Star' },
-    { id: 'octagon', ar: 'ثماني',  es: 'Octógono', en: 'Octagon' },
+    { id: 'round',   ar: 'كروي',      es: 'Redonda',   en: 'Round' },
+    { id: 'oval',    ar: 'بيضاوي',    es: 'Ovalada',   en: 'Oval' },
+    { id: 'barrel',  ar: 'برميلي',    es: 'Barril',    en: 'Barrel' },
+    { id: 'disc',    ar: 'قرصي',      es: 'Disco',     en: 'Disc' },
+    { id: 'facet',   ar: 'مخرّط',     es: 'Facetado',  en: 'Faceted' },
+    { id: 'pearl',   ar: 'لؤلؤي',     es: 'Perla',     en: 'Pearl' },
+    { id: 'hex',     ar: 'سداسي',     es: 'Hexágono',  en: 'Hexagon' },
+    { id: 'octagon', ar: 'ثماني',     es: 'Octógono',  en: 'Octagon' },
+    { id: 'diamond', ar: 'معيّن',     es: 'Rombo',     en: 'Diamond' },
+    { id: 'square',  ar: 'مربّع',     es: 'Cuadrada',  en: 'Square' },
+    { id: 'ring',    ar: 'حلقي',      es: 'Anillo',    en: 'Ring' },
+    { id: 'star',    ar: 'نجمة',      es: 'Estrella',  en: 'Star' },
   ],
 
-  // v131: 18 خامة حقيقية — المعاينة تُرسم بنفس طبقات الخرزة (beads-v131.css)
+  // v1.0.147: خامات مسابح حقيقية — الألوان والنقوش مطابقة لأنواع المسابح المتداولة
   BEAD_DESIGNS: [
-    { id: 'black',      ar: 'أسود لامع',   es: 'Negro pulido',    en: 'Polished black' },
-    { id: 'onyx',       ar: 'أونيكس مطفي', es: 'Ónix mate',       en: 'Matte onyx' },
-    { id: 'marble',     ar: 'رخام',        es: 'Mármol',          en: 'Marble' },
-    { id: 'wood',       ar: 'خشب كوكا',    es: 'Madera de kuka',  en: 'Kuka wood' },
-    { id: 'sandalwood', ar: 'صندل',        es: 'Sándalo',         en: 'Sandalwood' },
-    { id: 'striped',    ar: 'خشب مخطّط',   es: 'Madera rayada',   en: 'Striped wood' },
-    { id: 'banded',     ar: 'عقيق مخطّط',  es: 'Ágata bandeada',  en: 'Banded agate' },
-    { id: 'turquoise',  ar: 'فيروز',       es: 'Turquesa',        en: 'Turquoise' },
-    { id: 'lapis',      ar: 'لازورد',      es: 'Lapislázuli',     en: 'Lapis lazuli' },
-    { id: 'carnelian',  ar: 'عقيق أحمر',   es: 'Cornalina',       en: 'Carnelian' },
-    { id: 'emerald',    ar: 'زمرد',        es: 'Esmeralda',       en: 'Emerald' },
-    { id: 'amber',      ar: 'عنبر',        es: 'Ámbar',           en: 'Amber' },
-    { id: 'crystal',    ar: 'زجاج بلوري',  es: 'Cristal claro',   en: 'Clear crystal' },
-    { id: 'pearl',      ar: 'لؤلؤ',        es: 'Perla',           en: 'Pearl' },
-    { id: 'gold',       ar: 'ذهب',         es: 'Oro',             en: 'Gold' },
-    { id: 'silver',     ar: 'فضة',         es: 'Plata',           en: 'Silver' },
-    { id: 'speckled',   ar: 'حجر مرقّط',   es: 'Jaspe moteado',   en: 'Speckled jasper' },
-    { id: 'carbon',     ar: 'ألياف كربون', es: 'Fibra de carbono',en: 'Carbon fiber' },
-    { id: 'iron',       ar: 'حديد مطروق',  es: 'Hierro forjado',  en: 'Wrought iron' },
-    { id: 'olivewood',  ar: 'خشب زيتون',   es: 'Olivo',           en: 'Olive wood' },
+    { id: 'amber',        ar: 'عنبر بلطيقي', es: 'Ámbar báltico',   en: 'Baltic amber' },
+    { id: 'butterscotch', ar: 'عنبر زبدة',   es: 'Ámbar mantequilla',en: 'Butterscotch amber' },
+    { id: 'kuka',         ar: 'خشب الكوكا',  es: 'Madera kuka',     en: 'Kuka wood' },
+    { id: 'sandalwood',   ar: 'صندل',        es: 'Sándalo',         en: 'Sandalwood' },
+    { id: 'olivewood',    ar: 'خشب زيتون',   es: 'Olivo',           en: 'Olive wood' },
+    { id: 'ebony',        ar: 'أبنوس',       es: 'Ébano',           en: 'Ebony' },
+    { id: 'onyx',         ar: 'أونيكس مطفي', es: 'Ónix mate',       en: 'Matte onyx' },
+    { id: 'agate',        ar: 'عقيق يماني',  es: 'Ágata yemení',    en: 'Yemeni agate' },
+    { id: 'carnelian',    ar: 'عقيق أحمر',   es: 'Cornalina',       en: 'Carnelian' },
+    { id: 'turquoise',    ar: 'فيروز',       es: 'Turquesa',        en: 'Turquoise' },
+    { id: 'lapis',        ar: 'لازورد',      es: 'Lapislázuli',     en: 'Lapis lazuli' },
+    { id: 'coral',        ar: 'مرجان',       es: 'Coral',           en: 'Coral' },
+    { id: 'jade',         ar: 'يشب أخضر',    es: 'Jade',            en: 'Jade' },
+    { id: 'hematite',     ar: 'هيماتيت',     es: 'Hematita',        en: 'Hematite' },
+    { id: 'crystal',      ar: 'كريستال',     es: 'Cristal',         en: 'Crystal' },
+    { id: 'pearl',        ar: 'لؤلؤ',        es: 'Perla',           en: 'Pearl' },
+    { id: 'gold',         ar: 'ذهب',         es: 'Oro',             en: 'Gold' },
+    { id: 'silver',       ar: 'فضة',         es: 'Plata',           en: 'Silver' },
+    { id: 'marble',       ar: 'رخام',        es: 'Mármol',          en: 'Marble' },
   ],
+  // معرّفات قديمة محفوظة في إعدادات المستخدم → الخامة المقابلة
+  _LEGACY_DESIGN: {
+    black: 'ebony', wood: 'kuka', banded: 'agate', striped: 'sandalwood',
+    speckled: 'agate', emerald: 'jade', iron: 'hematite', carbon: 'hematite',
+  },
 
   /** نص بثلاث لغات بلا الاعتماد على مفاتيح i18n */
   _l(ar, es, en) {
@@ -107,9 +114,15 @@ const TasbihPage = {
     return l === 'es' ? es : (l === 'en' ? en : ar);
   },
 
+  _normDesign(id) {
+    if (!id) return 'amber';
+    if (this.BEAD_DESIGNS.some(x => x.id === id)) return id;
+    const up = this._LEGACY_DESIGN[id];
+    return (up && this.BEAD_DESIGNS.some(x => x.id === up)) ? up : 'amber';
+  },
+
   _beadDesign() {
-    const d = this._settings().beadDesign;
-    return this.BEAD_DESIGNS.some(x => x.id === d) ? d : 'black';
+    return this._normDesign(this._settings().beadDesign);
   },
 
   /** v131 (TD5): التسميات من i18n أولًا ثم من الكائن المحلي كاحتياط */
@@ -131,19 +144,44 @@ const TasbihPage = {
     return this._i18nOr('bead' + id.charAt(0).toUpperCase() + id.slice(1), fb);
   },
 
-  setBeadDesign(id, opts) {
-    if (!this.BEAD_DESIGNS.some(x => x.id === id)) return;
-    const same = this._beadDesign() === id;
-    this._saveSettings({ beadDesign: id });
+  /** v1.0.147: يطبّق الخامة/الشكل على **الخرزات الموجودة** فورًا.
+   *  كان العطل: الخرزات تحمل data-design الخاص بها من لحظة إنشائها، وتغيير
+   *  data-design على الغلاف لا يصل إليها (متغيّرات CSS موروثة تُغلَب بالخاص)،
+   *  فكان اللون لا يتغيّر إلا بعد أن تخرج الخرزة من الشاشة وتُعاد. */
+  _applySkin(patch) {
+    const design = this._normDesign((patch && patch.design) || this._beadDesign());
+    const shape = (patch && patch.shape) || this._beadShape();
     const wrap = document.getElementById('misbaha-wrap');
-    if (wrap) wrap.setAttribute('data-design', id);
-    // الخرزات ترث المتغيّرات من .misbaha-wrap → تبديل اللون بلا أي إعادة بناء
+    if (wrap) {
+      wrap.setAttribute('data-design', design);
+      wrap.setAttribute('data-shape', shape);
+    }
+    const g = this._beadGeom;
+    const dims = g ? this._beadDims(g) : null;
+    document.querySelectorAll('.misbaha-bead').forEach(el => {
+      el.setAttribute('data-design', design);
+      el.className = 'misbaha-bead bead-skin shape-' + shape;
+      if (dims) { el.style.width = dims.w + 'px'; el.style.height = dims.h + 'px'; }
+      el.classList.remove('skin-pop');
+      void el.offsetWidth;
+      el.classList.add('skin-pop');
+    });
+    const big = document.querySelector('.mcb-prev');
+    if (big) {
+      big.setAttribute('data-design', design);
+      big.className = 'mcb-prev bead-skin shape-' + shape;
+    }
     const label = document.getElementById('misbaha-design-name');
-    if (label) label.textContent = this._designLabel(id) + ' · ' + this._shapeLabel(this._beadShape());
-    const prev = document.querySelector('.misbaha-custom-btn .mcb-prev');
-    if (prev) prev.setAttribute('data-design', id);
+    if (label) label.textContent = this._designLabel(design) + ' · ' + this._shapeLabel(shape);
+  },
+
+  setBeadDesign(id) {
+    const design = this._normDesign(id);
+    if (!this.BEAD_DESIGNS.some(x => x.id === design)) return;
+    const same = this._beadDesign() === design;
+    this._saveSettings({ beadDesign: design });
+    this._applySkin({ design });
     this._refreshSheet();
-    // v131 (T1): احترام إعداد الاهتزاز — كان ينادي navigator.vibrate مباشرة
     if (!same) this._vibrate(12);
   },
 
@@ -221,10 +259,12 @@ const TasbihPage = {
     if (!target) return;                     // v131 (T2): لا نافذة شاردة على صفحة أخرى
     this._sheetEl = this._modal(this._customizeHtml(), {});
     this._sheetEl.addEventListener('click', (ev) => {
-      const t = ev.target.closest('[data-design]');
-      if (t) { ev.stopPropagation(); this.setBeadDesign(t.dataset.design); return; }
+      // v1.0.147: الشكل أولًا — كان معاينته الداخلية تحمل data-design، فيُلتقط
+      // النقر كخامة ولا يتغيّر الشكل إلا بمحاولات متكرّرة.
       const sh = ev.target.closest('[data-shape]');
-      if (sh) { ev.stopPropagation(); this.setBeadShape(sh.dataset.shape); }
+      if (sh) { ev.stopPropagation(); this.setBeadShape(sh.dataset.shape); return; }
+      const t = ev.target.closest('[data-design]');
+      if (t) { ev.stopPropagation(); this.setBeadDesign(t.dataset.design); }
     });
   },
 
@@ -308,26 +348,20 @@ const TasbihPage = {
   /** أبعاد الخرزة حسب الشكل المختار (البيضاوي أعرض وأقصر). */
   _beadDims(g) {
     const s = this._beadShape();
-    if (s === 'oval') return { w: g.size * 1.14, h: g.size * 0.72 };
+    if (s === 'oval') return { w: g.size * 1.16, h: g.size * 0.78 };
+    if (s === 'barrel') return { w: g.size * 1.02, h: g.size * 1.14 };
+    if (s === 'disc') return { w: g.size * 1.08, h: g.size * 0.64 };
+    if (s === 'facet') return { w: g.size * 1.02, h: g.size * 1.02 };
     return { w: g.size, h: g.size };
   },
 
-  /** يبدّل شكل الخرزات ويحفظه — بلا سباق ولا نافذة مؤجّلة (T2) */
+  /** v1.0.147: يبدّل الشكل **في المكان** بلا مسح/إعادة بناء (لا وميض ولا فقدان للعد) */
   setBeadShape(id) {
     if (!this.BEAD_SHAPES.some(x => x.id === id)) return;
     const same = this._beadShape() === id;
     this._saveSettings({ beadShape: id });
-    const wrap = document.getElementById('misbaha-wrap');
-    if (wrap) wrap.setAttribute('data-shape', id);
-    const host = document.getElementById('misbaha-beads');
-    if (host) {
-      host.innerHTML = '';
-      this._beadEls = new Map();
-      this._beadGeom = null;
-      this._layoutBeads();
-    }
-    const label = document.getElementById('misbaha-design-name');
-    if (label) label.textContent = this._designLabel(this._beadDesign()) + ' · ' + this._shapeLabel(id);
+    if (this._beadGeom) this._beadGeom.shape = id;
+    this._applySkin({ shape: id });
     this._refreshSheet();
     if (!same) this._vibrate(8);
   },
@@ -489,18 +523,18 @@ const TasbihPage = {
           <span class="tasbih-goal-today-wrap">${t('todayTasbih') || 'Hoy'}: <b id="tasbih-goal-today">${today}</b>/${goal}</span>
         </div>
 
-        <!-- v1.0.129: أزرار الوضع والإعادة في صف أسفل الهدف اليومي (لا خلف الخرز) -->
-        <div class="tasbih-rail-row" role="toolbar" aria-label="${t('tasbihTitle') || 'Tasbih'}">
-          <button class="t-rail-pill" onclick="TasbihPage.toggleMode()"
-                  title="${this.mode === 'beads' ? (t('tapMode') || 'Modo táctil') : (t('beadsMode') || 'Modo misbaha')}"
-                  aria-label="${this.mode === 'beads' ? (t('tapMode') || 'Modo táctil') : (t('beadsMode') || 'Modo misbaha')}">
+        <!-- v1.0.164: صف واحد أسفل الهدف اليومي — تبديل الوضع أولًا، الإعادة في الطرف الآخر -->
+        <div class="tasbih-moderow" role="toolbar" aria-label="${escapeAttr(t('tasbihTitle') || 'Tasbih')}">
+          <button class="tsb-mode-pill" type="button" onclick="TasbihPage.toggleMode()"
+                  aria-pressed="${this.mode === 'beads'}"
+                  title="${escapeAttr(this.mode === 'beads' ? (t('tapMode') || 'وضع الضغط') : (t('beadsMode') || 'وضع السحب'))}">
             <i class="fas fa-${this.mode === 'beads' ? 'hand-pointer' : 'circle-nodes'}"></i>
-            <span>${this.mode === 'beads' ? (t('tapMode') || 'Modo táctil') : (t('beadsMode') || 'Modo misbaha')}</span>
+            <span>${this.mode === 'beads' ? (t('tapMode') || 'وضع الضغط') : (t('beadsMode') || 'وضع السحب')}</span>
           </button>
-          <button class="t-rail-pill" onclick="TasbihPage.reset()"
-                  title="${t('resetCounter') || 'Reiniciar'}" aria-label="${t('resetCounter') || 'Reiniciar'}">
+          <button class="tsb-reset-pill" type="button" onclick="TasbihPage.reset()"
+                  title="${escapeAttr(t('resetCounter') || 'إعادة')}" aria-label="${escapeAttr(t('resetCounter') || 'إعادة')}">
             <i class="fas fa-rotate-left"></i>
-            <span>${t('resetCounter') || 'Reiniciar'}</span>
+            <span>${t('resetCounter') || 'إعادة'}</span>
           </button>
         </div>
 
@@ -1108,7 +1142,7 @@ const TasbihPage = {
         <div class="qs-dmsg">${o.message || ''}</div>
         ${o.note ? `<div class="qs-note"><i class="fas fa-circle-info"></i><span>${o.note}</span></div>` : ''}
         <div class="qs-actions">
-          <button class="qs-btn qs-cancel" type="button" data-close>${o.cancelLabel || this._l('تراجع', 'Cancelar', 'Cancel')}</button>
+          <button class="qs-btn qs-cancel" type="button" data-close><i class="fas fa-arrow-${currentLocale === 'ar' ? 'right' : 'left'}"></i> ${o.cancelLabel || this._l('تراجع', 'Cancelar', 'Cancel')}</button>
           <button class="qs-btn qs-ok" type="button">${o.confirmLabel}</button>
         </div>
       </div>`, { center: true });

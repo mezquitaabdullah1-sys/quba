@@ -67,6 +67,7 @@ const QuranPage = {
 
   // ============ SURAH LIST ============
   async render(container, params = {}, navToken = null) {
+    this._clearReaderChrome();
     // v32: mismo guard de token que usa HomePage — si el usuario cambia de
     // idioma o navega a otra pestaña mientras esta carga sigue en curso, una
     // respuesta tardía ya no debe pisar la pantalla actual.
@@ -569,6 +570,10 @@ const QuranPage = {
     this.loadRepeatMode();
     const surahNumber = parseInt(params.surahNumber, 10);
     const targetAyah = params.ayah ? parseInt(params.ayah, 10) : null;
+    // v1.0.145: سياق الختمة — هوية الختمة (kid) ووجهة الرجوع الصريحة (back)
+    this._kid = (params && params.kid) ? String(params.kid) : null;
+    this._kBack = (params && params.back) ? String(params.back) : null;
+    this._ward = !!(params && params.ward) || !!this._kid;
 
     container.innerHTML = `
       <div class="top-bar reader-top-bar">
@@ -627,10 +632,12 @@ const QuranPage = {
       });
 
       this.renderReader(container, surah);
+      this._afterReaderRender();
       // v45: historial de navegación — guarda la aleya de entrada y activa
       // el rastreo de la aleya visible durante la lectura.
       this._saveLastRead(surah.number, targetAyah || 1);
       this._trackLastRead(surah);
+      this._kStart(surah);
       if (targetAyah) {
         setTimeout(() => this.scrollToAyah(targetAyah, true), 200);
       }
@@ -736,6 +743,8 @@ const QuranPage = {
         </button>
       </div>
 
+      <div id="qr-khatma-strip" class="qr-kstrip" hidden></div>
+
       <div class="mushaf-page font-${s.fontSize}" id="mushaf-page">
         <div class="surah-banner">
           <div class="surah-banner-decoration">۞</div>
@@ -802,6 +811,18 @@ const QuranPage = {
 
     // v36: تفعيل السحب الأفقي للتنقل بين السور مثل صفحة المصحف الكامل
     this._bindReaderSwipe(surah);
+
+    // v1.0.141: العودة من المصحف الكامل تهبط على نفس الصفحة داخل الترجمة
+    try {
+      const tp = parseInt(Storage.get('quran_target_page'), 10);
+      if (tp) {
+        Storage.remove('quran_target_page');
+        setTimeout(() => {
+          const el = document.getElementById('reader-page-' + tp);
+          if (el) el.scrollIntoView({ behavior: 'auto', block: 'start' });
+        }, 260);
+      }
+    } catch (e) {}
   },
 
   // v36: يفتح المصحف الكامل على الصفحة المحددة
@@ -1090,13 +1111,31 @@ const QuranPage = {
   },
 
   // ============ المصحف — صفحة كاملة (الفاتحة → الناس، أوفلاين) ============
+  // v1.0.141: يفتح المصحف على الصفحة التي يقرأها المستخدم الآن (كان يفتح آخر صفحة محفوظة)
+  currentPage() {
+    const secs = Array.from(document.querySelectorAll('.reader-page-section'));
+    if (!secs.length) return null;
+    const mc = document.getElementById('main-content');
+    const top = (mc ? mc.getBoundingClientRect().top : 0) + 24;
+    let cur = secs[0];
+    for (const s of secs) { if (s.getBoundingClientRect().top <= top) cur = s; }
+    return parseInt(cur.dataset.page, 10) || null;
+  },
+
   openMushaf() {
-    Router.push('mushaf', {});
+    let pg = null;
+    try { pg = this.currentPage(); } catch (e) {}
+    if (!pg) pg = this._kPage || parseInt(Storage.get('mushaf_last_page'), 10) || 1;
+    // v1.0.145: يُمرَّر سياق الختمة فيبقى الورد وشريطه في المصحف
+    Router.push('mushaf', { page: pg, kid: this._kid || undefined, ward: this._kid ? 1 : undefined });
   },
 
   // ============ NAVIGATION ============
   backToList() {
+    // v1.0.145: العودة إلى من فتح القارئ (الختمة) بدل قائمة القرآن دائمًا
+    const back = this._kBack;
     this.cleanup();
+    if (back && Router.routes[back]) { Router.go(back, {}, { replace: true }); return; }
     Router.go('quran/read');
   },
 
@@ -1322,6 +1361,8 @@ const QuranPage = {
   setFontSize(size, btn) {
     this.readerSettings.fontSize = size;
     this.saveReaderSettings();
+    // v1.0.141: حجم الخط مشترك مع المصحف الكامل
+    try { Storage.set('mushaf_font', size); if (typeof QuranMushafPage !== 'undefined') QuranMushafPage.fontSize = size; } catch (e) {}
     const page = document.getElementById('mushaf-page');
     if (page) {
       page.classList.remove('font-small', 'font-medium', 'font-large', 'font-xlarge');
@@ -1339,6 +1380,7 @@ const QuranPage = {
     // v51: إعادة عرض القارئ كاملاً — تحافظ على تجميع الصفحات وتطبّق ألوان التجويد فوراً
     if (this.currentSurah) {
       this.renderReader(document.getElementById('main-content'), this.currentSurah);
+      this._afterReaderRender();
     }
   },
 
@@ -1410,6 +1452,7 @@ const QuranPage = {
           <i class="fas fa-book"></i>
           ${t('tafsirSource')}: <strong>${tafsir.source}</strong> ${tafsir.sourceAr && currentLocale !== 'ar' ? `(${tafsir.sourceAr})` : ''}
         </div>
+        ${(typeof MufradatService !== 'undefined') ? MufradatService.panelHtml(surahNum, ayahNum) : ''}
 
         ${hasTranslation ? `
           <div class="tafsir-tabs" role="tablist">
@@ -2025,12 +2068,246 @@ const QuranPage = {
     }
   },
 
+
+  // ======================================================================
+  // v1.0.143 — وضع القراءة الصافي + شريط التلاوة العائم
+  // ======================================================================
+  _qrbStrings() {
+    const L = {
+      ar: { now: 'قيد التلاوة', pause: 'إيقاف مؤقت', resume: 'متابعة', stop: 'إيقاف', repeat: 'تكرار', reciter: 'القارئ', ayah: 'آية', hint: 'اضغط مرة أخرى لإظهار الأدوات' },
+      es: { now: 'Recitando', pause: 'Pausar', resume: 'Seguir', stop: 'Detener', repeat: 'Repetir', reciter: 'Recitador', ayah: 'Aleya', hint: 'Toca otra vez para mostrar las herramientas' },
+      en: { now: 'Playing', pause: 'Pause', resume: 'Resume', stop: 'Stop', repeat: 'Repeat', reciter: 'Reciter', ayah: 'Ayah', hint: 'Tap again to show the tools' }
+    };
+    return L[currentLocale] || L.es;
+  },
+
+  _ensureRecBar() {
+    let bar = document.getElementById('qr-audio-bar');
+    if (bar) return bar;
+    const L = this._qrbStrings();
+    bar = document.createElement('div');
+    bar.id = 'qr-audio-bar';
+    bar.setAttribute('role', 'region');
+    bar.setAttribute('aria-label', L.now);
+    bar.innerHTML = `
+      <div class="qrab-top">
+        <span class="qrab-dot" aria-hidden="true"></span>
+        <div class="qrab-meta">
+          <div class="qrab-title" id="qrab-title"></div>
+          <div class="qrab-sub" id="qrab-sub"></div>
+        </div>
+        <button class="qrab-close" onclick="QuranPage.stopRecitation()" aria-label="${L.stop}"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="qrab-btns">
+        <button class="qrab-btn" id="qrab-toggle" onclick="QuranPage.toggleRecitation()"><i class="fas fa-pause"></i><span></span></button>
+        <button class="qrab-btn" onclick="QuranPage.stopRecitation()"><i class="fas fa-stop"></i><span>${L.stop}</span></button>
+        <button class="qrab-btn" id="qrab-repeat" onclick="QuranPage.openRepeatOptions()"><i class="fas fa-redo"></i><span>${L.repeat}</span></button>
+        <button class="qrab-btn" onclick="QuranPage.openReciterPicker()"><i class="fas fa-user-tie"></i><span>${L.reciter}</span></button>
+      </div>`;
+    document.body.appendChild(bar);
+    return bar;
+  },
+
+  _showRecBar(num) {
+    this._ensureRecBar();
+    this._syncRecBar(num);
+    const bar = document.getElementById('qr-audio-bar');
+    requestAnimationFrame(() => {
+      bar.classList.add('on');
+      document.body.classList.add('qrab-open');
+    });
+  },
+
+  _hideRecBar() {
+    const bar = document.getElementById('qr-audio-bar');
+    if (bar) bar.classList.remove('on');
+    document.body.classList.remove('qrab-open');
+  },
+
+  _syncRecBar(num) {
+    const bar = document.getElementById('qr-audio-bar');
+    if (!bar) return;
+    const L = this._qrbStrings();
+    const n = (num != null) ? num : (this.playingAyah || this._recPausedNum);
+    const titleEl = document.getElementById('qrab-title');
+    const subEl = document.getElementById('qrab-sub');
+    if (titleEl) titleEl.textContent = L.now;
+    if (subEl) {
+      const sname = this.currentSurah ? QuranHelpers.surahDisplayName(this.currentSurah) : '';
+      subEl.textContent = (sname ? sname : '') + (n ? (sname ? ' · ' : '') + L.ayah + ' ' + this._num(n) : '');
+    }
+    const tg = document.getElementById('qrab-toggle');
+    if (tg) {
+      const paused = !this.playingAyah && !!this._recPausedNum;
+      tg.innerHTML = paused
+        ? `<i class="fas fa-play"></i><span>${L.resume}</span>`
+        : `<i class="fas fa-pause"></i><span>${L.pause}</span>`;
+    }
+    const rp = document.getElementById('qrab-repeat');
+    if (rp) {
+      const m = this.repeatMode || 'off';
+      rp.classList.toggle('active', m !== 'off');
+      const icons = { off: 'fa-redo', ayah: 'fa-redo', surah: 'fa-sync-alt' };
+      rp.innerHTML = `<i class="fas ${icons[m] || 'fa-redo'}"></i><span>${L.repeat}</span>`;
+    }
+    bar.setAttribute('aria-label', L.now);
+  },
+
+  toggleRecitation() {
+    const player = document.getElementById('audio-player');
+    if (!player) return;
+    if (this.playingAyah) {
+      const num = this.playingAyah;
+      this._stopAyahTr();
+      player.pause();
+      this.playingAyah = null;
+      this._recPausedNum = num;
+      document.getElementById(`ayah-${num}`)?.classList.remove('playing');
+      if (typeof WakeLockService !== 'undefined') WakeLockService.release();
+      this._syncRecBar(num);
+    } else if (this._recPausedNum) {
+      const num = this._recPausedNum;
+      player.play().catch(() => {});
+      this.playingAyah = num;
+      document.getElementById(`ayah-${num}`)?.classList.add('playing');
+      if (typeof WakeLockService !== 'undefined') WakeLockService.acquire('recitation');
+      this._syncRecBar(num);
+    }
+  },
+
+  stopRecitation() {
+    // v1.0.143: إيقاف تام — يُلغي أي متابعة تلقائية معلّقة عبر رمز جيل
+    this._recToken = (this._recToken || 0) + 1;
+    const player = document.getElementById('audio-player');
+    this._stopAyahTr();
+    if (player) {
+      try { player.pause(); player.onended = null; player.removeAttribute('src'); player.load(); } catch (e) {}
+    }
+    document.querySelectorAll('.ayah-block.playing').forEach(b => b.classList.remove('playing'));
+    document.querySelectorAll('[id^="play-btn-"]').forEach(b => { b.innerHTML = '<i class="fas fa-play"></i>'; });
+    this.playingAyah = null;
+    this._recPausedNum = null;
+    this._repeatCount = 0;
+    if (typeof WakeLockService !== 'undefined') WakeLockService.release();
+    this._hideRecBar();
+    const mc = document.getElementById('main-content');
+    if (mc) { mc.classList.remove('reader-immersive'); }
+  },
+
+  openReciterPicker() {
+    const L = this._qrbStrings();
+    const recs = (typeof CONFIG !== 'undefined' && Array.isArray(CONFIG.RECITERS)) ? CONFIG.RECITERS : [];
+    const cur = AppState.settings.reciter;
+    document.getElementById('modal-content').innerHTML = `
+      <div class="modal-header">
+        <div class="modal-title">🎤 ${L.reciter}</div>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="rp-sheet">
+        <div class="settings-group">
+          ${recs.map(r => `
+            <div class="tafsir-option ${cur === r.id ? 'active' : ''}" onclick="QuranPage.changeReciter('${r.id}', this)">
+              <div class="tafsir-opt-info">
+                <div class="tafsir-opt-name">${CONFIG.reciterName ? CONFIG.reciterName(r) : r.name}</div>
+                <div class="tafsir-opt-desc">${(CONFIG.reciterCountry ? CONFIG.reciterCountry(r) : r.country) || ''}</div>
+              </div>
+              ${cur === r.id ? '<i class="fas fa-check-circle"></i>' : ''}
+            </div>`).join('')}
+        </div>
+      </div>
+    `;
+    document.getElementById('modal-overlay').classList.remove('hidden');
+  },
+
+  async changeReciter(reciterId, el) {
+    const surahNum = this.currentSurah && this.currentSurah.number;
+    const resumeAt = this.playingAyah || this._recPausedNum;
+    const host = document.getElementById('main-content');
+    const keepScroll = host ? host.scrollTop : 0;
+    this.setReciter(reciterId, el);
+    try { closeModal(); } catch (e) {}
+    this.stopRecitation();
+    if (!surahNum) return;
+    try {
+      const surah = await API.getSurahWithTranslation(surahNum, AppState.settings.translation, AppState.settings.reciter);
+      if (!surah) return;
+      surah.ayahs.forEach(a => { if (a.arabicDisplay === undefined) a.arabicDisplay = a.arabic; });
+      this.currentSurah = surah;
+      this.renderReader(host || document.getElementById('main-content'), surah);
+      this._afterReaderRender();
+      if (host) host.scrollTop = keepScroll;
+      if (resumeAt) {
+        const a = surah.ayahs.find(x => x.number === resumeAt);
+        if (a) setTimeout(() => this.playAyah(a.number, a.audio), 250);
+      }
+    } catch (e) { /* يبقى القارئ كما هو */ }
+  },
+
+  // --- لمسة واحدة: إخفاء/إظهار أدوات الصفحة ---
+  _afterReaderRender() {
+    const mc = document.getElementById('mushaf-page');
+    if (!mc) return;
+    this._detachImmersiveTap();
+    const onTap = (ev) => {
+      if (ev.target && ev.target.closest &&
+          ev.target.closest('button, a, input, textarea, select, audio, .ayah-actions, .modal-overlay, .modal-content, #qr-audio-bar')) return;
+      this.toggleReaderChrome();
+    };
+    this._immersiveTap = onTap;
+    mc.addEventListener('click', onTap);
+    if (this.playingAyah || this._recPausedNum) {
+      const n = this.playingAyah || this._recPausedNum;
+      if (this.playingAyah) {
+        document.getElementById('ayah-' + n)?.classList.add('playing');
+        const b = document.getElementById('play-btn-' + n);
+        if (b) b.innerHTML = '<i class="fas fa-pause"></i>';
+      }
+      this._showRecBar(n);
+    }
+  },
+
+  _detachImmersiveTap() {
+    const mc = document.getElementById('mushaf-page');
+    if (mc && this._immersiveTap) mc.removeEventListener('click', this._immersiveTap);
+    this._immersiveTap = null;
+  },
+
+  toggleReaderChrome(force) {
+    const host = document.getElementById('main-content');
+    if (!host) return;
+    const hide = (force === 'hide') ? true : (force === 'show') ? false : !host.classList.contains('reader-immersive');
+    host.classList.toggle('reader-immersive', hide);
+    if (host.scrollTop < 60) {
+      // أعلى الصفحة: الأعلى لا يتحرك — يكفي التحريك البصري
+    }
+    if (hide) this._showImmersiveHint();
+  },
+
+  _showImmersiveHint() {
+    try {
+      if (Storage.get('qr_immersive_hint_seen')) return;
+      Storage.set('qr_immersive_hint_seen', true);
+      if (typeof showToast === 'function') showToast('👆 ' + this._qrbStrings().hint, 2400);
+    } catch (e) {}
+  },
+
+  _clearReaderChrome() {
+    const host = document.getElementById('main-content');
+    if (host) host.classList.remove('reader-immersive');
+    this._detachImmersiveTap();
+    this._recPausedNum = null;
+    this._recToken = (this._recToken || 0) + 1;
+    this._hideRecBar();
+  },
+
   // v27: si la aleya está descargada en la caché, se sirve como Blob local
   // (funciona sin conexión). La pausa/reanudación se maneja antes de la
   // resolución async para que el botón responda al instante.
   async playAyah(num, audioUrl) {
     const player = document.getElementById('audio-player');
     if (!player || !audioUrl || audioUrl === 'null' || audioUrl === '') return;
+    const _tok = this._recToken || 0;
+    this._recPausedNum = null;
 
     if (this.playingAyah === num) {
       this._stopAyahTr(); // v64: إسكات ترجمة قيد النطق عند الإيقاف المؤقت
@@ -2039,6 +2316,8 @@ const QuranPage = {
       document.getElementById(`ayah-${num}`)?.classList.remove('playing');
       // 🔦 Liberar WakeLock cuando se pausa
       if (typeof WakeLockService !== 'undefined') WakeLockService.release();
+      this._recPausedNum = num;
+      this._syncRecBar(num);
       return;
     }
 
@@ -2059,10 +2338,12 @@ const QuranPage = {
       try { URL.revokeObjectURL(this._lastBlobUrl); } catch (e) {}
     }
     this._lastBlobUrl = audioUrl.startsWith('blob:') ? audioUrl : null;
+    if (_tok !== (this._recToken || 0)) return; // أُوقفت التلاوة أثناء انتظار الملف
 
     player.src = audioUrl;
     player.play().catch(e => console.warn('Audio:', e));
     this.playingAyah = num;
+    this._showRecBar(num);
     this._trSpokenFor = null; // v64: آية جديدة — يُسمح بقراءة ترجمتها صوتيًا
 
     // v28 FIX: si el CDN bloquea la URL directa (403 a 128 kbps para varios
@@ -2108,6 +2389,8 @@ const QuranPage = {
     document.getElementById(`ayah-${num}`)?.classList.add('playing');
 
     player.onended = () => {
+      if (_tok !== (this._recToken || 0)) return; // تلاوة أُوقفت — لا تابع
+      setTimeout(() => { if (!this.playingAyah && !this._recPausedNum) this._hideRecBar(); }, 1200);
       // v64: بعد انتهاء التلاوة العربية تُقرأ الترجمة صوتيًا (إن فُعّلت الخاصية
       // من الإعدادات) — آية بالعربي ثم ترجمتها، مثل فيديوهات القرآن المترجم.
       if (this._speakTranslationAfter(num)) return;
@@ -2130,7 +2413,7 @@ const QuranPage = {
         // وعند بلوغ نهاية النطاق يُعاد من أول آية فيه (∞ إن كان العدد 0).
         if (keepRepeating) {
           this._repeatCount++;
-          setTimeout(() => this.playAyah(num, audioUrl), 300);
+          setTimeout(() => { if (_tok === (this._recToken || 0)) this.playAyah(num, audioUrl); }, 300);
           return;
         }
         // استُنفد عدد تكرارات هذه الآية: انتقل للآية التالية داخل النطاق
@@ -2485,7 +2768,225 @@ const QuranPage = {
     }
   },
 
+  /* ================= v1.0.145: ربط القارئ بالختمة ================= */
+  _khatma() {
+    try {
+      if (typeof KhatmaStore === 'undefined') return null;
+      if (this._kid) { const k = KhatmaStore.get(this._kid); if (k && !k.archived) return k; }
+      return KhatmaStore.active();
+    } catch (e) { return null; }
+  },
+
+  // الصفحة الظاهرة الآن: من مقاطع الصفحات، وإلا من الآية المرئية
+  _kCurrentPage(surah) {
+    try {
+      const secs = Array.from(document.querySelectorAll('#ayahs-container .reader-page-section'));
+      const mc = document.getElementById('main-content');
+      const base = mc ? mc.getBoundingClientRect().top : 0;
+      const h = mc ? mc.clientHeight : window.innerHeight;
+      if (secs.length) {
+        const lim = base + Math.max(80, h * 0.22);
+        let cur = secs[0];
+        for (const sc of secs) { if (sc.getBoundingClientRect().top <= lim) cur = sc; else break; }
+        return parseInt(cur.dataset.page, 10) || null;
+      }
+      const blocks = Array.from(document.querySelectorAll('#ayahs-container .ayah-block'));
+      if (!blocks.length || !surah) return null;
+      const lim2 = base + h * 0.5;
+      let last = null;
+      for (const b of blocks) { if (b.getBoundingClientRect().top < lim2) last = b; else break; }
+      if (!last) return null;
+      const ay = parseInt(last.dataset.ayah, 10);
+      return ay ? (KhatmaStore.pageOfAyah(surah.number, ay) || null) : null;
+    } catch (e) { return null; }
+  },
+
+  _kStart(surah) {
+    this._kStop();
+    this._kSurah = surah || null;
+    this._kCollapsed = false;
+    const k = this._khatma();
+    const el = document.getElementById('qr-khatma-strip');
+    if (!k) { if (el) el.hidden = true; return; }
+    this._kPage = this._kCurrentPage(this._kSurah) || null;
+    this._kTIn = Date.now();
+    this._kPaint();
+    this._kIv = setInterval(() => this._kTick(), 1500);
+    const mc = document.getElementById('main-content');
+    if (mc) {
+      this._kScroll = () => {
+        if (this._kRaf) return;
+        this._kRaf = requestAnimationFrame(() => {
+          this._kRaf = 0;
+          const np = this._kCurrentPage(this._kSurah);
+          if (np && np !== this._kPage) {
+            const prev = this._kPage;
+            if (prev) this._kMarkIfDue(prev);   // قبل تصفير المؤقّت
+            this._kPage = np; this._kTIn = Date.now(); this._kPaint();
+          } else if (!np) { this._kPaint(); }
+        });
+      };
+      mc.addEventListener('scroll', this._kScroll, { passive: true });
+    }
+    // في وضع الورد: الهبوط على مطلع ورد اليوم داخل السورة المفتوحة
+    if (this._ward) {
+      try {
+        const info = KhatmaStore.wardInfo(k);
+        if (info && info.st === 'open') {
+          // v1.0.163: الهبوط على أول صفحة غير مقروءة من الورد لا على أوله
+          let resumePage = k.dir === -1 ? info.to : info.from;
+          try {
+            const set = KhatmaStore.readSet(k);
+            const rev = (k.dir === -1);
+            const lo = Math.min(info.from, info.to), hi = Math.max(info.from, info.to);
+            for (let pg = rev ? hi : lo; rev ? pg >= lo : pg <= hi; pg += rev ? -1 : 1) {
+              if (!set.has(pg)) { resumePage = pg; break; }
+            }
+          } catch (e) {}
+          const first = KhatmaStore.pageRef(resumePage);
+          if (first && surah && surah.number === first.s) setTimeout(() => this.scrollToAyah(first.a), 280);
+        }
+      } catch (e) {}
+    }
+  },
+
+  _kStop() {
+    if (this._kIv) { clearInterval(this._kIv); this._kIv = null; }
+    if (this._kScroll) {
+      const mc = document.getElementById('main-content');
+      if (mc) { try { mc.removeEventListener('scroll', this._kScroll); } catch (e) {} }
+      this._kScroll = null;
+    }
+    if (this._kPage) { try { this._kMarkIfDue(this._kPage); } catch (e) {} }
+    this._kPage = null;
+    this._kSurah = null;
+  },
+
+  _kTick() {
+    if (document.hidden) return;
+    const p = this._kCurrentPage(this._kSurah);
+    if (!p) return;
+    if (p !== this._kPage) {
+      const prev = this._kPage;
+      if (prev) this._kMarkIfDue(prev);
+      this._kPage = p; this._kTIn = Date.now(); this._kPaint();
+    } else {
+      this._kMarkIfDue(p);
+    }
+  },
+
+  _kMarkIfDue(p) {
+    if (!p) return false;
+    const min = (typeof KhatmaStore !== 'undefined' && KhatmaStore.MIN_SEC) || 12;
+    if ((Date.now() - (this._kTIn || 0)) < min * 1000) return false;
+    const k = this._khatma(); if (!k) return false;
+    try {
+      if (KhatmaStore.readSet(k).has(p)) return false;
+      const r = KhatmaStore.markPage(p, 'reader', k.id);
+      if (!r || !r.added) return false;
+      try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) {}
+      try {
+        const msg = (typeof KhatmaPage !== 'undefined' && KhatmaPage.L)
+          ? KhatmaPage.L('احتُسبت صفحة ' + p + ' في ختمتك', 'Página ' + p + ' registrada', 'Page ' + p + ' recorded')
+          : '✓';
+        showToast(msg, 1200);
+      } catch (e) {}
+      this._kPaint();
+      return true;
+    } catch (e) { return false; }
+  },
+
+  _kToggle() { this._kCollapsed = !this._kCollapsed; this._kPaint(); },
+
+  /* v1.0.171: يبدأ جلسة ورد اليوم — يُحتسب التقدّم والصفحات فورًا وأثناء
+     القراءة من أي مدخل للقرآن، لا عند فتح صفحة الورد فقط. */
+  startWard() {
+    const L = (a, e, en) => { try { return KhatmaPage.L(a, e, en); } catch (err) { return a; } };
+    const k = this._khatma();
+    if (!k) return;
+    let info = null;
+    try { KhatmaStore.startWard(k); info = KhatmaStore.wardInfo(k); } catch (e) {}
+    try { this._kPaint(); } catch (e) {}
+    try {
+      const msg = (info && info.total)
+        ? L('بدأ ورد اليوم — تُحتسب الصفحات التي تقرؤها الآن (' + info.total + ' صفحة)',
+            'Wird de hoy iniciado — se cuentan las páginas que leas',
+            "Today's ward started — the pages you read now are counted")
+        : L('بدأ ورد اليوم', 'Wird de hoy iniciado', "Today's ward started");
+      if (typeof showToast === 'function') showToast(msg, 2800);
+    } catch (e) {}
+  },
+
+  /* v1.0.163: زر «أكمل الورد» في القارئ المترجم — يفتح المصحف على أول صفحة
+     غير مقروءة من ورد اليوم بدل أول الورد. */
+  openWardResume() {
+    let page = null;
+    try {
+      const k = this._khatma();
+      const info = k && KhatmaStore.wardInfo(k);
+      if (info && info.st === 'open') {
+        const set = KhatmaStore.readSet(k);
+        const rev = (k.dir === -1);
+        const lo = Math.min(info.from, info.to), hi = Math.max(info.from, info.to);
+        for (let pg = rev ? hi : lo; rev ? pg >= lo : pg <= hi; pg += rev ? -1 : 1) {
+          if (!set.has(pg)) { page = pg; break; }
+        }
+      }
+    } catch (e) {}
+    if (page) Router.push('mushaf', { page: page, kid: this._kid || undefined, ward: 1, back: 'quran/read' });
+    else this.openMushaf();
+  },
+
+  _kPaint() {
+    const el = document.getElementById('qr-khatma-strip');
+    if (!el) return;
+    const k = this._khatma();
+    if (!k) { el.hidden = true; return; }
+    const L = (a, e, en) => { try { return KhatmaPage.L(a, e, en); } catch (err) { return a; } };
+    const kp = KhatmaStore.progress(k);
+    let info = null;
+    try { info = KhatmaStore.wardInfo(k); } catch (e) {}
+    const cur = this._kPage || 0;
+    let sub = '', note = '', barPct = kp.pct;
+    if (info && info.st === 'open') {
+      barPct = info.pct;
+      sub = L('ورد اليوم', 'Wird de hoy', "Today's ward") + ' ' + KhatmaStore.rangeLabel(k, info.w)
+        + ' · ' + info.done + '/' + info.total;
+      if (cur) {
+        note = (cur >= info.from && cur <= info.to)
+          ? `<span class="qr-ks-note is-in">${L('داخل الورد', 'Dentro', 'In ward')}</span>`
+          : `<span class="qr-ks-note is-out">${L('خارج الورد', 'Fuera', 'Out')} ${info.from}–${info.to}</span>`;
+      }
+    } else if (info) {
+      sub = info.st === 'rest' ? L('يوم راحة — لا ورد اليوم', 'Descanso', 'Rest day')
+        : info.st === 'before' ? L('تبدأ ختمتك ', 'Empieza el ', 'Starts ') + (info.w.date || '')
+        : L('انتهت أيام الختمة', 'Jatma terminada', 'Khatma finished');
+    }
+    el.hidden = false;
+    el.className = 'qr-kstrip'
+      + (info && info.st === 'open' ? ' is-ward' : '')
+      + (this._kCollapsed ? ' is-collapsed' : '');
+    el.innerHTML = `
+      <div class="qr-ks-top" onclick="QuranPage._kToggle()">
+        <i class="fas fa-bookmark"></i>
+        <span class="qr-ks-name">${Validate.escapeHTML(k.name || '')}</span>
+        <span class="qr-ks-pill">${cur ? L('ص', 'p.', 'p.') + ' ' + cur + ' · ' : ''}${kp.pct}%</span>
+      </div>
+      <div class="qr-ks-bar"><i style="width:${barPct}%"></i></div>
+      <div class="qr-ks-sub"><span>${Validate.escapeHTML(sub)}</span>${note}
+        ${(info && info.st === 'open') ? (info.running
+          ? `<button class="qr-ks-go qr-ks-start is-run" onclick="event.stopPropagation();QuranPage.openWardResume()"><i class="fas fa-book-open-reader"></i>${L('جارٍ الورد', 'Wird en curso', 'Ward running')} ${info.done}/${info.total}</button>`
+          : `<button class="qr-ks-go qr-ks-start" onclick="event.stopPropagation();QuranPage.startWard()"><i class="fas fa-play"></i>${L('ابدأ الورد', 'Empezar wird', 'Start ward')}</button>`) : ''}
+        <button class="qr-ks-more" onclick="event.stopPropagation();QuranPage.openMushaf()"><i class="fas fa-book-quran"></i></button>
+      </div>`;
+    try { el.classList.toggle('is-stuck', !!this._kStuck); } catch (e) {}
+  },
+
+
   cleanup() {
+    // v1.0.145: احتساب الصفحة الأخيرة + إيقاف مؤقّت تتبّع الختمة
+    try { this._kStop(); } catch (e) {}
+    this._hideRecBar();
     this._stopAyahTr(); // v64: إسكات الترجمة الصوتية عند مغادرة القارئ
     const player = document.getElementById('audio-player');
     if (player) { player.pause(); player.src = ''; }

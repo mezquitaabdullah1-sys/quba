@@ -1,0 +1,390 @@
+/* =====================================================================
+   v1.0.154 — إمساكية رمضان: عدّاد تنازلي · تمييز الأيام · طريقة الحساب
+   · لوحة المسجد · صور الستوري و PDF
+   ===================================================================== */
+
+/* ---------- 1) العدّاد التنازلي ---------- */
+.imsk-live {
+  position: relative;
+  margin: 10px 14px 0;
+  padding: 13px 14px 12px;
+  border-radius: 18px;
+  overflow: hidden;
+  color: #F6E7BC;
+  background:
+    radial-gradient(120% 140% at 88% -20%, rgba(228, 206, 142, .26) 0%, rgba(228, 206, 142, 0) 58%),
+    linear-gradient(140deg, #175845 0%, #0B3A2B 58%, #06231B 100%);
+  box-shadow: 0 10px 26px rgba(6, 35, 27, .34), inset 0 1px 0 rgba(255, 235, 180, .16);
+}
+.imsk-live::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cpath d='M28 4l5.6 12.4L46 22l-9.6 9.2L39 44 28 37.6 17 44l2.6-12.8L10 22l12.4-5.6z' fill='%23E4CE8E' opacity='.10'/%3E%3C/svg%3E");
+  background-size: 62px 62px;
+  opacity: .8;
+}
+.imsk-live > * { position: relative; z-index: 1; }
+.imsk-live-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.imsk-live-k {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 800; letter-spacing: .2px;
+  color: #FFE9B5;
+}
+.imsk-live-k i { color: #E4CE8E; font-size: 11px; }
+.imsk-live-e {
+  font-size: 10.5px; font-weight: 700; color: rgba(246, 231, 188, .78);
+  font-variant-numeric: tabular-nums;
+}
+.imsk-live-e b { color: #FFE9B5; font-weight: 800; }
+.imsk-live-t {
+  margin: 5px 0 8px;
+  font-size: 34px;
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: 1px;
+  font-variant-numeric: tabular-nums;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  color: #FFF6DC;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, .38);
+}
+.imsk-live-t small {
+  font-size: 13px; font-weight: 700; letter-spacing: 0; opacity: .72;
+  margin-inline-start: 6px;
+}
+.imsk-live-bar {
+  height: 5px; border-radius: 999px;
+  background: rgba(255, 255, 255, .14);
+  overflow: hidden;
+}
+.imsk-live-bar i {
+  display: block; height: 100%; width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #C9A227 0%, #E4CE8E 100%);
+  transition: width .5s linear;
+}
+.imsk-live-f {
+  margin-top: 7px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: rgba(246, 231, 188, .74);
+  display: flex; align-items: center; gap: 5px;
+}
+.imsk-live-f i { color: #C9A227; font-size: 10px; }
+.imsk-live.is-iftar .imsk-live-t { color: #FFD98A; }
+
+/* ---------- 2) مبدّل طريقة الحساب ---------- */
+.imsk-method {
+  margin: 10px 14px 0;
+  padding: 10px 12px 11px;
+  border-radius: 16px;
+  background: rgba(15, 76, 58, .05);
+  border: 1px solid rgba(15, 76, 58, .14);
+}
+.imsk-method-h {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 800; color: #0F4C3A;
+  margin-bottom: 8px;
+}
+.imsk-method-h i { color: #C9A227; font-size: 11px; }
+.imsk-method-opts {
+  display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.imsk-method-opts::-webkit-scrollbar { display: none; }
+.imsk-mopt {
+  flex: 0 0 auto;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 76, 58, .20);
+  background: rgba(255, 255, 255, .55);
+  color: #0F4C3A;
+  font: inherit; font-size: 11px; font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.imsk-mopt.is-on {
+  background: linear-gradient(135deg, #175845 0%, #0B3A2B 100%);
+  border-color: #C9A227;
+  color: #F6E7BC;
+  box-shadow: 0 4px 12px rgba(15, 76, 58, .26);
+}
+.imsk-method-diff {
+  margin-top: 8px;
+  font-size: 10.5px;
+  line-height: 1.55;
+  font-weight: 600;
+  color: #6B6151;
+  border-top: 1px dashed rgba(15, 76, 58, .16);
+  padding-top: 7px;
+}
+.imsk-method-diff b { color: #0F4C3A; font-variant-numeric: tabular-nums; }
+.imsk-method-diff em { font-style: normal; color: #9A6B12; font-weight: 700; }
+
+/* ---------- 3) تمييز الجمعة والعشر الأواخر وليلة القدر ---------- */
+.imsk-sheet .imsk-table tbody tr.is-last10 td { background: rgba(201, 162, 39, .10); }
+.imsk-sheet .imsk-table tbody tr.is-friday td { background: rgba(15, 118, 110, .075); }
+.imsk-sheet .imsk-table tbody tr.is-last10.is-friday td { background: rgba(201, 162, 39, .14); }
+.imsk-sheet .imsk-table tbody tr.is-qadr td {
+  background: rgba(201, 162, 39, .26);
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 39, .55);
+}
+.imsk-sheet .imsk-table tbody tr.is-today td {
+  box-shadow: inset 0 0 0 1.5px rgba(15, 118, 110, .45);
+}
+.imsk-sheet .imsk-table tbody tr.is-sel td {
+  outline: 2px solid rgba(184, 145, 47, .85);
+  outline-offset: -2px;
+}
+.imsk-tag {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 0 4px;
+  border-radius: 5px;
+  background: rgba(201, 162, 39, .90);
+  color: #2A2110;
+  font-size: 6.4px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+.imsk-tag-l10 { background: rgba(15, 76, 58, .82); color: #F6E7BC; }
+.imsk-sheet .imsk-table tbody tr.is-qadr .imsk-daynum { color: #7A5210; }
+
+.imsk-legend {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin: 8px 4px 0;
+  font-size: 9.5px; font-weight: 700;
+  color: #6B6151;
+}
+.imsk-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.imsk-legend i {
+  width: 9px; height: 9px; border-radius: 3px;
+  border: 1px solid rgba(184, 145, 47, .60);
+  display: inline-block;
+}
+.imsk-legend .lg-fri i { background: rgba(15, 118, 110, .35); border-color: rgba(15, 118, 110, .55); }
+.imsk-legend .lg-l10 i { background: rgba(201, 162, 39, .55); }
+.imsk-legend .lg-qadr i { background: rgba(201, 162, 39, .95); }
+
+.imsk-hint {
+  margin: 6px 4px 0;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--text-secondary, #6B6151);
+  display: flex; align-items: center; gap: 5px;
+}
+.imsk-hint i { color: #C9A227; font-size: 9px; }
+
+/* ---------- 4) شبكة الأزرار ---------- */
+.imsk-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 14px 14px 0;
+}
+.imsk-actions .imsk-act { width: 100%; }
+.imsk-act-sec { flex: 0 0 auto; }
+.imsk-act-gold {
+  background: rgba(201, 162, 39, .13);
+  border: 1px solid rgba(201, 162, 39, .50);
+  color: #7A5210;
+}
+.imsk-act-gold i { color: #A87D14; }
+.imsk-act-tv {
+  width: calc(100% - 28px);
+  margin: 8px 14px 0;
+  background: linear-gradient(135deg, #0E4B3C 0%, #06231B 100%);
+  color: #F6E7BC;
+  box-shadow: 0 8px 20px rgba(6, 35, 27, .30), inset 0 1px 0 rgba(255, 235, 180, .16);
+}
+.imsk-act-tv i { color: #E4CE8E; }
+
+/* ---------- 5) نمط لوحة المسجد ---------- */
+.imsk-tv {
+  position: fixed;
+  inset: 0;
+  z-index: 99990;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: max(3.4vh, 18px) clamp(18px, 4vw, 64px) max(3vh, 16px);
+  color: #F6E7BC;
+  background:
+    radial-gradient(90% 70% at 50% -10%, rgba(228, 206, 142, .16) 0%, rgba(228, 206, 142, 0) 60%),
+    radial-gradient(70% 60% at 50% 120%, rgba(15, 118, 110, .22) 0%, rgba(15, 118, 110, 0) 65%),
+    linear-gradient(170deg, #05170F 0%, #04120C 55%, #020A07 100%);
+  font-family: var(--font-arabic, "Amiri", serif);
+  animation: imskTvIn .35s ease;
+}
+@keyframes imskTvIn { from { opacity: 0; } to { opacity: 1; } }
+.imsk-tv::before {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90' viewBox='0 0 90 90'%3E%3Cg fill='none' stroke='%23E4CE8E' stroke-width='1' opacity='.10'%3E%3Cpath d='M45 6l7 14h15l-7.5 13L63 46H48l-3 13-3-13H27l7.5-13L27 20h15z'/%3E%3Ccircle cx='45' cy='45' r='40'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 110px 110px;
+  opacity: .55;
+}
+.imsk-tv > * { position: relative; z-index: 1; }
+.imsk-tv-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.imsk-tv-city {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: clamp(15px, 2.1vw, 30px); font-weight: 700;
+  color: #FFE9B5;
+}
+.imsk-tv-city i { color: #C9A227; font-size: .85em; }
+.imsk-tv-date {
+  font-family: "Inter", sans-serif;
+  font-size: clamp(12px, 1.5vw, 22px); font-weight: 600;
+  color: rgba(246, 231, 188, .70);
+  font-variant-numeric: tabular-nums;
+}
+.imsk-tv-mid { text-align: center; flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; }
+.imsk-tv-label {
+  font-size: clamp(18px, 2.6vw, 40px);
+  font-weight: 700;
+  color: #C9A227;
+  letter-spacing: .5px;
+}
+.imsk-tv-clock {
+  margin: 1vh 0 .4vh;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  font-size: clamp(64px, 15vh, 230px);
+  font-weight: 800;
+  line-height: .95;
+  letter-spacing: .02em;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, #FFF6DC 0%, #E4CE8E 62%, #B8912F 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.imsk-tv-sub {
+  font-size: clamp(13px, 1.8vw, 26px);
+  font-weight: 600;
+  color: rgba(246, 231, 188, .82);
+}
+.imsk-tv-sub b { color: #FFE9B5; font-weight: 800; font-variant-numeric: tabular-nums; }
+.imsk-tv-times {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: clamp(6px, 1vw, 16px);
+  margin-bottom: 2vh;
+}
+.imsk-tv-time {
+  text-align: center;
+  padding: clamp(8px, 1.4vh, 18px) 4px;
+  border-radius: 14px;
+  background: rgba(255, 253, 247, .06);
+  border: 1px solid rgba(228, 206, 142, .22);
+}
+.imsk-tv-time.is-key { border-color: rgba(228, 206, 142, .60); background: rgba(201, 162, 39, .14); }
+.imsk-tv-time span {
+  display: block;
+  font-size: clamp(10px, 1.25vw, 20px);
+  font-weight: 700;
+  color: rgba(246, 231, 188, .72);
+}
+.imsk-tv-time b {
+  display: block;
+  margin-top: 4px;
+  font-family: "Inter", sans-serif;
+  font-size: clamp(18px, 2.6vw, 44px);
+  font-weight: 800;
+  color: #FFF6DC;
+  font-variant-numeric: tabular-nums;
+}
+.imsk-tv-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: "Inter", sans-serif;
+  font-size: clamp(11px, 1.2vw, 18px);
+  font-weight: 700;
+  color: rgba(246, 231, 188, .55);
+}
+.imsk-tv-foot b { color: #C9A227; letter-spacing: .5px; }
+.imsk-tv-close {
+  border: 1px solid rgba(228, 206, 142, .40);
+  background: rgba(255, 253, 247, .06);
+  color: #F6E7BC;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font: inherit; font-size: clamp(11px, 1.2vw, 16px); font-weight: 700;
+  cursor: pointer;
+}
+
+/* ---------- 6) الوضع الداكن ---------- */
+[data-theme="dark"] .imsk-method { background: rgba(212, 175, 55, .07); border-color: rgba(212, 175, 55, .22); }
+[data-theme="dark"] .imsk-method-h { color: #EBD9A8; }
+[data-theme="dark"] .imsk-mopt { background: rgba(255, 255, 255, .05); border-color: rgba(212, 175, 55, .28); color: #EBD9A8; }
+[data-theme="dark"] .imsk-mopt.is-on { background: linear-gradient(135deg, #1B4A3B 0%, #0A2B20 100%); color: #FFE9B5; }
+[data-theme="dark"] .imsk-method-diff { color: #B9A57A; border-top-color: rgba(212, 175, 55, .20); }
+[data-theme="dark"] .imsk-method-diff b { color: #EBD9A8; }
+[data-theme="dark"] .imsk-legend, [data-theme="dark"] .imsk-hint { color: #B9A57A; }
+[data-theme="dark"] .imsk-act-gold { color: #EBD9A8; background: rgba(212, 175, 55, .12); }
+[data-theme="dark"] .imsk-tag { color: #241C0A; }
+
+/* ---------- 7) شاشات ضيقة جدًا ---------- */
+@media (max-width: 360px) {
+  .imsk-live-t { font-size: 29px; }
+  .imsk-mopt { padding: 6px 10px; font-size: 10px; }
+  .imsk-actions { grid-template-columns: 1fr; }
+}
+
+/* ================= v1.0.155: تذكيرات + سجل الصيام ================= */
+.imsk-card{margin:14px 0;padding:15px 15px 13px;border-radius:20px;background:#FFFDF6;border:1px solid #E7DFC9;box-shadow:0 2px 16px rgba(14,75,60,.07)}
+.imsk-card-h{display:flex;align-items:center;gap:8px;font-weight:800;color:#0E4B3C;font-size:14.5px;margin-bottom:12px;line-height:1.35}
+.imsk-card-h>i{color:#B8912F}
+.imsk-card-badge{margin-inline-start:auto;display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.imsk-card-badge.is-ok{background:#E7F3ED;color:#0E4B3C}
+.imsk-card-badge.is-warn{background:#FBF1DC;color:#8A6A1C}
+.imsk-tgs{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.imsk-tg{display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 8px;border-radius:14px;border:1.5px solid #DED6C0;background:#fff;color:#5A5A50;font:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:.15s}
+.imsk-tg b{font-size:10.5px;font-weight:800;opacity:.75}
+.imsk-tg.is-on{border-color:#0E4B3C;background:#0E4B3C;color:#F6EAC4}
+.imsk-tg.is-on>b{opacity:1;color:#E4CE8E}
+.imsk-lead{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:12px;font-size:12px;color:#6A6A5C}
+.imsk-lead>span{margin-inline-end:auto;font-weight:700}
+.imsk-lopt{padding:6px 11px;border-radius:999px;border:1.2px solid #DED6C0;background:#fff;color:#5A5A50;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
+.imsk-lopt.is-on{background:#F3E6C4;border-color:#B8912F;color:#6B5214}
+.imsk-rstat{margin-top:12px;padding:9px 12px;border-radius:12px;background:#F4F7F4;color:#254B3E;font-size:12.5px;font-weight:600;line-height:1.5}
+.imsk-rnote{margin-top:9px;font-size:11px;line-height:1.6;color:#7A7A6C;display:flex;gap:6px;align-items:flex-start}
+.imsk-rnote>i{margin-top:3px;color:#B8912F}
+.imsk-fsum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:13px}
+.imsk-fsum>div{background:#F7F6EF;border-radius:13px;padding:9px 4px;text-align:center;border:1px solid #ECE7D6}
+.imsk-fsum b{display:block;font-size:19px;font-weight:800;color:#0E4B3C;line-height:1.1}
+.imsk-fsum span{display:block;margin-top:3px;font-size:10px;font-weight:600;color:#7A7A6C}
+.imsk-fsum .is-fast b{color:#1F7A4D}
+.imsk-fsum .is-miss b{color:#B4691C}
+.imsk-fsum .is-owed{background:#FBEFE4;border-color:#EFD3B4}
+.imsk-fsum .is-owed b{color:#A9500E}
+.imsk-fgrid{display:grid;grid-template-columns:repeat(10,1fr);gap:5px}
+.imsk-fchip{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;aspect-ratio:1;padding:0;border-radius:10px;border:1.2px solid #E2DCC8;background:#fff;color:#8A8A7A;font:inherit;cursor:pointer;transition:.12s}
+.imsk-fchip b{font-size:11.5px;font-weight:800;line-height:1}
+.imsk-fchip i{font-size:8px;opacity:.55}
+.imsk-fchip.is-fast{background:#0E4B3C;border-color:#0E4B3C;color:#F6EAC4}
+.imsk-fchip.is-fast i{opacity:1;color:#9BE3B8}
+.imsk-fchip.is-miss{background:#FBEEDD;border-color:#D9A05B;color:#A9500E}
+.imsk-fchip.is-miss i{opacity:1;color:#C9762E}
+.imsk-fchip.is-future{opacity:.35;cursor:not-allowed}
+.imsk-qada{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.imsk-qbtn{flex:1 1 130px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 12px;border-radius:13px;border:0;background:#0E4B3C;color:#F6EAC4;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+.imsk-qbtn-sec{background:#F1EEE3;color:#55523F}
+.imsk-qhint{margin-top:9px;font-size:11px;color:#8A8A7A;text-align:center}
+[data-theme="dark"] .imsk-card{background:#16211D;border-color:#28362F;box-shadow:none}
+[data-theme="dark"] .imsk-card-h{color:#E4CE8E}
+[data-theme="dark"] .imsk-tg{background:#1D2A25;border-color:#33443B;color:#C9D6CF}
+[data-theme="dark"] .imsk-tg.is-on{background:#E4CE8E;border-color:#E4CE8E;color:#123}
+[data-theme="dark"] .imsk-tg.is-on>b{color:#0E4B3C}
+[data-theme="dark"] .imsk-lopt{background:#1D2A25;border-color:#33443B;color:#C9D6CF}
+[data-theme="dark"] .imsk-lopt.is-on{background:#4A3C18;border-color:#B8912F;color:#F1DCA0}
+[data-theme="dark"] .imsk-rstat{background:#1B2A24;color:#C9D6CF}
+[data-theme="dark"] .imsk-fsum>div{background:#1B2A24;border-color:#2C3B33}
+[data-theme="dark"] .imsk-fsum b{color:#E4CE8E}
+[data-theme="dark"] .imsk-fchip{background:#1D2A25;border-color:#33443B;color:#9FB1A8}
+[data-theme="dark"] .imsk-qbtn-sec{background:#243029;color:#C9D6CF}
+@media (max-width:380px){
+  .imsk-fgrid{grid-template-columns:repeat(6,1fr)}
+  .imsk-fsum{grid-template-columns:repeat(2,1fr)}
+  .imsk-tgs{grid-template-columns:1fr}
+}

@@ -1,32 +1,242 @@
-.wgs-wrap { padding: 4px 16px 96px; }
-.wgs-head { display: flex; align-items: center; gap: 10px; margin: 8px 0 18px; }
-.wgs-head h1 { font-size: 20px; margin: 0; color: var(--text-primary); }
-.wgs-head p { font-size: 12px; margin: 2px 0 0; color: var(--text-secondary); }
-.wgs-back { width: 36px; height: 36px; border-radius: 12px; border: none; background: var(--surface-2, rgba(0,0,0,.05)); color: var(--text-primary); }
-.wgs-sec { margin-bottom: 22px; }
-.wgs-sec-t { font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 10px; }
-.wgs-themes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.wgs-sw { height: 62px; border-radius: 16px; border: 2px solid transparent; position: relative; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 6px; font-size: 10px; color: #fff; }
-.wgs-sw span { text-shadow: 0 1px 3px rgba(0,0,0,.5); }
-.wgs-sw.on { border-color: var(--accent, #E8C877); box-shadow: 0 0 0 3px rgba(232,200,119,.22); }
-.wgs-styles { display: flex; gap: 8px; }
-.wgs-st { flex: 1; padding: 11px; border-radius: 14px; border: 1px solid var(--border, rgba(0,0,0,.08)); background: var(--surface, #fff); color: var(--text-primary); font-size: 13px; }
-.wgs-st.on { border-color: var(--brand, #0F4C3A); background: rgba(15,76,58,.08); font-weight: 700; }
-.wgs-previews { display: grid; gap: 12px; grid-template-columns: 1fr 132px; }
-.wgs-prev-card { border-radius: 22px; padding: 14px; box-shadow: 0 6px 18px rgba(0,0,0,.16); }
-.wgs-prev-row { display: flex; align-items: center; justify-content: space-between; }
-.wgs-prev-l { font-size: 10px; opacity: .78; }
-.wgs-prev-p { font-size: 17px; font-weight: 800; }
-.wgs-prev-t { font-size: 11px; opacity: .9; }
-.wgs-prev-c { font-size: 21px; font-weight: 800; }
-.wgs-prev-bar { height: 3px; border-radius: 3px; background: rgba(255,255,255,.22); margin-top: 9px; overflow: hidden; }
-.wgs-prev-bar span { display: block; height: 100%; background: #E8C877; border-radius: 3px; }
-.wgs-prev-sq { border-radius: 22px; padding: 12px; display: flex; flex-direction: column; box-shadow: 0 6px 18px rgba(0,0,0,.16); min-height: 148px; }
-.wgs-note { font-size: 11px; color: var(--text-secondary); margin: 8px 2px 0; }
-.wgs-list { display: flex; flex-direction: column; gap: 8px; }
-.wgs-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--surface, #fff); border: 1px solid var(--border, rgba(0,0,0,.07)); }
-.wgs-item-n { font-size: 13px; font-weight: 700; color: var(--text-primary); }
-.wgs-item-d { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
-.wgs-add { border: none; border-radius: 12px; padding: 8px 14px; font-size: 12px; font-weight: 700; background: var(--brand, #0F4C3A); color: #fff; }
-.wgs-save { width: 100%; border: none; border-radius: 16px; padding: 14px; font-size: 14px; font-weight: 800; background: var(--brand, #0F4C3A); color: #fff; }
-[data-theme="dark"] .wgs-item, [data-theme="dark"] .wgs-st { background: rgba(255,255,255,.06); }
+/* 🧩 ويدجتس الشاشة الرئيسية — v1.0.146
+   صفحة واحدة مرتّبة: معاينة حيّة ← اللون ← الخلفية ← إضافة الأدوات ← شريط التطبيق.
+   كانت هذه الأنماط في css/widget-settings.css ولم تكن مربوطة بـ index.html إطلاقًا،
+   فظهرت الصفحة بلا تنسيق (مبعثرة). هذا الملف هو المرجع الوحيد الآن. */
+
+.wgs-wrap {
+  padding: 6px 16px 24px;
+  max-width: 720px;
+  margin: 0 auto;
+  color: var(--text-primary, #1c2321);
+  font-family: inherit;
+}
+
+/* ---------- الرأس ---------- */
+.wgs-head { display: flex; align-items: center; gap: 12px; margin: 6px 0 14px; }
+.wgs-back {
+  flex: 0 0 auto; width: 40px; height: 40px; border: none; border-radius: 13px;
+  background: var(--surface-2, rgba(0,0,0,.06)); color: var(--text-primary, #1c2321);
+  font-size: 15px; display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.wgs-back:active { transform: scale(.94); }
+.wgs-head-t h1 { font-size: 19px; font-weight: 800; margin: 0; line-height: 1.25; }
+.wgs-head-t p { font-size: 11.5px; margin: 3px 0 0; color: var(--text-secondary, #6b7a75); }
+
+/* ---------- لوحة المعاينة ---------- */
+.wgs-stage {
+  position: relative; overflow: hidden; border-radius: 24px; padding: 12px 14px 10px;
+  background: #0c1512; /* خلفية شاشة رئيسية افتراضية */
+  background-image:
+    radial-gradient(120% 90% at 85% -10%, rgba(232,200,119,.22), transparent 60%),
+    radial-gradient(90% 80% at 5% 110%, rgba(31,111,80,.45), transparent 62%);
+  box-shadow: 0 10px 26px rgba(0,0,0,.22);
+  margin-bottom: 20px;
+}
+.wgs-stage-glow {
+  position: absolute; inset: auto -30% -60% -30%; height: 70%;
+  background: radial-gradient(closest-side, rgba(255,255,255,.07), transparent 70%);
+  pointer-events: none;
+}
+.wgs-tabs {
+  position: relative; display: flex; gap: 6px; padding: 4px;
+  background: rgba(255,255,255,.08); border-radius: 12px; width: max-content; margin: 0 auto 12px;
+}
+.wgs-tab {
+  border: none; background: transparent; color: rgba(255,255,255,.72);
+  font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 9px;
+  -webkit-tap-highlight-color: transparent;
+}
+.wgs-tab.on { background: rgba(255,255,255,.94); color: #0c1512; }
+
+.wgs-stage-in { position: relative; display: flex; justify-content: center; min-height: 96px; padding: 2px 0 6px; }
+.wgs-stage-cap { position: relative; text-align: center; font-size: 10.5px; color: rgba(255,255,255,.5); padding-bottom: 2px; }
+
+/* بطاقة الويدجت (معاينة) — الألوان تأتي من متغيّرات اللوحة */
+.wgs-pv {
+  width: 100%; border-radius: 22px; padding: 14px;
+  background: linear-gradient(135deg, var(--wg1), var(--wg2));
+  color: var(--wtx); box-shadow: 0 6px 16px rgba(0,0,0,.28);
+  transition: background .18s ease, color .18s ease;
+}
+.wgs-stage[data-style="solid"] .wgs-pv { background: var(--wg1); }
+.wgs-pv-bar { max-width: 100%; }
+.wgs-pv-r { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.wgs-pv-l { font-size: 10px; opacity: .78; }
+.wgs-pv-p { font-size: 17px; font-weight: 800; line-height: 1.25; }
+.wgs-pv-h { font-size: 10px; opacity: .72; }
+.wgs-pv-s { font-size: 11px; opacity: .9; }
+.wgs-pv-c { font-size: 22px; font-weight: 800; color: var(--wac); }
+.wgs-pv-track { height: 3px; border-radius: 3px; background: rgba(255,255,255,.22); margin-top: 10px; overflow: hidden; }
+.wgs-pv-track i { display: block; height: 100%; width: 62%; background: var(--wac); border-radius: 3px; }
+.wgs-pv-sq {
+  width: 158px; min-height: 158px; display: flex; flex-direction: column; gap: 2px;
+}
+.wgs-pv-sq .wgs-pv-p { font-size: 19px; }
+.wgs-pv-sq .wgs-pv-c { margin-top: auto; font-size: 18px; }
+.wgs-pv-ayah { text-align: center; padding: 18px 16px; }
+.wgs-pv-q { font-size: 14.5px; line-height: 1.9; font-weight: 600; margin: 8px 0 6px; }
+.wgs-pv-ayah .wgs-pv-h { color: var(--wac); opacity: 1; font-weight: 700; }
+
+/* ---------- الأقسام ---------- */
+.wgs-sec { margin-bottom: 20px; }
+.wgs-sec-h {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin: 0 2px 10px;
+}
+.wgs-sec-h > span { font-size: 13.5px; font-weight: 800; }
+.wgs-sec-h > em { font-style: normal; font-size: 11px; color: var(--text-secondary, #6b7a75); }
+
+/* شرائح اللون */
+.wgs-chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.wgs-chip {
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  padding: 10px 4px 8px; border-radius: 14px; border: 1.5px solid var(--border, rgba(0,0,0,.08));
+  background: var(--surface, #fff); color: inherit; -webkit-tap-highlight-color: transparent;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .12s ease;
+}
+.wgs-chip:active { transform: scale(.96); }
+.wgs-chip.on { border-color: var(--brand, #1f6f50); box-shadow: 0 0 0 3px rgba(31,111,80,.14); }
+.wgs-dot {
+  width: 34px; height: 34px; border-radius: 50%;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.35), 0 2px 6px rgba(0,0,0,.18);
+}
+.wgs-chip-n { font-size: 11px; font-weight: 700; }
+
+/* مفتاح النمط */
+.wgs-seg {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px;
+  background: var(--surface-2, rgba(0,0,0,.06)); border-radius: 15px;
+}
+.wgs-seg button {
+  border: none; background: transparent; color: var(--text-secondary, #6b7a75);
+  font-family: inherit; font-size: 13px; font-weight: 700; padding: 11px; border-radius: 12px;
+  -webkit-tap-highlight-color: transparent; transition: background .15s ease, color .15s ease;
+}
+.wgs-seg button.on { background: var(--surface, #fff); color: var(--brand, #1f6f50); box-shadow: 0 2px 6px rgba(0,0,0,.08); }
+
+/* ---------- مجموعات الأدوات ---------- */
+.wgs-grp { margin-bottom: 12px; }
+.wgs-grp-t {
+  display: flex; align-items: center; gap: 7px; margin: 0 2px 7px;
+  font-size: 11.5px; font-weight: 800; color: var(--text-secondary, #6b7a75);
+}
+.wgs-grp-t i { font-size: 11px; opacity: .75; }
+
+.wgs-item {
+  display: flex; align-items: center; gap: 11px; padding: 10px 12px;
+  border-radius: 16px; background: var(--surface, #fff);
+  border: 1px solid var(--border, rgba(0,0,0,.07)); margin-bottom: 7px;
+}
+.wgs-item-i {
+  flex: 0 0 auto; width: 38px; height: 38px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+  background: rgba(31,111,80,.10); color: var(--brand, #1f6f50);
+}
+.wgs-item-x { flex: 1 1 auto; min-width: 0; }
+.wgs-item-n { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; line-height: 1.3; }
+.wgs-size {
+  font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 6px;
+  background: var(--surface-2, rgba(0,0,0,.06)); color: var(--text-secondary, #6b7a75);
+  letter-spacing: .3px; direction: ltr;
+}
+.wgs-item-d { display: block; font-size: 11px; color: var(--text-secondary, #6b7a75); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wgs-add {
+  flex: 0 0 auto; width: 40px; height: 40px; border: none; border-radius: 13px;
+  background: var(--brand, #1f6f50); color: #fff; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent; transition: transform .12s ease;
+}
+.wgs-add:active { transform: scale(.92); }
+
+.wgs-tip {
+  display: flex; gap: 9px; align-items: flex-start; margin-top: 10px; padding: 11px 12px;
+  border-radius: 14px; background: rgba(232,200,119,.14); color: var(--text-secondary, #6b7a75);
+  font-size: 11px; line-height: 1.6;
+}
+.wgs-tip i { color: #b8860b; margin-top: 2px; }
+
+/* ---------- شريط التطبيق ---------- */
+.wgs-apply {
+  position: sticky; bottom: 8px; z-index: 5;
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 16px; padding: 10px 12px; border-radius: 16px;
+  background: var(--surface, #fff); border: 1px solid var(--border, rgba(0,0,0,.08));
+  box-shadow: 0 8px 22px rgba(0,0,0,.14);
+}
+.wgs-apply-t { flex: 1 1 auto; font-size: 11px; line-height: 1.5; color: var(--text-secondary, #6b7a75); }
+.wgs-apply-t i { color: var(--brand, #1f6f50); margin-inline-end: 4px; }
+.wgs-refresh {
+  flex: 0 0 auto; border: none; border-radius: 11px; padding: 10px 13px;
+  font-family: inherit; font-size: 12px; font-weight: 800;
+  background: var(--brand, #1f6f50); color: #fff; -webkit-tap-highlight-color: transparent;
+}
+.wgs-refresh:active { transform: scale(.96); }
+
+/* ---------- الوضع الليلي ---------- */
+[data-theme="dark"] .wgs-item,
+[data-theme="dark"] .wgs-chip,
+[data-theme="dark"] .wgs-apply { background: rgba(255,255,255,.055); border-color: rgba(255,255,255,.09); }
+[data-theme="dark"] .wgs-seg { background: rgba(255,255,255,.07); }
+[data-theme="dark"] .wgs-seg button.on { background: rgba(255,255,255,.14); color: #7fd3ac; }
+[data-theme="dark"] .wgs-item-i { background: rgba(127,211,172,.14); color: #7fd3ac; }
+[data-theme="dark"] .wgs-size { background: rgba(255,255,255,.1); }
+
+/* ---------- شاشات صغيرة ---------- */
+@media (max-width: 360px) {
+  .wgs-chips { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .wgs-dot { width: 28px; height: 28px; }
+  .wgs-chip-n { font-size: 10px; }
+  .wgs-item-d { display: none; }
+}
+
+/* ================= v1.0.148: دليل الإضافة + خامة المسبحة ================= */
+.wgs-guide { margin: 0 2px; padding-inline-start: 20px; }
+.wgs-guide li {
+  font-size: 12px; line-height: 1.75; color: var(--text-secondary, #6b7a75);
+  margin-bottom: 5px;
+}
+.wgs-guide li b { color: var(--text-primary, #1c2321); font-weight: 800; }
+[data-theme="dark"] .wgs-guide li b,
+[data-theme="emerald"] .wgs-guide li b,
+[data-theme="maroon"] .wgs-guide li b,
+[data-theme="brown"] .wgs-guide li b { color: #EBD08A; }
+
+.wgs-tip-warn { background: rgba(196, 76, 51, .12); }
+.wgs-tip-warn i { color: #C44C33; }
+
+.wgs-beads {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 8px; margin-bottom: 10px;
+}
+.wgs-bead {
+  aspect-ratio: 1; border: 1.5px solid var(--border, rgba(0,0,0,.08));
+  border-radius: 14px; background: var(--surface, #fff); padding: 5px;
+  display: grid; place-items: center; -webkit-tap-highlight-color: transparent;
+  transition: border-color .15s ease, transform .12s ease;
+}
+.wgs-bead span {
+  display: block; width: 26px; height: 26px; border-radius: 50%;
+  box-shadow: inset -1px -2px 4px rgba(0,0,0,.42), 0 1px 4px rgba(0,0,0,.3);
+}
+.wgs-bead.on { border-color: var(--brand, #1f6f50); box-shadow: 0 0 0 3px rgba(31,111,80,.15); }
+.wgs-bead:active { transform: scale(.94); }
+
+.wgs-bshapes { display: flex; flex-wrap: wrap; gap: 6px; }
+.wgs-bshape {
+  border: 1.5px solid var(--border, rgba(0,0,0,.08));
+  background: var(--surface, #fff); color: var(--text-secondary, #6b7a75);
+  font-family: inherit; font-size: 11.5px; font-weight: 700;
+  padding: 8px 11px; border-radius: 11px;
+  -webkit-tap-highlight-color: transparent;
+}
+.wgs-bshape.on {
+  border-color: var(--brand, #1f6f50);
+  background: rgba(31,111,80,.10); color: var(--brand, #1f6f50); font-weight: 900;
+}
+[data-theme="dark"] .wgs-bead,
+[data-theme="dark"] .wgs-bshape { background: rgba(255,255,255,.055); border-color: rgba(255,255,255,.09); }
+[data-theme="dark"] .wgs-bshape.on { background: rgba(127,211,172,.16); color: #7fd3ac; }
+
+.wgs-pv-beads { padding: 12px 12px 10px; }
+.wgs-pv-beads .wgs-pv-h { margin-bottom: 2px; }

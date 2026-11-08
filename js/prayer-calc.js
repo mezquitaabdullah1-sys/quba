@@ -104,6 +104,19 @@ const PrayerCalc = {
   },
 
   /**
+   * v1.0.154: desplaza "HH:MM" en deltaMin minutos. Era llamada desde api.js
+   * y desde la Imsakiyah pero solo existía en DualTiming → cualquier ciudad
+   * de otra zona horaria lanzaba TypeError y la tabla salía vacía.
+   */
+  _shiftTimeStr(s, deltaMin) {
+    if (!s || typeof s !== 'string' || s.indexOf(':') === -1 || !deltaMin) return s;
+    const [hh, mm] = s.split(' ')[0].split(':').map(Number);
+    if (isNaN(hh) || isNaN(mm)) return s;
+    const total = ((hh * 60 + mm + deltaMin) % 1440 + 1440) % 1440;
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+  },
+
+  /**
    * v26: Desplazamiento manual de horario (verano/invierno).
    * Lee `AppState.settings.timeShift`:
    *   'auto' (defecto) → 0, el sistema ya aplica el horario de verano (DST)
@@ -296,13 +309,19 @@ const PrayerCalc = {
    * Calcula los horarios de oración para una fecha/ubicación/método dados.
    * @returns {{Fajr,Sunrise,Dhuhr,Asr,Maghrib,Isha}} en formato "HH:MM" (hora local del dispositivo)
    */
-  getTimings(lat, lon, date = new Date(), methodId = 3, country = '', elevation = 0) {
+  /**
+   * v1.0.154: `exact = true` respeta el método pedido tal cual y NO aplica el
+   * convenio del país (_effectiveMethod). Lo usa la Imsakiyah para poder
+   * comparar dos métodos y para que el selector de método de la página tenga
+   * efecto real en países con convenio oficial (Jordania, Turquía, EE.UU.…).
+   */
+  getTimings(lat, lon, date = new Date(), methodId = 3, country = '', elevation = 0, exact = false) {
     // v36: si el método llega como el global del usuario pero la ciudad es
     // de un país con convenio oficial distinto (Jordania → 19, Turquía → 13,
     // EE.UU./Canadá → 2, Francia → 12) y no hay elección manual, usar el
     // convenio del país — el mismo que publica Muslim Pro.
     try {
-      if (typeof API !== 'undefined' && API._effectiveMethod) {
+      if (!exact && typeof API !== 'undefined' && API._effectiveMethod) {
         methodId = API._effectiveMethod(lat, lon, methodId);
       }
     } catch (_) { /* nunca romper el cálculo */ }

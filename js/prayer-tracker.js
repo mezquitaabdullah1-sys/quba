@@ -43,6 +43,12 @@ const PrayerTracker = {
     today[name] = !today[name];
     all[key] = today;
     this._writeAll(all);
+    // v1.0.138: انعكاس فوري على صفحة «يومي» (مصدر واحد للحقيقة)
+    try {
+      if (typeof DailyTracker !== 'undefined' && DailyTracker.set) {
+        DailyTracker.set(name.toLowerCase(), !!today[name], DailyTracker.dayKey());
+      }
+    } catch (e) {}
     return today[name];
   },
 

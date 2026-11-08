@@ -1,0 +1,161 @@
+/* ============================================================
+   Quba v1.0.172 — شاشة السبلاش: أيقونة مدمجة مع الواجهة
+   الفكرة: لا «صورة فوق خلفية»، بل كتلة واحدة:
+   زخرفة إسلامية تغطي الشاشة → إشعاع → هالة → نجمة ثمانية →
+   حلقة تقدّم ذهبية → الأيقونة في القلب. كل الطبقات من نفس
+   العائلة اللونية فلا حدود مرئية حول الشعار.
+   ============================================================ */
+
+.splash {
+  background:
+    radial-gradient(circle at 50% 42%, #17604B 0%, #0F4C3A 42%, #082B20 100%) !important;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* ---------- ١) الزخرفة الهندسية على كامل الشاشة ---------- */
+.sp-geo {
+  position: absolute; inset: -8%;
+  color: rgba(212, 175, 55, .13);
+  z-index: 0;
+  -webkit-mask-image: radial-gradient(circle at 50% 42%, #000 18%, transparent 72%);
+  mask-image: radial-gradient(circle at 50% 42%, #000 18%, transparent 72%);
+}
+.sp-geo svg { width: 100%; height: 100%; display: block; }
+
+/* ---------- ٢) إشعاع من المركز ---------- */
+.sp-rays {
+  position: absolute; inset: 0; z-index: 1; opacity: .22;
+  background: repeating-conic-gradient(from 0deg at 50% 42%,
+    rgba(228, 206, 142, .5) 0deg 1.1deg, transparent 1.1deg 9deg);
+  -webkit-mask-image: radial-gradient(circle at 50% 42%, transparent 12%, #000 34%, transparent 66%);
+  mask-image: radial-gradient(circle at 50% 42%, transparent 12%, #000 34%, transparent 66%);
+  animation: spRayTurn 90s linear infinite;
+}
+@keyframes spRayTurn { to { transform: rotate(360deg); } }
+
+/* ---------- ٣) هالة خلف الأيقونة (تلغي أي حدّ حول الصورة) ---------- */
+.sp-glow {
+  position: absolute; left: 50%; top: 42%; width: 92vmin; height: 92vmin;
+  transform: translate(-50%, -50%); z-index: 2; pointer-events: none;
+  background: radial-gradient(circle,
+    rgba(212, 175, 55, .30) 0%, rgba(23, 96, 75, .42) 34%, transparent 68%);
+  filter: blur(6px);
+}
+
+.splash-content { position: relative; z-index: 3; gap: 10px; }
+
+/* ---------- ٤) الميدالية ---------- */
+.sp-medal {
+  position: relative;
+  width: min(72vmin, 330px); height: min(72vmin, 330px);
+  display: grid; place-items: center;
+  margin-bottom: 4px;
+}
+.sp-ring, .sp-star {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+}
+.sp-ring { transform: rotate(-90deg); }
+.sp-ring-track {
+  fill: none; stroke: rgba(228, 206, 142, .16); stroke-width: 2;
+  stroke-dasharray: 3 7; stroke-linecap: round;
+}
+.sp-ring-arc {
+  fill: none; stroke: #E4CE8E; stroke-width: 2.6; stroke-linecap: round;
+  stroke-dasharray: 653; stroke-dashoffset: 470;
+  transform-origin: 120px 120px;
+  animation: spArc 2.6s cubic-bezier(.45, .05, .55, .95) infinite;
+  filter: drop-shadow(0 0 6px rgba(228, 206, 142, .55));
+}
+@keyframes spArc {
+  0%   { stroke-dashoffset: 653; transform: rotate(0deg); }
+  50%  { stroke-dashoffset: 200; transform: rotate(160deg); }
+  100% { stroke-dashoffset: 653; transform: rotate(360deg); }
+}
+.sp-star-g { transform-origin: 120px 120px; animation: spStarTurn 46s linear infinite; }
+@keyframes spStarTurn { to { transform: rotate(360deg); } }
+
+/* v1.0.172b: قرص الميدالية بنفس لون خلفية الأيقونة (#00311A) — يُلغي
+   أي حدّ أو مربّع ظاهر حول الصورة فتندمج كليًا مع الواجهة.
+   نصف قطر المربّع = 31% × √2 ≈ 44%، لذا القرص معتم حتى 47%. */
+.sp-halo {
+  position: absolute; width: 100%; height: 100%; border-radius: 50%;
+  background:
+    radial-gradient(circle,
+      #00311A 0%, #00311A 46%,
+      rgba(0, 49, 26, .92) 52%, rgba(0, 49, 26, .42) 62%, transparent 72%);
+}
+.sp-halo::after {
+  content: ""; position: absolute; inset: 6%; border-radius: 50%;
+  border: 1px solid rgba(212, 175, 55, .35);
+  box-shadow: inset 0 0 32px rgba(212, 175, 55, .16);
+}
+
+/* الأيقونة: بلا حدود ولا ظل بطاقة — تنصهر في الخلفية */
+.splash-logo-img {
+  position: relative; z-index: 2;
+  width: 60%; height: 60%;
+  object-fit: contain;
+  border-radius: 0;
+  filter: saturate(1.04) contrast(1.02);
+  animation: spBreathe 4.2s ease-in-out infinite;
+}
+@keyframes spBreathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.035); }
+}
+
+/* ---------- ٥) الاسم ---------- */
+.sp-name {
+  font-family: "Amiri", "Noto Naskh Arabic", serif;
+  font-size: clamp(30px, 9vmin, 42px);
+  font-weight: 700; letter-spacing: .06em;
+  color: #F6EAC4;
+  text-shadow: 0 2px 18px rgba(212, 175, 55, .35);
+  margin-top: -2px;
+}
+.sp-tag {
+  font-family: "Amiri", serif; font-size: 20px;
+  color: rgba(228, 206, 142, .78);
+  margin-top: -6px;
+}
+
+/* ---------- ٦) عجلة التحميل الإسلامية ---------- */
+.sp-loader {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  margin-top: 14px;
+}
+.sp-wheel { width: 62px; height: 62px; display: block; }
+.sp-w-track { fill: none; stroke: rgba(228, 206, 142, .18); stroke-width: 2.4; }
+.sp-w-arc {
+  fill: none; stroke: #E4CE8E; stroke-width: 3.4; stroke-linecap: round;
+  filter: drop-shadow(0 0 5px rgba(228, 206, 142, .6));
+}
+.sp-wheel-rot { transform-origin: 60px 60px; animation: spWheel 1.6s linear infinite; }
+@keyframes spWheel { to { transform: rotate(360deg); } }
+.sp-w-beads circle { fill: #D4AF37; }
+.sp-w-beads circle:nth-child(2n) { fill: #8F6E1E; }
+.sp-wheel-ccw { transform-origin: 60px 60px; animation: spWheel 3.2s linear infinite reverse; }
+.sp-w-core { fill: none; stroke: #F6EAC4; stroke-width: 1.8; stroke-linejoin: round; }
+
+.sp-loadtxt {
+  font-size: 12px; letter-spacing: .04em;
+  color: rgba(246, 234, 196, .82);
+  font-family: var(--font-main);
+}
+
+/* ---------- ٧) احترام تقليل الحركة ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .sp-rays, .sp-star-g, .sp-ring-arc, .splash-logo-img,
+  .sp-wheel-rot, .sp-wheel-ccw { animation: none !important; }
+  .sp-ring-arc { stroke-dashoffset: 300; }
+}
+
+/* ---------- ٨) الوضع الأفقي ---------- */
+@media (max-height: 520px) {
+  .sp-medal { width: 40vmin; height: 40vmin; }
+  .sp-name { font-size: 24px; }
+  .sp-tag, .sp-loadtxt { display: none; }
+  .sp-loader { margin-top: 4px; }
+  .sp-wheel { width: 44px; height: 44px; }
+}

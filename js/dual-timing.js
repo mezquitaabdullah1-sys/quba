@@ -444,8 +444,9 @@ const DualTiming = {
   /** HTML de la franja con ciudad configurada. */
   _stripHtml(city, timings, estimated) {
     // v1.0.128: مدينة كوبية ثانوية → نفس تصحيح التوقيت الصيفي الدائم
-    if (timings && typeof CubaTime !== 'undefined' && CubaTime.appliesToCity(city) && CubaTime.needsShift())
-      timings = CubaTime.shiftTimings(timings);
+    // v1.0.142: نفس معايرة كوبا الذاتية المستخدمة في المواقيت الأساسية
+    if (timings && typeof CubaTime !== 'undefined' && CubaTime.appliesToCity(city))
+      timings = CubaTime.normalize(timings, city.lat, city.lon, new Date(), true);
     const names = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
     const cells = timings ? names.map(n => `
       <div class="dual-cell">

@@ -1,0 +1,83 @@
+/* ==========================================================================
+   v1.0.139 — إصلاحات المكتبة والراديو
+   ١) تباعد بطاقات كتب «الجامع» وفصل الأزرار الأربعة حتى لا تتشابك
+   ٢) تمرير سلس (content-visibility للبطاقات البعيدة)
+   ٣) زرّا المفضلة/التحميل في قوائم الراديو
+   ========================================================================== */
+
+/* ---------- ١) شبكة الكتب ---------- */
+.lib-grid {
+  grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)) !important;
+  gap: 22px 14px !important;
+}
+.lib-gcard {
+  gap: 7px !important;
+  padding: 0 0 8px !important;
+  align-items: stretch !important;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 210px;
+}
+.lib-gcard .lib-cover { margin-bottom: 2px; }
+.lib-gcard-t { margin-top: 3px; padding: 0 2px; }
+.lib-gcard-a { padding: 0 2px 2px; }
+
+/* الأزرار: شبكة ٢×٢ داخل عرض البطاقة — لا تلاصق ولا خروج عن الحدود */
+.lib-gcard-acts {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+  width: 100%;
+  margin-top: 8px;
+  flex-wrap: nowrap !important;
+}
+.lib-gcard-acts .lib-mini {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 34px !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  display: flex; align-items: center; justify-content: center;
+}
+.lib-card-slot { margin-top: 7px; }
+.lib-jsec { margin-bottom: 10px; }
+.lib-jsec-h { margin-top: 20px; margin-bottom: 12px; }
+
+/* رفّ المكتبة والصفوف العامة: نفس الروح */
+.lib-shelf-row, .lib-books { gap: 16px 12px; }
+
+@media (max-width: 359px) {
+  .lib-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 18px 12px !important; }
+}
+
+/* ---------- ٢) تمرير سلس ---------- */
+.lib-page { touch-action: pan-y; }
+.lib-cats { touch-action: pan-x; }
+.main-content { -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
+
+/* ---------- ٣) بطاقات الأحاديث المحلية ---------- */
+.lib-hnote {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 var(--sp-md) 12px; padding: 9px 11px;
+  border-radius: 12px; font-size: 11.5px; line-height: 1.6;
+  background: rgba(43, 138, 107, .09); color: #0F4C3A;
+  border: 1px solid rgba(43, 138, 107, .18);
+}
+.lib-hlist { display: flex; flex-direction: column; gap: 10px; padding: 0 var(--sp-md) var(--sp-md); }
+.lib-hcard {
+  display: flex; flex-direction: column; gap: 5px; text-align: start;
+  padding: 12px 13px; border-radius: 14px; cursor: pointer;
+  border: 1px solid var(--border, #E7E0D0); background: var(--card, #fff);
+  font-family: inherit;
+}
+.lib-hcard:active { background: rgba(212, 175, 55, .10); }
+.lib-hcard-t { font-size: 13px; font-weight: 800; line-height: 1.6; color: var(--text-primary, #1A2B4A); }
+.lib-hcard-b { font-size: 12.5px; line-height: 1.9; color: var(--text-secondary, #55606E); }
+.lib-hcard-r { font-size: 10.5px; font-weight: 700; color: #0F4C3A; display: inline-flex; align-items: center; gap: 4px; }
+
+/* ---------- ٤) أزرار السورة في الراديو ---------- */
+.srx-wrap { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.srx-wrap .srx { margin: 0; }
+#rtb-dl.busy { opacity: .5; pointer-events: none; }
+
+[data-theme="dark"] .lib-hnote { background: rgba(127, 211, 172, .10); color: #9BE0BE; border-color: rgba(127, 211, 172, .22); }
+[data-theme="dark"] .lib-hcard { border-color: rgba(255, 255, 255, .10); }

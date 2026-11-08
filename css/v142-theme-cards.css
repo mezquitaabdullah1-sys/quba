@@ -1,0 +1,129 @@
+/* ==========================================================================
+   v1.0.142 — ١) ألوان/تظليل بطاقة الصلاة القادمة وبطاقة التاريخ تتبع الثيم
+              ٢) بطاقة العد التنازلي لرمضان بعرض الشاشة مثل باقي البطاقات
+   ========================================================================== */
+
+/* ---------- ١) بطاقتا الرأس: لوح وحدود ونصوص من ألوان الثيم ---------- */
+#home-hero .hsx-duo > .hsx-next,
+#home-hero .hsx-duo > .hsx-date {
+  transition: background .25s ease, border-color .25s ease, color .25s ease;
+}
+
+/* 🌿 الزمردي — تظليل أخضر مائل للتعتيم + نص ذهبي */
+[data-theme="emerald"] #home-hero .hsx-duo > .hsx-next,
+[data-theme="emerald"] #home-hero .hsx-duo > .hsx-date {
+  background: linear-gradient(160deg, rgba(16, 66, 51, .74) 0%, rgba(9, 40, 31, .60) 100%) !important;
+  border: 1px solid rgba(201, 162, 39, .46) !important;
+  box-shadow: 0 12px 26px -18px rgba(0, 0, 0, .70), inset 0 1px 0 rgba(230, 200, 104, .20) !important;
+}
+[data-theme="emerald"] #home-hero .hsx-k,
+[data-theme="emerald"] #home-hero .hsx-mlbl,
+[data-theme="emerald"] #home-hero .hsx-greg { color: rgba(240, 236, 220, .80) !important; }
+[data-theme="emerald"] #home-hero .hsx-cd,
+[data-theme="emerald"] #home-hero .hsx-np .hsx-t,
+[data-theme="emerald"] #home-hero .hsx-dow,
+[data-theme="emerald"] #home-hero .hsx-occ,
+[data-theme="emerald"] #home-hero .hsx-k i { color: #EBD08A !important; }
+[data-theme="emerald"] #home-hero .hsx-hij,
+[data-theme="emerald"] #home-hero .hsx-np b { color: #FFFDF6 !important; }
+
+/* 🍷 الخمري — تظليل خمري + نص ذهبي */
+[data-theme="maroon"] #home-hero .hsx-duo > .hsx-next,
+[data-theme="maroon"] #home-hero .hsx-duo > .hsx-date {
+  background: linear-gradient(160deg, rgba(74, 18, 37, .76) 0%, rgba(45, 10, 23, .62) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, .48) !important;
+  box-shadow: 0 12px 26px -18px rgba(0, 0, 0, .75), inset 0 1px 0 rgba(230, 200, 104, .22) !important;
+}
+[data-theme="maroon"] #home-hero .hsx-k,
+[data-theme="maroon"] #home-hero .hsx-mlbl,
+[data-theme="maroon"] #home-hero .hsx-greg { color: rgba(246, 238, 220, .78) !important; }
+[data-theme="maroon"] #home-hero .hsx-cd,
+[data-theme="maroon"] #home-hero .hsx-np .hsx-t,
+[data-theme="maroon"] #home-hero .hsx-dow,
+[data-theme="maroon"] #home-hero .hsx-occ,
+[data-theme="maroon"] #home-hero .hsx-k i { color: #EBD08A !important; }
+[data-theme="maroon"] #home-hero .hsx-hij,
+[data-theme="maroon"] #home-hero .hsx-np b { color: #FFF6E2 !important; }
+
+/* 🤎 البني — تظليل بني دافئ + ذهبي فاتح */
+[data-theme="brown"] #home-hero .hsx-duo > .hsx-next,
+[data-theme="brown"] #home-hero .hsx-duo > .hsx-date {
+  background: linear-gradient(160deg, rgba(107, 79, 58, .72) 0%, rgba(74, 54, 39, .60) 100%) !important;
+  border: 1px solid rgba(232, 203, 138, .48) !important;
+  box-shadow: 0 12px 26px -18px rgba(0, 0, 0, .65), inset 0 1px 0 rgba(255, 249, 239, .22) !important;
+}
+[data-theme="brown"] #home-hero .hsx-k,
+[data-theme="brown"] #home-hero .hsx-mlbl,
+[data-theme="brown"] #home-hero .hsx-greg { color: rgba(255, 249, 239, .80) !important; }
+[data-theme="brown"] #home-hero .hsx-cd,
+[data-theme="brown"] #home-hero .hsx-np .hsx-t,
+[data-theme="brown"] #home-hero .hsx-dow,
+[data-theme="brown"] #home-hero .hsx-occ,
+[data-theme="brown"] #home-hero .hsx-k i { color: #F1DCA6 !important; }
+[data-theme="brown"] #home-hero .hsx-hij,
+[data-theme="brown"] #home-hero .hsx-np b { color: #FFFCF5 !important; }
+
+/* 🌙 الليلي — كحلي + ذهبي */
+[data-theme="dark"] #home-hero .hsx-duo > .hsx-next,
+[data-theme="dark"] #home-hero .hsx-duo > .hsx-date {
+  background: linear-gradient(160deg, rgba(18, 33, 56, .76) 0%, rgba(10, 19, 33, .62) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, .42) !important;
+  box-shadow: 0 12px 26px -18px rgba(0, 0, 0, .80), inset 0 1px 0 rgba(230, 200, 104, .16) !important;
+}
+[data-theme="dark"] #home-hero .hsx-k,
+[data-theme="dark"] #home-hero .hsx-mlbl,
+[data-theme="dark"] #home-hero .hsx-greg { color: rgba(232, 237, 245, .76) !important; }
+[data-theme="dark"] #home-hero .hsx-cd,
+[data-theme="dark"] #home-hero .hsx-np .hsx-t,
+[data-theme="dark"] #home-hero .hsx-dow,
+[data-theme="dark"] #home-hero .hsx-occ,
+[data-theme="dark"] #home-hero .hsx-k i { color: #EBD08A !important; }
+[data-theme="dark"] #home-hero .hsx-hij,
+[data-theme="dark"] #home-hero .hsx-np b { color: #F7F3EA !important; }
+
+/* ☀️ الفاتح — عاجي شفّاف + ذهبي داكن (للقراءة على الصورة الفاتحة) */
+[data-theme="light"] #home-hero .hsx-duo > .hsx-next,
+[data-theme="light"] #home-hero .hsx-duo > .hsx-date {
+  background: linear-gradient(160deg, rgba(255, 253, 246, .84) 0%, rgba(250, 244, 232, .76) 100%) !important;
+  border: 1px solid rgba(201, 162, 39, .50) !important;
+  box-shadow: 0 12px 26px -20px rgba(46, 40, 20, .55), inset 0 1px 0 rgba(255, 255, 255, .80) !important;
+}
+[data-theme="light"] #home-hero .hsx-k,
+[data-theme="light"] #home-hero .hsx-mlbl,
+[data-theme="light"] #home-hero .hsx-greg { color: #6B6151 !important; }
+[data-theme="light"] #home-hero .hsx-cd,
+[data-theme="light"] #home-hero .hsx-np .hsx-t,
+[data-theme="light"] #home-hero .hsx-dow,
+[data-theme="light"] #home-hero .hsx-occ,
+[data-theme="light"] #home-hero .hsx-k i { color: #8A5B00 !important; }
+[data-theme="light"] #home-hero .hsx-hij,
+[data-theme="light"] #home-hero .hsx-np b { color: #17352B !important; }
+[data-theme="light"] #home-hero .hsx-duo .hsx-cd { text-shadow: none; }
+
+/* ---------- ٢) بطاقة رمضان: عرض الشاشة كاملًا ومحاذاة كسائر البطاقات ---------- */
+#main-content .hm-occ {
+  margin-inline: 14px !important;
+  margin-bottom: 12px !important;
+}
+#main-content .hm-occ-strip {
+  display: block !important;
+  overflow: visible !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+#main-content .hm-occ-strip > .occ-card,
+#main-content .hm-occ-strip > .ramadan-cd-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  flex: 1 1 100% !important;
+  box-sizing: border-box;
+  margin: 0 !important;
+}
+#main-content .hm-occ-strip > .ramadan-cd-card {
+  border: none !important;
+  background: linear-gradient(135deg, #0F4C3A 0%, #14795F 100%) !important;
+  box-shadow: 0 10px 26px -18px rgba(15, 76, 58, .65) !important;
+  border-radius: 18px !important;
+  padding: 14px 14px 12px !important;
+}

@@ -81,6 +81,14 @@ const DailyTracker = {
     return !!day.ids[id];
   },
 
+  // v1.0.138: ضبط الحالة صراحةً (تعليم أو إزالة) — تُستخدم للمزامنة مع صفحة الصلاة
+  set(id, on, key) {
+    if (!this.ITEMS.some(i => i.id === id)) return false;
+    const k = key || this.dayKey();
+    if (this.isDone(id, k) === !!on) return !!on;
+    return this.toggle(id, k);
+  },
+
   // تعليم تلقائي (لا يمسح ما علّمه المستخدم)
   autoMark(id, key) {
     if (this.isDone(id, key)) return;
@@ -91,9 +99,10 @@ const DailyTracker = {
   syncPrayers(key) {
     try {
       if (typeof PrayerTracker === 'undefined' || !PrayerTracker.isDone) return;
+      // v1.0.138: مزامنة ثنائية — صفحة الصلاة هي المصدر، فيُعلَّم ويُزال في «يومي» معها
       ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'].forEach(id => {
         const name = id.charAt(0).toUpperCase() + id.slice(1);
-        if (PrayerTracker.isDone(name)) this.autoMark(id, key);
+        this.set(id, PrayerTracker.isDone(name), key || this.dayKey());
       });
     } catch (e) {}
   },
@@ -180,5 +189,48 @@ const DailyTracker = {
 
   resetAll() { this._save({}); }
 };
+
+// ---------------- v1.0.156: بنود رمضان ----------------
+// تُضاف إلى القائمة فقط في شهر رمضان ثم تُزال، فلا تتضخّم نسبة اليوم بقية السنة.
+DailyTracker.RAMADAN_ITEMS = [
+  { id: 'tarawih',      cat: 'ramadan', pts: 10, ic: 'mosque' },
+  { id: 'qiyam',        cat: 'ramadan', pts: 10, ic: 'moon' },
+  { id: 'khatma_ward',  cat: 'ramadan', pts: 10, ic: 'book-open' },
+  { id: 'iftar_saim',   cat: 'ramadan', pts: 8,  ic: 'utensils' },
+  { id: 'sadaqah_r',    cat: 'ramadan', pts: 6,  ic: 'hand-holding-heart' },
+  { id: 'itikaf',       cat: 'ramadan', pts: 8,  ic: 'person-praying' },
+  { id: 'qadr_dua',     cat: 'ramadan', pts: 6,  ic: 'star' }
+];
+
+DailyTracker.PREVIEW_KEY = 'quba_ramadan_preview';
+
+/** معاينة خارج رمضان: تُفعّل بنود الشهر وخططه قبل مجيئه (للتجربة فقط) */
+DailyTracker.previewOn = function () {
+  try { return localStorage.getItem(this.PREVIEW_KEY) === '1'; } catch (e) { return false; }
+};
+DailyTracker.setPreview = function (on) {
+  try { localStorage.setItem(this.PREVIEW_KEY, on ? '1' : '0'); } catch (e) {}
+  return this.applySeason();
+};
+
+DailyTracker.inRamadan = function () {
+  try {
+    if (this.previewOn()) return true;
+    if (typeof HijriCalc === 'undefined' || !HijriCalc.fromDate) return false;
+    const h = HijriCalc.fromDate(new Date());
+    return !!(h && Number(h.month) === 9);
+  } catch (e) { return false; }
+};
+
+/** يبني قائمة ITEMS حسب الموسم — آمنة للاستدعاء المتكرر */
+DailyTracker.applySeason = function () {
+  const inR = this.inRamadan();
+  const base = this.ITEMS.filter(i => i.cat !== 'ramadan');
+  this.ITEMS = inR ? base.concat(this.RAMADAN_ITEMS) : base;
+  this.CATS = inR ? ['prayers', 'ramadan', 'sunan', 'dhikr', 'khayr'] : ['prayers', 'sunan', 'dhikr', 'khayr'];
+  return inR;
+};
+
+DailyTracker.applySeason();
 
 if (typeof window !== 'undefined') window.DailyTracker = DailyTracker;

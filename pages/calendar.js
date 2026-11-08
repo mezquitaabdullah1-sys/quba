@@ -137,9 +137,8 @@ const CalendarPage = {
     // Render header row: Mon-Sun order
     const headerOrder = [1,2,3,4,5,6,0]; // JS dow indices for Mon..Sun
 
-    const gridHTML = [...empties.map(() => `<div class="cal-day-empty"></div>`),
-      ...this.calendar.map((day, idx) => this.renderDay(day, idx, today, langKey))
-    ].join('');
+    // v1.0.161: كان هنا بناءٌ كامل لكل خانات الشهر ثم لا يُستخدم (الجدول
+    // يُبنى من renderWeeks) — حسابٌ مضاعِف بلا فائدة على كل قلب شهر.
 
     container.innerHTML = `
       <div class="cal-month-block">
@@ -221,7 +220,7 @@ const CalendarPage = {
     const evLabel = this.getEventLabel(hijriMonth, hijriDay, dayOfWeek, langKey);
 
     return `
-      <div class="${cls.join(' ')}" onclick="CalendarPage.selectDay(${idx})" data-idx="${idx}" role="button" tabindex="0" aria-label="${escapeAttr(this._getAriaLabel(day, langKey))}">
+      <div class="${cls.join(' ')}" onclick="CalendarPage.selectDay(${idx})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();CalendarPage.selectDay(${idx})}" data-idx="${idx}" role="button" tabindex="0" aria-label="${escapeAttr(this._getAriaLabel(day, langKey))}">
         <div class="cal-day-gnum">${greg}</div>
         <div class="cal-day-hnum">${hijriDay}</div>
         ${evLabel ? `<div class="cal-day-event">${escapeHtml(evLabel)}</div>` : ''}

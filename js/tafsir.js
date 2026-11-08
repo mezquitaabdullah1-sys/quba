@@ -55,6 +55,27 @@ const TafsirService = {
     desc_ar: 'الترجمة المُعلَّقة للقرآن (افتراضي، بدون إنترنت)',
   },
 
+  // v1.0.150: تفسيرات إنجليزية معتمدة إضافية — كلها مُتحقَّق من توفرها على
+  // CDN (spa5k/tafsir_api) بنصوص فعلية لا فهارس فارغة:
+  //   • إبن كثير (مختصر دار السلام) — المرجع الأشهر في الإنجليزية
+  //   • معارف القرآن — مفتي محمد شفيع (دار العلوم كراتشي)
+  EN_EXTRA: {
+    ibnkathir: {
+      slug: 'en-tafisr-ibn-kathir',
+      name_es: 'Ibn Kathir (EN)', name_en: 'Ibn Kathir (abridged)', name_ar: 'تفسير ابن كثير (إنجليزي)',
+      desc_es: 'Tafsir Ibn Kathir (Dar-us-Salam, abreviado) — descarga desde CDN',
+      desc_en: 'Tafsir Ibn Kathir (Dar-us-Salam, abridged) — downloaded from CDN',
+      desc_ar: 'تفسير ابن كثير (مختصر دار السلام) — تنزيل من CDN',
+    },
+    maarif: {
+      slug: 'en-tafsir-maarif-ul-quran',
+      name_es: "Ma'arif al-Qur'an (EN)", name_en: "Ma'arif al-Qur'an", name_ar: 'معارف القرآن (إنجليزي)',
+      desc_es: 'Maarif-ul-Quran de Mufti Muhammad Shafi — descarga desde CDN',
+      desc_en: 'Maarif-ul-Quran by Mufti Muhammad Shafi — downloaded from CDN',
+      desc_ar: 'معارف القرآن — مفتي محمد شفيع — تنزيل من CDN',
+    },
+  },
+
   DEFAULT_TAFSIR: 'local.garcia',
 
   // v30: resolver la EDICIÓN elegida por el usuario → fuente real.
@@ -64,6 +85,8 @@ const TafsirService = {
     if (tafsirId === 'local.garcia') return { type: 'garcia' };
     if (tafsirId === 'local.es') return { type: 'remote', edition: this.REMOTE_TAFSIRS.es };
     if (tafsirId === 'local.en') return { type: 'remote', edition: this.REMOTE_TAFSIRS.en };
+    if (tafsirId === 'en.ibnkathir') return { type: 'remote', edition: this.EN_EXTRA.ibnkathir };
+    if (tafsirId === 'en.maarif') return { type: 'remote', edition: this.EN_EXTRA.maarif };
     if (tafsirId === 'local.ar') return { type: 'remote', edition: this.REMOTE_TAFSIRS.ar };
     // 'local.auto' o desconocido: García por defecto en español, si no la edición del idioma
     return null;
@@ -375,6 +398,15 @@ const TafsirService = {
     if (key === 'es') {
       const g = this.GARCIA_ES;
       return [{ id: g.id, name: g.name_es, desc: g.desc_es }, remote];
+    }
+    // v1.0.150: inglés — المختصر (افتراضي) + ابن كثير + معارف القرآن
+    if (key === 'en') {
+      const extras = [this.EN_EXTRA.ibnkathir, this.EN_EXTRA.maarif].map(e => ({
+        id: 'en.' + (e.slug === 'en-tafisr-ibn-kathir' ? 'ibnkathir' : 'maarif'),
+        name: e.name_en,
+        desc: e.desc_en,
+      }));
+      return [remote].concat(extras);
     }
     return [remote];
   },

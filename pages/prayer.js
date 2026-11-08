@@ -8,6 +8,16 @@ const PrayerPage = {
   permissionGranted: false,
   countdownInterval: null, // v36: actualiza el «tiempo restante» en la tabla
 
+  // v1.0.138: نصّ ثلاثي اللغات داخل الصفحة
+  _px(ar, es, en) {
+    let loc = 'ar';
+    try {
+      loc = (typeof currentLocale !== 'undefined' && ['ar', 'es', 'en'].includes(currentLocale))
+        ? currentLocale : ((AppState.settings && AppState.settings.locale) || 'ar');
+    } catch (e) { loc = 'ar'; }
+    return loc === 'es' ? es : (loc === 'en' ? en : ar);
+  },
+
   async render(container, params = {}) {
     // v14: honor incoming tab param (e.g. Router.go('prayer',{tab:'monthly'}))
     if (params && params.tab && ['times','monthly','qibla'].includes(params.tab)) {
@@ -87,6 +97,9 @@ const PrayerPage = {
   renderUI(container, loc, hijri, distance) {
     container.innerHTML = `
       <div class="page-header prayer-header">
+        <button class="pr-hdr-dl" onclick="PrayerPage.openDlSheet(event)" aria-label="${this._px('تحميل المواعيد', 'Descargar horarios', 'Download times')}" aria-haspopup="dialog">
+          <i class="fas fa-download"></i>
+        </button>
         <div class="page-title"><i class="fas fa-mosque"></i> ${t('tabPrayer')}</div>
         ${hijri ? `<div class="page-subtitle">${hijri.day} ${hijri.month?.en} ${hijri.year} هـ</div>` : ''}
         <button class="prayers-location" onclick="ProfilePage.pickCity()" title="${escapeAttr(t('changeCity') || '')}" aria-label="${escapeAttr(t('changeCity') || 'Cambiar ciudad')}">
@@ -214,75 +227,223 @@ const PrayerPage = {
         }).join('')}
         ${this.weekHtml()}
 
-        <div class="pr-actions">
-          <button class="pr-act pr-act-main" id="pr-dl-btn" onclick="PrayerPage.toggleDlMenu(event)"
-                  aria-label="${t('download') || t('downloadPdf') || 'تحميل'}" aria-haspopup="menu" aria-expanded="false">
-            <i class="fas fa-download"></i>
-          </button>
-          <div class="pr-dl-menu hidden" id="pr-dl-menu" role="menu" style="position:static;order:9;flex:1 0 100%;display:flex;justify-content:center;gap:10px;margin-top:10px">
-            <button class="pr-dl-opt" role="menuitem" onclick="PrayerPdf.downloadDaily(this);PrayerPage.closeDlMenu()">
-              <i class="fas fa-file-pdf"></i><span>PDF</span>
-            </button>
-            <button class="pr-dl-opt" role="menuitem" onclick="PrayerPdf.saveDailyImage(this);PrayerPage.closeDlMenu()">
-              <i class="fas fa-image"></i><span>PNG</span>
-            </button>
-          </div>
-        </div>
       </div>
     `;
   },
 
 
-  // ===== v135: صلوات الأسبوع (حساب محلي لسبعة أيام) =====
+  // ===== v1.0.138: صلوات الأسبوع — قسم قابل للفتح/الإغلاق، نفس مصدر تبويب اليوم =====
+  WEEK_KEY: 'quba_week_open',
+
+  weekOpen() {
+    try { return localStorage.getItem(this.WEEK_KEY) === '1'; } catch (e) { return false; }
+  },
+  toggleWeek() {
+    const on = !this.weekOpen();
+    try { localStorage.setItem(this.WEEK_KEY, on ? '1' : '0'); } catch (e) {}
+    const box = document.getElementById('wk-box');
+    const btn = document.getElementById('wk-toggle');
+    if (box) box.hidden = !on;
+    if (btn) {
+      btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+      btn.classList.toggle('is-open', on);
+    }
+    if (on) { try { this._weekSyncAsync(); } catch (e) {} }
+  },
+
+  // مواقيت يوم واحد بنفس مسار تبويب اليوم (طريقة المدينة + فرق توقيت المدينة + التوقيت الصيفي/الشتوي)
+  _dayTimings(d) {
+    const loc = AppState.location || {};
+    const base = (AppState.settings && AppState.settings.calculationMethod) || 4;
+    try {
+      // v1.0.142: التطبيع الكوبي (UTC−4) يتم مرة واحدة داخل _offlinePrayerTimes،
+      // فلا نضيف ساعة يدويًا هنا (كان يسبب فروقًا بين تبويبات الصفحة).
+      return API._offlinePrayerTimes(loc.latitude, loc.longitude, d, base).timings || {};
+    } catch (e) { return {}; }
+  },
+
+  // منتصف الليل والثلث الأخير — بين مغرب اليوم وفجر الغد
+  _nightTimes(today, tomorrow) {
+    const toMin = (s) => {
+      const [h, m] = String(s || '').split(' ')[0].split(':').map(Number);
+      return (isNaN(h) || isNaN(m)) ? null : h * 60 + m;
+    };
+    const mg = toMin(today && today.Maghrib), fj = toMin(tomorrow && tomorrow.Fajr);
+    if (mg === null || fj === null) return { mid: '', third: '' };
+    let span = (fj + 1440 - mg) % 1440;
+    if (!span) return { mid: '', third: '' };
+    const fmt = (v) => {
+      v = ((v % 1440) + 1440) % 1440;
+      const h = Math.floor(v / 60), m = Math.round(v % 60);
+      return String((h + (m === 60 ? 1 : 0)) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+    };
+    return { mid: fmt(mg + span / 2), third: fmt(mg + span * 2 / 3) };
+  },
+
   weekHtml() {
     const loc = AppState.location;
-    if (!loc || typeof PrayerCalc === 'undefined') return '';
-    let raw = null;
-    try {
-      const base = (AppState.settings && AppState.settings.calculationMethod) || 4;
-      const method = (typeof API !== 'undefined' && API._effectiveMethod)
-        ? API._effectiveMethod(loc.latitude, loc.longitude, base) : base;
-      raw = { method: method };
-    } catch (e) { return ''; }
-    const clean = (v) => String(v || '').split(' ')[0].slice(0, 5);
-    const names = [
-      ['Fajr', t('prayers.Fajr') || 'Fajr'],
-      ['Dhuhr', t('prayers.Dhuhr') || 'Dhuhr'],
-      ['Asr', t('prayers.Asr') || 'Asr'],
-      ['Maghrib', t('prayers.Maghrib') || 'Maghrib'],
-      ['Isha', t('prayers.Isha') || 'Isha'],
-    ];
-    const wdShort = (d) => {
-      try { return d.toLocaleDateString(currentLocale, { weekday: 'short' }); }
-      catch (e) { return ''; }
-    };
-    const rows = [];
+    if (!loc) return '';
+    const open = this.weekOpen();
+    const L = (a, e, en) => this._px(a, e, en);
+    const clean = (v) => String(v || '').split(' ')[0].slice(0, 5) || '—';
+    const NAMES = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+
+    const today = new Date(); today.setHours(12, 0, 0, 0);
+    const days = [];
     for (let i = 0; i < 7; i++) {
-      const d = new Date();
-      d.setHours(12, 0, 0, 0);
-      d.setDate(d.getDate() + i);
-      let tm = {};
+      const d = new Date(today.getTime()); d.setDate(d.getDate() + i);
+      const tm = (i === 0 && AppState.timings) ? AppState.timings : this._dayTimings(d);
+      days.push({ d: d, tm: tm });
+    }
+    // صفوف الغد لحساب منتصف الليل والثلث الأخير لكل يوم
+    const tomorrowTm = days.map((x, i) => (i + 1 < 7) ? days[i + 1].tm : this._dayTimings(new Date(today.getTime() + 7 * 86400000)));
+
+    const hijriOf = (d) => {
       try {
-        tm = PrayerCalc.getTimings(loc.latitude, loc.longitude, d, raw.method, loc.country || '', 0) || {};
-      } catch (e) { tm = {}; }
-      const cells = names.map(([k]) => `<span class="wk-t">${clean(tm[k]) || '—'}</span>`).join('');
-      rows.push(`<div class="wk-day">${wdShort(d)}<i>${d.getDate()}/${d.getMonth() + 1}</i></div>${cells}`);
-    }
-    const head = `<div class="wk-hd wk-hd-day">${t('day') || 'اليوم'}</div>` +
-      names.map(([, label]) => `<div class="wk-hd">${label}</div>`).join('');
-    // 7 صفوف: كل صف = 6 عناصر؛ اليوم الأول مميّز
-    let grid = head;
-    for (let i = 0; i < 7; i++) {
-      grid += `<div class="wk-row${i === 0 ? ' wk-row-today' : ''}">${rows[i]}</div>`;
-    }
+        const h = (typeof HijriCalc !== 'undefined' && HijriCalc.fromDate) ? HijriCalc.fromDate(d) : null;
+        if (!h) return '';
+        const months = {
+          ar: ['محرم','صفر','ربيع الأول','ربيع الآخر','جمادى الأولى','جمادى الآخرة','رجب','شعبان','رمضان','شوال','ذو القعدة','ذو الحجة'],
+          es: ['Muharram','Safar','Rabi I','Rabi II','Yumada I','Yumada II','Rayab','Shaban','Ramadán','Shawwal','Dhul-Qada','Dhul-Hiyya'],
+          en: ['Muharram','Safar','Rabi I','Rabi II','Jumada I','Jumada II','Rajab','Shaban','Ramadan','Shawwal','Dhul-Qadah','Dhul-Hijjah'],
+        };
+        let l = 'ar';
+        try { l = (typeof currentLocale !== 'undefined' && ['ar','es','en'].includes(currentLocale)) ? currentLocale : 'ar'; } catch (e) {}
+        return h.day + ' ' + ((months[l] || months.ar)[h.month - 1] || '');
+      } catch (e) { return ''; }
+    };
+    const wd = (d) => { try { return d.toLocaleDateString(currentLocale, { weekday: 'long' }); } catch (e) { return ''; } };
+    const gd = (d) => { try { return d.toLocaleDateString(currentLocale, { day: 'numeric', month: 'long' }); } catch (e) { return ''; } };
+
+    const card = (x, i) => {
+      const nt = this._nightTimes(x.tm, tomorrowTm[i]);
+      const cells = NAMES.map(n => `
+        <span class="wk-c" data-wk-p="${n}">
+          <em>${t('prayers.' + n) || n}</em>
+          <b>${clean(x.tm[n])}</b>
+        </span>`).join('');
+      return `<div class="wk-day${i === 0 ? ' is-today' : ''}" data-wk-day="${i}">
+        <div class="wk-day-h">
+          <b>${escapeHtml(wd(x.d))}</b>
+          <i>${x.d.getDate()} · ${escapeHtml(hijriOf(x.d))}</i>
+          <span>${escapeHtml(gd(x.d))}</span>
+          ${i === 0 ? `<em class="wk-today-badge">${L('اليوم', 'Hoy', 'Today')}</em>` : ''}
+        </div>
+        <div class="wk-cols">${cells}</div>
+        <div class="wk-night">
+          <span><i class="fas fa-moon"></i> ${L('منتصف الليل', 'Medianoche', 'Midnight')} <b>${clean(nt.mid)}</b></span>
+          <span><i class="fas fa-star"></i> ${L('الثلث الأخير', 'Último tercio', 'Last third')} <b>${clean(nt.third)}</b></span>
+        </div>
+      </div>`;
+    };
+
     return `
       <div class="wk-card">
-        <div class="wk-head">
-          <span class="wk-title"><i class="fas fa-calendar-week"></i>${t('weekPrayers') || 'صلوات الأسبوع'}</span>
-          <span class="wk-sub">${t('next7Days') || '٧ أيام'}</span>
+        <button class="wk-head" id="wk-toggle" onclick="PrayerPage.toggleWeek()" aria-expanded="${open ? 'true' : 'false'}" aria-controls="wk-box">
+          <span class="wk-title"><i class="fas fa-calendar-week"></i>${L('صلوات الأسبوع', 'Oraciones de la semana', 'Week prayers')}</span>
+          <span class="wk-sub">${L('٧ أيام', '7 días', '7 days')}</span>
+          <i class="fas fa-chevron-down wk-chev${open ? ' is-open' : ''}"></i>
+        </button>
+        <div class="wk-box" id="wk-box" ${open ? '' : 'hidden'}>
+          ${days.map(card).join('')}
         </div>
-        <div class="wk-grid">${grid}</div>
       </div>`;
+  },
+
+  // تحديث قيم الأسبوع من نفس مصدر المواقيت الأساسية (يشمل CubaTime وprayer offsets)
+  async _weekSyncAsync() {
+    const loc = AppState.location;
+    if (!loc || typeof API === 'undefined' || !API.getPrayerTimes) return;
+    const base = (AppState.settings && AppState.settings.calculationMethod) || 4;
+    const today = new Date(); today.setHours(12, 0, 0, 0);
+    for (let i = 1; i < 7; i++) {
+      const d = new Date(today.getTime()); d.setDate(d.getDate() + i);
+      try {
+        const res = await API.getPrayerTimes(loc.latitude, loc.longitude, d, base);
+        const tm = res && res.timings;
+        if (!tm) continue;
+        const dayEl = document.querySelector(`[data-wk-day="${i}"]`);
+        if (!dayEl) continue;
+        ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].forEach(n => {
+          const el = dayEl.querySelector(`[data-wk-p="${n}"] b`);
+          const v = String(tm[n] || '').split(' ')[0].slice(0, 5);
+          if (el && v) el.textContent = v;
+        });
+      } catch (e) { /* يبقى الحساب المحلي */ }
+    }
+  },
+
+  // ===== v1.0.138: نافذة التحميل — اليوم/الأسبوع/الشهر × PDF/صورة =====
+  openDlSheet(ev) {
+    if (ev) ev.stopPropagation();
+    this.closeDlSheet();
+    const L = (a, e, en) => this._px(a, e, en);
+    const row = (kind, icon, title, sub) => `
+      <div class="dl-row">
+        <span class="dl-ic"><i class="fas ${icon}"></i></span>
+        <span class="dl-tx"><b>${title}</b><em>${sub}</em></span>
+        <span class="dl-fmts">
+          <button class="dl-fmt" data-kind="${kind}" data-fmt="pdf" onclick="PrayerPage.runDl('${kind}','pdf',this)"><i class="fas fa-file-pdf"></i> PDF</button>
+          <button class="dl-fmt" data-kind="${kind}" data-fmt="png" onclick="PrayerPage.runDl('${kind}','png',this)"><i class="fas fa-image"></i> ${L('صورة', 'Imagen', 'Image')}</button>
+        </span>
+      </div>`;
+    const el = document.createElement('div');
+    el.className = 'dl-scrim';
+    el.id = 'pr-dl-sheet';
+    el.innerHTML = `<div class="dl-sheet" role="dialog" aria-modal="true">
+      <div class="dl-h"><b><i class="fas fa-download"></i> ${L('تحميل المواعيد', 'Descargar horarios', 'Download times')}</b>
+        <button class="dl-x" onclick="PrayerPage.closeDlSheet()" aria-label="close"><i class="fas fa-xmark"></i></button></div>
+      ${row('day', 'fa-calendar-day', L('صلوات اليوم', "Oraciones de hoy", "Today's prayers"), L('الأذان والإقامة', 'Adhan e iqamah', 'Adhan & iqamah'))}
+      ${row('week', 'fa-calendar-week', L('صلوات الأسبوع', 'Oraciones de la semana', 'Week prayers'), L('٧ أيام مع منتصف الليل والثلث الأخير', '7 días', '7 days'))}
+      ${row('month', 'fa-calendar-days', L('صلوات الشهر', 'Horario del mes', 'Monthly schedule'), L('جدول الشهر كاملًا', 'Mes completo', 'Full month'))}
+    </div>`;
+    el.addEventListener('click', (e) => { if (e.target === el) this.closeDlSheet(); });
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('is-open'));
+  },
+  closeDlSheet() {
+    const el = document.getElementById('pr-dl-sheet');
+    if (el) { el.classList.remove('is-open'); setTimeout(() => el.remove(), 200); }
+  },
+  async runDl(kind, fmt, btn) {
+    const L = (a, e, en) => this._px(a, e, en);
+    if (kind === 'month' && (!this._monthly || !this._monthly.data)) {
+      const loc = AppState.location || {};
+      try { await this.loadMonthlyPrayers(loc); } catch (e) {}
+    }
+    const map = {
+      'day:pdf': 'downloadDaily', 'day:png': 'saveDailyImage',
+      'week:pdf': 'downloadWeek', 'week:png': 'saveWeekImage',
+      'month:pdf': 'downloadMonth', 'month:png': 'saveMonthImage',
+    };
+    const fn = map[kind + ':' + fmt];
+    if (!fn || typeof PrayerPdf === 'undefined' || typeof PrayerPdf[fn] !== 'function') {
+      try { showToast(L('التحميل غير متاح', 'Descarga no disponible', 'Download unavailable'), 1800); } catch (e) {}
+      return;
+    }
+    try { await PrayerPdf[fn](btn); } catch (e) {}
+    this.closeDlSheet();
+  },
+
+  // ===== v1.0.138: بيانات الأسبوع لملف PDF/الصورة =====
+  weekData() {
+    const today = new Date(); today.setHours(12, 0, 0, 0);
+    const out = [];
+    const NAMES = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+    const todayTm = AppState.timings || this._dayTimings(today);
+    const tomorrowTm = this._dayTimings(new Date(today.getTime() + 86400000));
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today.getTime()); d.setDate(d.getDate() + i);
+      const tm = (i === 0 && AppState.timings) ? AppState.timings : this._dayTimings(d);
+      const next = this._dayTimings(new Date(d.getTime() + 86400000));
+      const nt = this._nightTimes(tm, next);
+      let wd = '';
+      try { wd = d.toLocaleDateString(currentLocale, { weekday: 'long' }); } catch (e) { wd = ''; }
+      let gdate = '';
+      try { gdate = d.toLocaleDateString(currentLocale, { day: 'numeric', month: 'long' }); } catch (e) { gdate = ''; }
+      out.push({ date: d, weekday: wd, gdate: gdate, timings: tm, night: nt, names: NAMES });
+    }
+    return out;
   },
 
   toggleDlMenu(ev) {
@@ -505,6 +666,8 @@ const PrayerPage = {
       Isha: t('prayers.Isha') || 'Isha',
     };
 
+    // v1.0.138: صف اليوم يأخذ مواقيت تبويب اليوم نفسها (نفس المصدر والتوقيت الصيفي)
+    const todayTimings = (AppState.timings && isCurrentMonth) ? AppState.timings : null;
     const rows = data.map(day => {
       const gDate = day.date?.gregorian;
       const hDate = day.date?.hijri;
@@ -512,6 +675,10 @@ const PrayerPage = {
       const isToday = isCurrentMonth && dayNum === todayDay;
       const t24 = t => (t || '').split(' ')[0].slice(0,5); // "05:12 (CET)" -> "05:12"
       const isFriday = new Date(gDate?.date?.split('-').reverse().join('-'))?.getDay() === 5;
+      const tm = (isToday && todayTimings) ? Object.assign({}, day.timings, {
+        Fajr: todayTimings.Fajr, Sunrise: todayTimings.Sunrise, Dhuhr: todayTimings.Dhuhr,
+        Asr: todayTimings.Asr, Maghrib: todayTimings.Maghrib, Isha: todayTimings.Isha,
+      }) : (day.timings || {});
 
       return `
         <tr class="${isToday ? 'monthly-row-today' : ''} ${isFriday ? 'monthly-row-friday' : ''}">
@@ -521,11 +688,11 @@ const PrayerPage = {
             ${isFriday ? '<div class="monthly-friday-badge"><i class="fas fa-book"></i></div>' : ''}
             ${isToday ? '<div class="monthly-today-badge"><i class="fas fa-star"></i></div>' : ''}
           </td>
-          <td>${t24(day.timings?.Fajr)}<div class="monthly-iqamah">${getIqamahTime('Fajr', t24(day.timings?.Fajr)) || ''}</div></td>
-          <td>${t24(day.timings?.Dhuhr)}<div class="monthly-iqamah">${getIqamahTime('Dhuhr', t24(day.timings?.Dhuhr)) || ''}</div></td>
-          <td>${t24(day.timings?.Asr)}<div class="monthly-iqamah">${getIqamahTime('Asr', t24(day.timings?.Asr)) || ''}</div></td>
-          <td>${t24(day.timings?.Maghrib)}<div class="monthly-iqamah">${getIqamahTime('Maghrib', t24(day.timings?.Maghrib)) || ''}</div></td>
-          <td>${t24(day.timings?.Isha)}<div class="monthly-iqamah">${getIqamahTime('Isha', t24(day.timings?.Isha)) || ''}</div></td>
+          <td>${t24(tm.Fajr)}<div class="monthly-iqamah">${getIqamahTime('Fajr', t24(tm.Fajr)) || ''}</div></td>
+          <td>${t24(tm.Dhuhr)}<div class="monthly-iqamah">${getIqamahTime('Dhuhr', t24(tm.Dhuhr)) || ''}</div></td>
+          <td>${t24(tm.Asr)}<div class="monthly-iqamah">${getIqamahTime('Asr', t24(tm.Asr)) || ''}</div></td>
+          <td>${t24(tm.Maghrib)}<div class="monthly-iqamah">${getIqamahTime('Maghrib', t24(tm.Maghrib)) || ''}</div></td>
+          <td>${t24(tm.Isha)}<div class="monthly-iqamah">${getIqamahTime('Isha', t24(tm.Isha)) || ''}</div></td>
         </tr>
       `;
     }).join('');
@@ -538,9 +705,6 @@ const PrayerPage = {
       <div class="monthly-header">
         <div class="monthly-title"><i class="fas fa-calendar-days"></i> ${monthName} ${year}</div>
         <div class="monthly-subtitle">${data.length} ${t('days') || 'días'}</div>
-        <button class="btn-primary pdf-btn-month" onclick="PrayerPdf.downloadMonth(this)" aria-label="${t('downloadPdf') || 'PDF'}">
-          <i class="fas fa-file-pdf"></i> ${t('downloadPdf') || 'Descargar PDF'}
-        </button>
       </div>
       <div class="monthly-table-wrap">
         <table class="monthly-table">

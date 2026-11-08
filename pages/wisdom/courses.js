@@ -307,13 +307,28 @@ const CoursesPage = {
 
   renderAchievements(gameState) {
     const achievements = gameState.achievements || [];
-    if (!achievements.length) return '';
-    return `
+    const total = Gamification.TOTAL_BADGES || (Gamification.ACHIEVEMENTS || []).length;
+    const lang = this.lang ? this.lang() : (currentLocale || 'es');
+    const more = lang === 'ar' ? 'عرض كل الأوسمة' : (lang === 'en' ? 'See all badges' : 'Ver todas las medallas');
+    if (!achievements.length) {
+      return `
       <h2 class="section-title"><i class="fas fa-trophy"></i> ${t('achievements') || 'Logros'}</h2>
+      <div class="ach-inline-empty">
+        <i class="fas fa-lock"></i>
+        <span>${lang === 'ar' ? 'لم تُفتح أي وسام بعد — ابدأ باختبار قصير' : (lang === 'en' ? 'No badges yet — start with a short quiz' : 'Aún sin medallas — empieza con un quiz corto')}</span>
+        <button class="ach-inline-link" onclick="Router.go('wisdom/achievements')">${more}</button>
+      </div>`;
+    }
+    return `
+      <div class="ach-inline-head">
+        <h2 class="section-title"><i class="fas fa-trophy"></i> ${t('achievements') || 'Logros'}</h2>
+        <button class="ach-inline-link" onclick="Router.go('wisdom/achievements')">${achievements.length}/${total} · ${more} <i class="fas fa-chevron-${document.documentElement.dir === 'rtl' ? 'left' : 'right'}"></i></button>
+      </div>
       <div class="achievements-row">
         ${achievements.slice(0, 6).map(id => {
           const a = (Gamification.ACHIEVEMENTS || []).find(x => x.id === id);
-          return `<div class="achievement-badge"><div class="ab-icon">${a ? a.icon : '<i class="fas fa-medal"></i>'}</div><div class="ab-name">${a ? this.X(a.name) : id}</div></div>`;
+          const label = a ? (typeof L === 'function' ? L(a.name) : (a.name?.es || id)) : id.replace(/^cx_/, '').replace(/_/g, ' ');
+          return `<div class="achievement-badge"><div class="ab-icon">${a ? a.icon : '<i class="fas fa-medal"></i>'}</div><div class="ab-name">${label}</div></div>`;
         }).join('')}
       </div>`;
   },
@@ -1202,31 +1217,80 @@ const CoursesPage = {
     this.state = null;
   },
 
+  /** رقم شهادة ثابت من (الاسم + الدورة + التاريخ) — للتحقق البصري عند المشاركة. */
+  _certId(seed) {
+    let h = 2166136261;
+    const str = String(seed || '');
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return 'QBA-' + (h >>> 0).toString(36).toUpperCase().slice(0, 6);
+  },
+
   renderCertificate(course, lang, tier) {
     const userName = (AppState.settings && AppState.settings.userName) || AppState.userName || (lang === 'ar' ? 'الطالب' : (lang === 'en' ? 'Student' : 'Estudiante'));
     const date = new Date().toLocaleDateString(currentLocale === 'ar' ? 'ar-EG' : currentLocale);
     const editLabel = lang === 'ar' ? 'تعديل الاسم' : (lang === 'en' ? 'Edit name' : 'Editar nombre');
+    const gs = (typeof Gamification !== 'undefined') ? Gamification.getState() : { xp: 0 };
+    const lvl = (typeof Gamification !== 'undefined') ? Gamification.getLevelInfo(gs.xp) : { level: 1, name: { es: 'Iniciado' } };
+    const lvlName = (typeof lvl.name === 'object') ? (lvl.name[lang] || lvl.name.es) : lvl.name;
+    let hijri = '';
+    try {
+      const h = AppState.hijri;
+      if (h && h.day) hijri = `${h.day} ${(h.month && (h.month[lang] || h.month.en || h.month.es)) || ''} ${h.year} هـ`;
+    } catch (e) {}
+    const certId = this._certId(userName + '|' + course.id + '|' + date);
+    const lbl = {
+      level: lang === 'ar' ? 'المستوى' : (lang === 'en' ? 'Level' : 'Nivel'),
+      xp: lang === 'ar' ? 'مجموع النقاط' : (lang === 'en' ? 'Total XP' : 'XP total'),
+      id: lang === 'ar' ? 'رقم الشهادة' : (lang === 'en' ? 'Certificate no.' : 'N.º de certificado'),
+      date: lang === 'ar' ? 'التاريخ' : (lang === 'en' ? 'Date' : 'Fecha'),
+      hijri: lang === 'ar' ? 'هجري' : (lang === 'en' ? 'Hijri' : 'Hégira'),
+    };
     const tierRow = tier ? `<div class="cert-tier cert-tier-${tier}">${this._tierIcon(tier)} ${this._tierLabel(tier)}</div>` : '';
     return `
-      <div class="certificate" id="certificate">
-        <div class="cert-corner cert-tl"><i class="fas fa-star"></i></div>
-        <div class="cert-corner cert-tr"><i class="fas fa-star"></i></div>
-        <div class="cert-corner cert-bl"><i class="fas fa-star"></i></div>
-        <div class="cert-corner cert-br"><i class="fas fa-star"></i></div>
+      <div class="certificate cert-v152" id="certificate">
+        <div class="cert-frame"></div>
+        <div class="cert-corner cert-tl"><i class="fas fa-certificate"></i></div>
+        <div class="cert-corner cert-tr"><i class="fas fa-certificate"></i></div>
+        <div class="cert-corner cert-bl"><i class="fas fa-certificate"></i></div>
+        <div class="cert-corner cert-br"><i class="fas fa-certificate"></i></div>
+
         <div class="cert-header">
+          <div class="cert-eyebrow">QUBA · ${lang === 'ar' ? 'منصة إسلامية تعليمية' : (lang === 'en' ? 'Islamic learning platform' : 'Plataforma islámica de aprendizaje')}</div>
           <div class="cert-mascot-row">${Mascot.render('celebrate', 'small')}</div>
-          <h3><i class="fas fa-trophy"></i> ${t('certificateOfCompletion') || 'Certificado de Finalización'}</h3>
+          <h3>${t('certificateOfCompletion') || 'Certificado de Finalización'}</h3>
+          <div class="cert-divider"><span></span><i class="fas fa-star"></i><span></span></div>
         </div>
+
+        ${tierRow}
+
         <div class="cert-body">
-          ${tierRow}
-          <div class="cert-presented">${t('presentedTo') || 'Otorgado a'}:</div>
+          <div class="cert-presented">${t('presentedTo') || 'Otorgado a'}</div>
           <div class="cert-name" id="cert-name-display">${escapeHtml(userName)}</div>
           <button class="cert-edit-name-btn" onclick="CoursesPage.editCertName()" title="${editLabel}" aria-label="${editLabel}"><i class="fas fa-pen"></i> <span>${editLabel}</span></button>
-          <div class="cert-completed">${t('hasCompleted') || 'ha completado el curso'}:</div>
+          <div class="cert-completed">${t('hasCompleted') || 'ha completado el curso'}</div>
           <div class="cert-course-name">${/<[^>]+>/.test(course.icon || '') ? (course.certIcon || '⭐') : course.icon} ${escapeHtml(this.X(course.title))}</div>
-          <div class="cert-date">${date}</div>
         </div>
-        <div class="cert-footer"><div class="cert-signature">Quba — ${t('islamicLearning') || 'Aprendizaje Islámico'}</div></div>
+
+        <div class="cert-meta">
+          <div class="cert-meta-item"><span>${lbl.level}</span><b>${lvl.level} · ${escapeHtml(lvlName)}</b></div>
+          <div class="cert-meta-item"><span>${lbl.xp}</span><b>${gs.xp.toLocaleString()} XP</b></div>
+          <div class="cert-meta-item"><span>${lbl.date}</span><b>${date}</b></div>
+          ${hijri ? `<div class="cert-meta-item"><span>${lbl.hijri}</span><b>${hijri}</b></div>` : ''}
+        </div>
+
+        <div class="cert-seal" aria-hidden="true">
+          <div class="cert-seal-ring"></div>
+          <div class="cert-seal-in">
+            <i class="fas fa-star-and-crescent"></i>
+            <span>QUBA</span>
+          </div>
+        </div>
+
+        <div class="cert-footer">
+          <div class="cert-signature">Quba — ${t('islamicLearning') || 'Aprendizaje Islámico'}</div>
+          <div class="cert-id">${lbl.id}: ${certId}</div>
+        </div>
+
         <button class="btn-primary cert-share-btn" onclick="CoursesPage.shareCertificate('${course.id}')"><i class="fas fa-share-alt"></i> ${t('shareCertificate') || 'Compartir certificado'}</button>
       </div>`;
   },

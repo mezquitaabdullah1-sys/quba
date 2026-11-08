@@ -1,0 +1,301 @@
+/* =====================================================================
+   v1.0.151 — صفحة «الأدعية والأذكار» الموحّدة
+   • هوية بصرية واحدة: هيرو متدرّج + تبويب مزدوج + بحث موحّد
+   • ستة قوالب بطاقات مختلفة (arch / ribbon / geo / glass / parch / night)
+     ولوحة ألوان تُختار لكل ذكر/دعاء بحسب معرّفه — فلا يتشابه بطاقتان.
+   ===================================================================== */
+
+.dq-page { padding-bottom: 90px; }
+
+/* ---------- الهيرو ---------- */
+.dq-hero {
+  position: relative; overflow: hidden;
+  margin: 0 0 14px; padding: 18px 16px 16px;
+  background:
+    radial-gradient(120% 90% at 85% -10%, rgba(212,175,55,.38), transparent 60%),
+    linear-gradient(150deg, #0F4C3A 0%, #146B52 55%, #0A3A2C 100%);
+  color: #F6F1E4;
+  border-radius: 0 0 26px 26px;
+}
+.dq-hero::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .16;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.5) 0 1px, transparent 1px 16px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,.35) 0 1px, transparent 1px 16px);
+  mask-image: radial-gradient(80% 70% at 80% 0%, #000 20%, transparent 75%);
+  -webkit-mask-image: radial-gradient(80% 70% at 80% 0%, #000 20%, transparent 75%);
+}
+.dq-hero-top { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; }
+.dq-hero-back {
+  width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,.28);
+  background: rgba(255,255,255,.12); color: #F6F1E4; display: grid; place-items: center;
+  font-size: 13px; flex: 0 0 34px;
+}
+.dq-hero-t { font-size: 17px; font-weight: 800; letter-spacing: .2px; }
+.dq-hero-s { font-size: 11.5px; opacity: .82; margin-top: 2px; }
+.dq-hero-chips { position: relative; z-index: 1; display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.dq-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.2);
+  padding: 7px 11px; border-radius: 12px; font-size: 11.5px; font-weight: 700;
+  backdrop-filter: blur(4px);
+}
+.dq-chip i { color: #EBD08A; font-size: 11px; }
+.dq-chip b { font-size: 13px; }
+
+/* ---------- التبويب المزدوج ---------- */
+.dq-tabs {
+  display: flex; gap: 6px; padding: 5px; margin: 0 14px 12px;
+  background: var(--bg-card, #fff); border-radius: 15px;
+  box-shadow: 0 2px 12px rgba(10,30,25,.07);
+}
+.dq-tab {
+  flex: 1; border: none; background: transparent; cursor: pointer;
+  font-family: inherit; font-size: 12.5px; font-weight: 700;
+  color: var(--text-secondary, #6B7280);
+  padding: 10px 6px; border-radius: 11px; display: inline-flex;
+  align-items: center; justify-content: center; gap: 6px;
+}
+.dq-tab.on {
+  color: #fff; background: linear-gradient(135deg, #0F766E, #0B5A54);
+  box-shadow: 0 4px 12px rgba(15,118,110,.32);
+}
+.dq-tab i { font-size: 12px; }
+
+/* ---------- البحث ---------- */
+.dq-search { margin: 0 14px 14px; position: relative; }
+.dq-search i.fa-magnifying-glass {
+  position: absolute; inset-inline-start: 14px; top: 50%; transform: translateY(-50%);
+  color: var(--text-secondary, #98A2A0); font-size: 12.5px; pointer-events: none;
+}
+.dq-search input {
+  width: 100%; box-sizing: border-box; border: 1.5px solid var(--border, rgba(0,0,0,.08));
+  background: var(--bg-card, #fff); color: var(--text-primary, #1C2321);
+  border-radius: 14px; padding: 12px 14px 12px 40px; font-family: inherit; font-size: 13px;
+  outline: none;
+}
+.dq-search input:focus { border-color: #0F766E; }
+[dir="rtl"] .dq-search input { padding: 12px 40px 12px 14px; }
+
+/* ---------- شبكة المجموعات ---------- */
+.dq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 14px; }
+@media (max-width: 340px) { .dq-grid { grid-template-columns: 1fr; } }
+
+.dq-set {
+  position: relative; overflow: hidden; cursor: pointer; text-align: start;
+  border: none; font-family: inherit;
+  background: var(--bg-card, #fff); border-radius: 18px; padding: 13px 12px 12px;
+  box-shadow: 0 2px 10px rgba(10,30,25,.07);
+  display: flex; flex-direction: column; gap: 8px; min-height: 104px;
+  transition: transform .14s ease;
+}
+.dq-set:active { transform: scale(.97); }
+.dq-set::before {
+  content: ''; position: absolute; inset-inline-start: 0; top: 0; bottom: 0; width: 4px;
+  background: var(--a, #0F766E);
+}
+.dq-set::after {
+  content: ''; position: absolute; width: 62px; height: 62px; border-radius: 50%;
+  inset-inline-end: -20px; top: -22px; background: var(--a, #0F766E); opacity: .09;
+}
+.dq-set-ic {
+  width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center;
+  font-size: 14px; background: var(--a-soft, rgba(15,118,110,.12)); color: var(--a, #0F766E);
+}
+.dq-set-n { font-size: 12.8px; font-weight: 800; color: var(--text-primary, #1C2321); line-height: 1.35; }
+.dq-set-m { font-size: 10.5px; color: var(--text-secondary, #6B7280); }
+.dq-set-done {
+  position: absolute; top: 10px; inset-inline-end: 10px;
+  width: 19px; height: 19px; border-radius: 50%; display: grid; place-items: center;
+  background: #1E8449; color: #fff; font-size: 9px; z-index: 2;
+}
+.dq-set-bar { height: 3px; border-radius: 3px; background: rgba(0,0,0,.06); overflow: hidden; margin-top: auto; }
+.dq-set-bar span { display: block; height: 100%; background: var(--a, #0F766E); border-radius: 3px; }
+
+/* ---------- رأس القائمة ---------- */
+.dq-listhead {
+  margin: 0 0 12px; padding: 16px; color: #fff; border-radius: 0 0 24px 24px;
+  background: linear-gradient(135deg, var(--a, #0F766E), var(--b, #0B5A54));
+  position: relative; overflow: hidden;
+}
+.dq-listhead::after {
+  content: ''; position: absolute; inset: 0; opacity: .14; pointer-events: none;
+  background: repeating-linear-gradient(60deg, rgba(255,255,255,.6) 0 1px, transparent 1px 14px);
+}
+.dq-lh-row { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; }
+.dq-lh-t { font-size: 16px; font-weight: 800; }
+.dq-lh-m { font-size: 11px; opacity: .85; margin-top: 2px; }
+.dq-lh-bar { position: relative; z-index: 1; height: 4px; border-radius: 3px; background: rgba(255,255,255,.25); margin-top: 12px; overflow: hidden; }
+.dq-lh-bar span { display: block; height: 100%; background: #EBD08A; border-radius: 3px; transition: width .3s ease; }
+
+/* =====================================================================
+   قالب البطاقة المشترك + الزخارف الخاصة بكل قالب
+   ===================================================================== */
+.dq-card {
+  position: relative; overflow: hidden; margin: 0 14px 14px;
+  border-radius: 20px; padding: 15px 15px 13px;
+  background: var(--bg-card, #fff);
+  box-shadow: 0 3px 14px rgba(10,30,25,.08);
+  border: 1px solid rgba(0,0,0,.045);
+}
+.dq-card::before {
+  content: ''; position: absolute; inset-inline-start: 0; top: 0; bottom: 0; width: 4px;
+  background: linear-gradient(180deg, var(--a, #0F766E), var(--b, #0B5A54));
+}
+.dq-head { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 10px; }
+.dq-idx {
+  flex: 0 0 auto; min-width: 26px; height: 26px; padding: 0 5px; border-radius: 9px;
+  display: grid; place-items: center; font-size: 11px; font-weight: 800;
+  background: var(--a-soft, rgba(15,118,110,.12)); color: var(--a, #0F766E);
+  font-variant-numeric: tabular-nums;
+}
+.dq-title { flex: 1; font-size: 13.6px; font-weight: 800; line-height: 1.4; color: var(--text-primary, #1C2321); }
+.dq-times {
+  flex: 0 0 auto; font-size: 10.5px; font-weight: 800; padding: 4px 8px; border-radius: 9px;
+  background: var(--a, #0F766E); color: #fff;
+}
+.dq-ar {
+  font-size: 19px; line-height: 2.05; text-align: right; direction: rtl;
+  color: var(--text-primary, #14201C);
+  font-family: 'Amiri', 'Scheherazade New', 'Noto Naskh Arabic', serif;
+  padding: 12px 12px 10px; border-radius: 14px; margin-bottom: 9px;
+  background: var(--a-soft, rgba(15,118,110,.07));
+}
+.dq-tr { font-size: 12px; font-style: italic; color: var(--text-secondary, #6B7280); line-height: 1.65; margin-bottom: 7px; }
+.dq-mean { font-size: 12.6px; line-height: 1.72; color: var(--text-primary, #26302C); }
+.dq-benefit {
+  display: flex; gap: 7px; align-items: flex-start; margin-top: 9px;
+  font-size: 11.6px; line-height: 1.6; padding: 8px 10px; border-radius: 11px;
+  background: rgba(212,175,55,.12); color: #7a5b00;
+}
+.dq-benefit i { color: #C9A227; margin-top: 2px; font-size: 10.5px; }
+.dq-foot {
+  display: flex; align-items: center; gap: 6px; margin-top: 11px;
+  padding-top: 9px; border-top: 1px dashed rgba(0,0,0,.08);
+}
+.dq-src { flex: 1; min-width: 0; font-size: 10.5px; font-weight: 700; color: var(--a, #0F766E); opacity: .9;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dq-acts { display: flex; gap: 4px; flex: 0 0 auto; }
+.dq-act {
+  width: 29px; height: 29px; border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(0,0,0,.045); color: var(--text-secondary, #55606B);
+  display: grid; place-items: center; font-size: 11px; padding: 0;
+}
+.dq-act:active { transform: scale(.9); }
+.dq-act.on { color: #C0392B; background: rgba(192,57,43,.1); }
+
+.dq-count {
+  width: 100%; margin-top: 11px; border: none; cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px; border-radius: 13px; font-size: 12.5px; font-weight: 800;
+  color: #fff; background: linear-gradient(135deg, var(--a, #0F766E), var(--b, #0B5A54));
+  transition: transform .12s ease;
+}
+.dq-count:active { transform: scale(.98); }
+.dq-count.done { background: linear-gradient(135deg, #1E8449, #14663A); }
+.dq-count .dq-prog { font-variant-numeric: tabular-nums; opacity: .95; }
+
+/* ---- 1) قالب المحراب: قوس علوي ---- */
+.dq-tpl-arch { border-radius: 90px 90px 20px 20px; padding-top: 24px; }
+.dq-tpl-arch::after {
+  content: ''; position: absolute; inset-inline: 22px; top: 8px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--a, #0F766E), transparent); opacity: .5;
+}
+.dq-tpl-arch .dq-head { justify-content: center; text-align: center; flex-direction: column; align-items: center; gap: 6px; }
+
+/* ---- 2) قالب الشريط: شريط عريض أعلى ---- */
+.dq-tpl-ribbon { padding-top: 0; }
+.dq-tpl-ribbon .dq-head {
+  margin: -15px -15px 12px; padding: 12px 15px;
+  background: linear-gradient(135deg, var(--a, #0F766E), var(--b, #0B5A54));
+}
+.dq-tpl-ribbon .dq-title { color: #fff; }
+.dq-tpl-ribbon .dq-idx { background: rgba(255,255,255,.22); color: #fff; }
+.dq-tpl-ribbon .dq-times { background: #fff; color: var(--a, #0F766E); }
+.dq-tpl-ribbon::before { display: none; }
+
+/* ---- 3) قالب هندسي: نقش إسلامي في الخلفية ---- */
+.dq-tpl-geo { background-image:
+    repeating-linear-gradient(45deg, var(--a-soft, rgba(15,118,110,.06)) 0 1px, transparent 1px 18px),
+    repeating-linear-gradient(-45deg, var(--a-soft, rgba(15,118,110,.06)) 0 1px, transparent 1px 18px);
+}
+.dq-tpl-geo .dq-ar { background: rgba(255,255,255,.72); backdrop-filter: blur(2px); }
+[data-theme="dark"] .dq-tpl-geo .dq-ar { background: rgba(0,0,0,.28); }
+
+/* ---- 4) قالب زجاجي ---- */
+.dq-tpl-glass {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--a, #0F766E) 12%, #fff), rgba(255,255,255,.86));
+  backdrop-filter: blur(9px); border: 1px solid rgba(255,255,255,.6);
+}
+.dq-tpl-glass .dq-ar { background: rgba(255,255,255,.55); }
+[data-theme="dark"] .dq-tpl-glass {
+  background: linear-gradient(160deg, rgba(255,255,255,.09), rgba(255,255,255,.04));
+  border-color: rgba(255,255,255,.12);
+}
+[data-theme="dark"] .dq-tpl-glass .dq-ar { background: rgba(255,255,255,.06); }
+
+/* ---- 5) قالب الرقعة: ورق قديم وحواف مزدوجة ---- */
+.dq-tpl-parch {
+  background: linear-gradient(180deg, #FBF6E9, #F4EBD6);
+  border: 1px solid rgba(160,130,70,.28);
+  box-shadow: inset 0 0 0 5px rgba(255,255,255,.55), 0 3px 14px rgba(120,90,40,.12);
+}
+.dq-tpl-parch .dq-ar { background: rgba(255,255,255,.5); }
+.dq-tpl-parch .dq-title, .dq-tpl-parch .dq-mean { color: #3B3020; }
+.dq-tpl-parch .dq-tr { color: #7A6A4E; }
+.dq-tpl-parch .dq-src { color: #8A6A1E; }
+[data-theme="dark"] .dq-tpl-parch {
+  background: linear-gradient(180deg, #2A2418, #221D13);
+  border-color: rgba(200,170,90,.24);
+  box-shadow: inset 0 0 0 5px rgba(255,255,255,.04), 0 3px 14px rgba(0,0,0,.35);
+}
+[data-theme="dark"] .dq-tpl-parch .dq-title, [data-theme="dark"] .dq-tpl-parch .dq-mean { color: #F0E4C8; }
+[data-theme="dark"] .dq-tpl-parch .dq-tr { color: #B9A882; }
+
+/* ---- 6) قالب ليلي: حبر داكن وذهبي ---- */
+.dq-tpl-night {
+  background: linear-gradient(155deg, #11231E 0%, #0A1714 100%);
+  border-color: rgba(235,208,138,.22); color: #EDE6D5;
+}
+.dq-tpl-night .dq-title { color: #F3ECDA; }
+.dq-tpl-night .dq-ar { background: rgba(235,208,138,.09); color: #F7F0DC; }
+.dq-tpl-night .dq-tr { color: #A9B5AF; }
+.dq-tpl-night .dq-mean { color: #DDE5E0; }
+.dq-tpl-night .dq-benefit { background: rgba(235,208,138,.13); color: #E8D59B; }
+.dq-tpl-night .dq-foot { border-top-color: rgba(255,255,255,.12); }
+.dq-tpl-night .dq-src { color: #D8C48B; }
+.dq-tpl-night .dq-idx { background: rgba(235,208,138,.16); color: #EBD08A; }
+.dq-tpl-night .dq-act { background: rgba(255,255,255,.09); color: #C9D3CE; }
+
+/* ---------- زر إتمام المجموعة ---------- */
+.dq-complete {
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  width: calc(100% - 28px); margin: 4px 14px 18px; border: none; cursor: pointer;
+  font-family: inherit; font-size: 13.5px; font-weight: 800; color: #fff;
+  padding: 15px; border-radius: 16px;
+  background: linear-gradient(135deg, var(--a, #0F766E), var(--b, #0B5A54));
+  box-shadow: 0 6px 18px rgba(15,118,110,.28);
+}
+.dq-complete:disabled { opacity: .55; box-shadow: none; }
+
+.dq-note {
+  margin: 0 14px 16px; padding: 11px 12px; border-radius: 13px;
+  font-size: 11.5px; line-height: 1.6; color: var(--text-secondary, #6B7280);
+  background: rgba(15,118,110,.06); display: flex; gap: 8px;
+}
+.dq-note i { color: #0F766E; margin-top: 2px; }
+
+.dq-empty { text-align: center; padding: 46px 20px; color: var(--text-secondary, #6B7280); font-size: 13px; }
+.dq-empty i { display: block; font-size: 30px; opacity: .4; margin-bottom: 12px; }
+
+/* الوضع الداكن: أسطح */
+[data-theme="dark"] .dq-tabs, [data-theme="dark"] .dq-set, [data-theme="dark"] .dq-card {
+  background: #16211D; border-color: rgba(255,255,255,.07);
+}
+[data-theme="dark"] .dq-set-n, [data-theme="dark"] .dq-title,
+[data-theme="dark"] .dq-mean { color: #EAF3EF; }
+[data-theme="dark"] .dq-ar { color: #F2EAD6; }
+[data-theme="dark"] .dq-search input { background: #16211D; color: #EAF3EF; border-color: rgba(255,255,255,.1); }
+[data-theme="dark"] .dq-tpl-ribbon, [data-theme="dark"] .dq-tpl-geo,
+[data-theme="dark"] .dq-tpl-glass, [data-theme="dark"] .dq-tpl-parch,
+[data-theme="dark"] .dq-tpl-night, [data-theme="dark"] .dq-tpl-arch { background-color: #16211D; }

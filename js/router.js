@@ -10,15 +10,18 @@ const Router = {
     calendar: { page: CalendarPage, tabId: null },
     // v98: إمساكية رمضان — جدول مواعيد الشهر كامل ولخمس رمضانات قادمة
     imsakiyah: { page: ImsakiyahPage, tabId: 'prayer' },
+    // v1.0.156: وضع رمضان — ختمة ذكية + العشر الأواخر
+    ramadan: { page: RamadanPage, tabId: 'prayer' },
     wisdom: { page: WisdomPage, tabId: 'wisdom' },
     profile: { page: ProfilePage, tabId: 'profile' },
     surah: { page: QuranPage, tabId: 'quran', method: 'renderDetail' },
     mushaf: { page: QuranMushafPage, tabId: 'quran', method: 'render' },
     'wisdom/quiz': { page: QuizPage, tabId: 'wisdom', method: 'renderCategorySelect' },
     'wisdom/tasbih': { page: TasbihPage, tabId: 'wisdom', method: 'render' },
-    'wisdom/adhkar': { page: AdhkarPage, tabId: 'wisdom', method: 'renderHub' },
-    'wisdom/duas': { page: DuasPage, tabId: 'wisdom', method: 'renderHub' },
+    'wisdom/adhkar': { page: DuaAdhkarPage, tabId: 'wisdom', method: 'renderHub' },  // v1.0.151 موحّدة
+    'wisdom/duas': { page: DuaAdhkarPage, tabId: 'wisdom', method: 'renderHub' },    // v1.0.151 موحّدة
     'wisdom/courses': { page: CoursesPage, tabId: 'wisdom', method: 'renderHub' },
+    'wisdom/achievements': { page: AchievementsPage, tabId: 'wisdom', method: 'render' },  // v1.0.152
     // v56: الراديو الإسلامي — يُبرز تبويب الحكمة في الشريط السفلي
     radio: { page: RadioPage, tabId: 'wisdom' },
     // v57: مقتطفات دينية (فيديوهات يوتيوب داخل التطبيق) — تاب الحكمة أيضًا
@@ -27,6 +30,8 @@ const Router = {
     'wisdom/library': { page: LibraryPage, tabId: 'wisdom' },
     // v128: «يومي» — تتبّع الأعمال اليومية والإحصائيات
     daily: { page: DailyTrackerPage, tabId: null },
+    // v1.0.167: استوديو الفيديو القرآني
+    'studio/video': { page: VideoStudioPage, tabId: 'wisdom' },
     // v103: فهرس كل ميزات التطبيق
     features: { page: FeaturesPage, tabId: null },
     // v1.0.132: ويدجتس الشاشة الرئيسية (لون/نمط + تثبيت)
@@ -77,6 +82,8 @@ const Router = {
     }
 
     this.current = { route, name: routeName, params };
+    // v1.0.143: الصفحة الحالية على body — تُستخدم لإخفاء شريط التبويبات داخل القرآن
+    try { document.body.dataset.route = routeName; } catch (e) {}
     this.updateTabs(route.tabId);
 
     // history.pushState — sync con URL (soporta zurück, F5, share link)
@@ -85,7 +92,8 @@ const Router = {
       try {
         // v54: volver a la MISMA ruta (salir de una subvista interna) reemplaza
         // la entrada actual en vez de apilar una duplicada en el historial.
-        if (sameRoute) history.replaceState({ name: routeName, params }, '', url);
+        // v1.0.145: options.replace — استبدال المدخل الحالي (رجوع محدَّد بلا تكديس)
+        if (sameRoute || options.replace) history.replaceState({ name: routeName, params }, '', url);
         else history.pushState({ name: routeName, params }, '', url);
       } catch(e) {
         // Fallback si pushState falla (ej: file:// protocol)

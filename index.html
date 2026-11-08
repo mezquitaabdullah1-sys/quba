@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0F4C3A">
 
   <!-- 🔒 Content Security Policy — relaxed (inline handlers/scripts aún permitidos, se irán eliminando) -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https:; media-src 'self' https: data: blob: https://cdn.aladhan.com https://www.islamcan.com https://backup.qurango.net https://qurango.net https://stream.radiojar.com https://server8.mp3quran.net https://server11.mp3quran.net https://server14.mp3quran.net https://jrtv-live.ercdn.net https://streaming.zaytonatube.com:8081; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://d1.islamhouse.com https://islamhouse.com; child-src https://www.youtube.com https://www.youtube-nocookie.com; connect-src 'self' https://api.aladhan.com https://www.youtube.com https://www.youtube-nocookie.com https://www.muslimpro.com https://app.muslimpro.com https://html.duckduckgo.com https://api.alquran.cloud https://cdn.islamic.network https://api.mymemory.translated.net https://nominatim.openstreetmap.org https://api.open-meteo.com https://ummahapi.com https://lingva.ml https://libretranslate.com https://libretranslate.de https://cdn.jsdelivr.net https://download.quranicaudio.com https://everyayah.com https://mp3quran.net https://api.turath.io https://files.turath.io https://d1.islamhouse.com; manifest-src 'self'; worker-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https:; media-src 'self' https: data: blob: https://cdn.aladhan.com https://www.islamcan.com https://backup.qurango.net https://qurango.net https://stream.radiojar.com https://server8.mp3quran.net https://server11.mp3quran.net https://server14.mp3quran.net https://jrtv-live.ercdn.net https://streaming.zaytonatube.com:8081; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://d1.islamhouse.com https://islamhouse.com; child-src https://www.youtube.com https://www.youtube-nocookie.com; connect-src 'self' https: https://*.mp3quran.net https://api.aladhan.com https://www.youtube.com https://www.youtube-nocookie.com https://www.muslimpro.com https://app.muslimpro.com https://html.duckduckgo.com https://api.alquran.cloud https://cdn.islamic.network https://api.mymemory.translated.net https://nominatim.openstreetmap.org https://api.open-meteo.com https://ummahapi.com https://lingva.ml https://libretranslate.com https://libretranslate.de https://cdn.jsdelivr.net https://download.quranicaudio.com https://everyayah.com https://mp3quran.net https://api.turath.io https://files.turath.io https://d1.islamhouse.com; manifest-src 'self'; worker-src 'self'">
 
   <!-- 📦 App shell offline + carga instantánea — ver sw.js para el porqué.
        v1.0.32 desregistraba cualquier Service Worker en cada carga (ver
@@ -63,6 +63,8 @@
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/screens.css">
   <link rel="stylesheet" href="css/wisdom.css">
+  <link rel="stylesheet" href="css/dua-v151.css"> <!-- v1.0.151: الأدعية والأذكار الموحّدة -->
+  <link rel="stylesheet" href="css/achievements-v152.css"> <!-- v1.0.152: الأوسمة والمستويات والشهادات -->
   <link rel="stylesheet" href="css/courses.css">
   <link rel="stylesheet" href="css/courses-v2.css">
   <link rel="stylesheet" href="css/courses-map.css"> <!-- v1.0.127: خريطة المراحل المتصلة --> <!-- v64: كورس اللغة العربية الجديد -->
@@ -78,6 +80,7 @@
   <link rel="stylesheet" href="css/onboarding.css"> <!-- v49: الجولة التعريفية + سياسة الخصوصية -->
   <link rel="stylesheet" href="css/offline.css">
   <link rel="stylesheet" href="css/share-card.css">
+  <link rel="stylesheet" href="css/v167-studio.css">
   <link rel="stylesheet" href="css/radio.css"> <!-- v56: الراديو الإسلامي -->
   <link rel="stylesheet" href="css/radio-v126.css"> <!-- v1.0.126: تنزيلات ومفضلة الراديو -->
   <link rel="stylesheet" href="css/clips.css"> <!-- v57: مقتطفات دينية (فيديوهات يوتيوب) -->
@@ -96,6 +99,7 @@
   <link rel="stylesheet" href="css/imsakiyah.css"> <!-- v98: إمساكية رمضان --> <!-- v94: الرئيسية المبسّطة (رأس ثابت + بطاقة صلوات مضغوطة + تبويبات الوسائط) -->
 
   <!-- v131: الخطوط والأيقونات محليّة داخل التطبيق (تعمل بلا إنترنت) -->
+  <link rel="stylesheet" href="css/widget-settings.css">
   <link rel="stylesheet" href="assets/fonts/fonts.css">
   <link rel="stylesheet" href="assets/vendor/fontawesome/all.min.css">
 
@@ -105,20 +109,88 @@
   <link rel="stylesheet" href="css/beads-v131.css">
   <link rel="stylesheet" href="css/world-v132.css">
   <link rel="stylesheet" href="css/imsak-v134.css">
+  <link rel="stylesheet" href="css/imsak-v154.css">
+  <link rel="stylesheet" href="css/ramadan-guide.css"> <!-- v1.0.162: دليل رمضان التعليمي -->
+  <link rel="stylesheet" href="css/ramadan-mode.css"> <!-- v1.0.154: عدّاد الإفطار + مبدّل طريقة الحساب + لوحة المسجد -->
   <link rel="stylesheet" href="css/prayer-v135.css"> <!-- v135: صلوات الأسبوع + أزرار دائرية + القبلة + المسبحة --> <!-- v134: سطوع الرأس + إمساكية مصمّمة --> <!-- v131: جلود الخرز + ورقة التخصيص -->
+  <link rel="stylesheet" href="css/home-v136.css">
+  <link rel="stylesheet" href="css/prayer-v138.css">
+  <link rel="stylesheet" href="css/v139-fixes.css"> <!-- v1.0.139 -->
+  <link rel="stylesheet" href="css/v142-theme-cards.css">
+  <link rel="stylesheet" href="css/v143-quran.css">
+  <link rel="stylesheet" href="css/v144-mushaf.css">
+  <link rel="stylesheet" href="css/v163-quran.css"> <!-- v1.0.163: إصلاح طبقة المصحف + شريط الورد الثابت -->
+  <link rel="stylesheet" href="css/tasbih-v147.css"> <!-- v1.0.147: خامات المسابح -->
+  <link rel="stylesheet" href="css/v164-tasbih.css"> <!-- v1.0.164: إعادة أزرار المسبحة إلى الصف -->
+  <link rel="stylesheet" href="css/v169-contrast.css"> <!-- v1.0.169: طبقة وضوح النصوص عبر الثيمات -->
+  <link rel="stylesheet" href="css/v170-contrast-pages.css"> <!-- v1.0.170: وضوح النصوص — بقية الصفحات -->
+  <link rel="stylesheet" href="css/v171.css"> <!-- v1.0.171 -->
+  <link rel="stylesheet" href="css/v172-splash.css"> <!-- v1.0.172: سبلاش مدمج -->
 </head>
 <body>
   <!-- 🌟 Splash Screen — Simple logo + fast spinner (no heavy animation) -->
-  <div id="splash" class="splash">
+  <div id="splash" class="splash" aria-label="Quba">
+    <!-- v1.0.172: طبقة زخرفية تغطي كامل الشاشة — الأيقونة جزء من الواجهة لا صورة فوقها -->
+    <div class="sp-geo" aria-hidden="true">
+      <svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <pattern id="spStar" width="100" height="100" patternUnits="userSpaceOnUse">
+            <g fill="none" stroke="currentColor" stroke-width="1.1">
+              <path d="M50 8 L61 39 L92 50 L61 61 L50 92 L39 61 L8 50 L39 39 Z"/>
+              <path d="M50 22 L71 29 L78 50 L71 71 L50 78 L29 71 L22 50 L29 29 Z"/>
+              <circle cx="50" cy="50" r="6"/>
+            </g>
+          </pattern>
+        </defs>
+        <rect width="400" height="400" fill="url(#spStar)"/>
+      </svg>
+    </div>
+    <div class="sp-rays" aria-hidden="true"></div>
+    <div class="sp-glow" aria-hidden="true"></div>
+
     <div class="splash-content">
-      <picture>
-        <source srcset="assets/logo.webp" type="image/webp">
-        <img src="assets/logo.png" alt="Quba" class="splash-logo-img" width="220" height="220">
-      </picture>
-      <div class="splash-skeleton" aria-hidden="true">
-        <div class="sk-bar" style="width:100%;"></div>
-        <div class="sk-bar" style="width:70%;"></div>
-        <div class="sk-bar" style="width:45%;"></div>
+      <!-- ميدالية واحدة: الحلقة · النجمة · الأيقونة · الشعار — كلها كتلة واحدة -->
+      <div class="sp-medal">
+        <svg class="sp-ring" viewBox="0 0 240 240" aria-hidden="true">
+          <circle class="sp-ring-track" cx="120" cy="120" r="104"/>
+          <circle class="sp-ring-arc" cx="120" cy="120" r="104"/>
+        </svg>
+        <svg class="sp-star" viewBox="0 0 240 240" aria-hidden="true">
+          <defs>
+            <linearGradient id="spGold" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#E4CE8E"/><stop offset=".5" stop-color="#D4AF37"/><stop offset="1" stop-color="#8F6E1E"/>
+            </linearGradient>
+          </defs>
+          <g class="sp-star-g" fill="none" stroke="url(#spGold)" stroke-width="1.6" stroke-linejoin="round">
+            <path d="M120 34 L144 86 L196 110 L144 134 L120 186 L96 134 L44 110 L96 86 Z"/>
+            <path d="M120 58 L133 107 L182 120 L133 133 L120 182 L107 133 L58 120 L107 107 Z" opacity=".55"/>
+          </g>
+        </svg>
+        <div class="sp-halo" aria-hidden="true"></div>
+        <img src="assets/logo-splash.png" alt="Quba" class="splash-logo-img" width="330" height="330">
+      </div>
+
+      <div class="sp-name">قُبــا</div>
+      <div class="sp-tag">﷽</div>
+
+      <!-- عجلة تحميل إسلامية: نجمة ثمانية يدور حولها ثمانية أجرام ذهبية -->
+      <div class="sp-loader" role="status" aria-live="polite">
+        <svg class="sp-wheel" viewBox="0 0 120 120" aria-hidden="true">
+          <g class="sp-wheel-rot">
+            <circle cx="60" cy="60" r="50" class="sp-w-track"/>
+            <path class="sp-w-arc" d="M60 10 A50 50 0 0 1 110 60" />
+            <g class="sp-w-beads">
+              <circle cx="60" cy="18" r="3.1"/><circle cx="89.7" cy="30.3" r="2.5"/>
+              <circle cx="102" cy="60" r="3.1"/><circle cx="89.7" cy="89.7" r="2.5"/>
+              <circle cx="60" cy="102" r="3.1"/><circle cx="30.3" cy="89.7" r="2.5"/>
+              <circle cx="18" cy="60" r="3.1"/><circle cx="30.3" cy="30.3" r="2.5"/>
+            </g>
+          </g>
+          <g class="sp-wheel-ccw">
+            <path d="M60 40 L74 60 L60 80 L46 60 Z" class="sp-w-core"/>
+          </g>
+        </svg>
+        <span class="sp-loadtxt">جارٍ التحضير…</span>
       </div>
     </div>
   </div>
@@ -311,6 +383,8 @@
   <script src="pages/wisdom/courses.js"></script>
   <script src="js/courses-lessons.js"></script> <!-- v64: tipos de lección del árabe (extiende CoursesPage) -->
   <script src="pages/wisdom/duas.js"></script>
+  <script src="pages/wisdom/duas-adhkar.js"></script> <!-- v1.0.151: الصفحة الموحّدة -->
+  <script src="pages/wisdom/achievements.js"></script> <!-- v1.0.152: الأوسمة والمستويات -->
   <script src="pages/wisdom.js"></script>
   <script src="pages/radio.js"></script> <!-- v56: صفحة الراديو الإسلامي -->
   <script src="pages/videos.js"></script> <!-- v57: صفحة المقتطفات الدينية -->
@@ -318,9 +392,20 @@
   <script src="pages/wisdom/library.js"></script>
   <script src="pages/features.js"></script> <!-- v103: فهرس الميزات -->
   <script src="js/imsak-poster.js"></script> <!-- v134: مولّد صورة الإمساكية -->
-  <script src="pages/imsakiyah.js"></script> <!-- v98: إمساكية رمضان --> <!-- v73: صفحة المكتبة الإسلامية -->
+  <script src="pages/imsakiyah.js"></script>
+  <script src="js/ramadan-extra.js"></script> <!-- v1.0.158: اعتكاف + ختمة عائلية + أول صوم -->
+  <script src="js/ramadan-duas.js"></script> <!-- v1.0.157: ثلاثون دعاءً رمضانياً -->
+  <script src="js/ramadan-guide.js"></script> <!-- v1.0.162: دليل رمضان التعليمي -->
+  <script src="pages/ramadan.js"></script> <!-- v98: إمساكية رمضان --> <!-- v73: صفحة المكتبة الإسلامية -->
 
   <!-- App core -->
+  <script src="js/vendor/mp4-muxer.min.js"></script> <!-- v1.0.167: حاوية MP4 داخل التطبيق -->
+  <script src="js/video-layout.js"></script> <!-- v1.0.167: طبقة الرسم النصية للفيديو -->
+  <script src="js/video-encode.js"></script> <!-- v1.0.167: ترميز MP4 عبر WebCodecs -->
+  <script src="js/video-bg-catalog.js"></script> <!-- v1.0.167: خلفيات تُنزَّل عند الطلب -->
+  <script src="pages/video-studio.js"></script> <!-- v1.0.167: استوديو الفيديو القرآني -->
+  <script src="data/mufradat_ar.js"></script> <!-- v1.0.171: مفردات القرآن (مولّدة من المدونة الصرفية) -->
+  <script src="js/quran-mufradat.js"></script> <!-- v1.0.171: لوحة معاني المفردات في التفسير -->
   <script src="js/router.js"></script>
   <script src="js/app.js"></script>
   <script src="js/native-bridge.js"></script>
@@ -330,5 +415,6 @@
   <script src="js/hadith-extra.js"></script>
   <script src="js/settings-search.js"></script>
   <script src="js/home-tasks.js"></script>
+<script src="js/widgets-i18n.js"></script>
 </body>
 </html>

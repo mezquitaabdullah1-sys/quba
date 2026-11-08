@@ -1,0 +1,127 @@
+/* ==========================================================================
+   v1.0.143 — قارئ القرآن المترجم
+   1) وضع قراءة صافٍ: لمسة واحدة تُخفي أدوات الصفحة بسلاسة، ولمسة تُعيدها.
+   2) شريط تلاوة عائم: إيقاف / تكرار / تغيير القارئ (+ إيقاف مؤقت).
+   3) شريط التبويبات السفلي يختفي في صفحات القرآن.
+   4) إزالة التضليل خلف أيقونات ترويسة الصفحة (زر العودة وغيره).
+   ========================================================================== */
+
+/* ---------- 4) ترويسة نظيفة بلا صندوق خلف الأيقونة ---------- */
+[data-theme] .top-bar .top-bar-btn,
+[data-theme] .top-bar-btn,
+[data-theme] .reader-top-bar .top-bar-btn,
+[data-theme] .qrh-ic,
+.qrh-ic {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+[data-theme] .top-bar .top-bar-btn:active,
+[data-theme] .top-bar-btn:active,
+[data-theme] .qrh-ic:active,
+.qrh-ic:active {
+  background: rgba(255, 255, 255, .13) !important;
+  border-radius: 50% !important;
+  transform: scale(.94);
+}
+
+/* ---------- 3) إخفاء شريط التبويبات داخل صفحات القرآن ---------- */
+.bottom-tabs {
+  transition: transform .30s cubic-bezier(.4, 0, .2, 1), opacity .24s ease;
+  will-change: transform, opacity;
+}
+body[data-route="quran"] .bottom-tabs,
+body[data-route="quran/read"] .bottom-tabs,
+body[data-route="quran/khatma"] .bottom-tabs,
+body[data-route="surah"] .bottom-tabs,
+body[data-route="mushaf"] .bottom-tabs {
+  transform: translateY(120%) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+body[data-route="quran"] #main-content,
+body[data-route="quran/read"] #main-content,
+body[data-route="quran/khatma"] #main-content,
+body[data-route="surah"] #main-content,
+body[data-route="mushaf"] #main-content {
+  padding-bottom: 18px;
+}
+body.qrab-open #main-content { padding-bottom: 132px !important; }
+
+/* ---------- 1) وضع القراءة الصافي ---------- */
+.reader-top-bar,
+.reader-toolbar {
+  transition: transform .30s cubic-bezier(.4, 0, .2, 1), opacity .24s ease;
+  will-change: transform, opacity;
+}
+#main-content.reader-immersive .reader-top-bar {
+  transform: translateY(-118%);
+  opacity: 0;
+  pointer-events: none;
+}
+#main-content.reader-immersive .reader-toolbar {
+  transform: translateY(-14px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------- 2) شريط التلاوة ---------- */
+#qr-audio-bar {
+  position: fixed;
+  left: 12px; right: 12px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  z-index: 320;
+  display: flex; flex-direction: column; gap: 9px;
+  padding: 10px 12px 11px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(15,76,58,.97), rgba(8,44,34,.98));
+  border: 1px solid rgba(212,175,55,.42);
+  box-shadow: 0 14px 34px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.07);
+  color: #F6F1E4;
+  transform: translateY(150%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform .30s cubic-bezier(.4,0,.2,1), opacity .26s ease;
+}
+#qr-audio-bar.on { transform: translateY(0); opacity: 1; pointer-events: auto; }
+[data-theme="maroon"] #qr-audio-bar { background: linear-gradient(135deg, rgba(74,18,37,.97), rgba(40,9,20,.98)); }
+[data-theme="brown"]  #qr-audio-bar { background: linear-gradient(135deg, rgba(74,54,39,.97), rgba(43,30,20,.98)); }
+[data-theme="light"]  #qr-audio-bar { background: linear-gradient(135deg, #0F4C3A, #0A3A2C); }
+
+.qrab-top { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.qrab-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: #EBD08A; box-shadow: 0 0 0 4px rgba(235,208,138,.16);
+  animation: qrabPulse 1.6s ease-in-out infinite;
+}
+@keyframes qrabPulse { 0%,100% { opacity: .45; transform: scale(.9); } 50% { opacity: 1; transform: scale(1.12); } }
+.qrab-meta { flex: 1; min-width: 0; }
+.qrab-title { font-size: 11.5px; font-weight: 800; color: #EBD08A; letter-spacing: .2px; }
+.qrab-sub {
+  font-size: 11px; color: rgba(246,241,228,.80); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; margin-top: 1px;
+}
+.qrab-close {
+  width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%;
+  background: rgba(255,255,255,.10); color: #F6F1E4;
+  display: flex; align-items: center; justify-content: center; font-size: 12px;
+  border: none; cursor: pointer;
+}
+.qrab-close:active { transform: scale(.92); }
+.qrab-btns { display: flex; gap: 6px; }
+.qrab-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 7px 2px 6px; border-radius: 13px;
+  background: rgba(255,255,255,.075);
+  border: 1px solid rgba(255,255,255,.10);
+  color: #F6F1E4; font-size: 9.6px; font-weight: 700; cursor: pointer;
+  font-family: inherit; line-height: 1;
+  transition: background .18s ease, border-color .18s ease, transform .12s ease;
+}
+.qrab-btn i { font-size: 14px; color: #EBD08A; line-height: 1; }
+.qrab-btn:active { transform: scale(.96); background: rgba(255,255,255,.14); }
+.qrab-btn.active {
+  background: rgba(212,175,55,.20);
+  border-color: rgba(212,175,55,.55);
+}
+.qrab-btn.active i { color: #F7E3AD; }

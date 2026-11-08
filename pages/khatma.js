@@ -56,18 +56,21 @@ const KhatmaPage = {
     const plan = KhatmaStore.plan(k);
     const w = wr.ward;
     const totalDays = plan.length;
-    const dayNo = w ? w.i : (w && w.after ? totalDays : 0);
+    const dayNo = w ? w.i : 0;
     const R = 54, C = 2 * Math.PI * R;
     const dash = (pr.pct / 100) * C;
 
-    const wardLine = (w && !w.rest && w.pages > 0)
-      ? `${KhatmaStore.rangeLabel(k, w)} · ${this.ar(w.pages)} ${L('صفحات', 'págs', 'pages')} · ≈ ${this.ar(KhatmaStore.estMinutes(w.pages))} ${L('د', 'min', 'min')}`
-      : (w && w.rest ? L('يوم راحة — لا ورد اليوم', 'Día de descanso', 'Rest day') : L('لا ورد محدَّد', 'Sin wird', 'No ward'));
+    // v1.0.160: ختمة لم تبدأ بعد كانت تُعرض كأنها «ورد اليوم» وتُفتح للقراءة.
+    const wardLine = (w && w.before)
+      ? `${L('تبدأ في', 'Empieza el', 'Starts')} ${w.date} · ${KhatmaStore.rangeLabel(k, w)}`
+      : ((w && !w.rest && w.pages > 0)
+        ? `${KhatmaStore.rangeLabel(k, w)} · ${this.ar(w.pages)} ${L('صفحات', 'págs', 'pages')} · ≈ ${this.ar(KhatmaStore.estMinutes(w.pages))} ${L('د', 'min', 'min')}`
+        : (w && w.rest ? L('يوم راحة — لا ورد اليوم', 'Día de descanso', 'Rest day') : L('لا ورد محدَّد', 'Sin wird', 'No ward')));
 
     const todayCard = `
       <div class="kht-today">
         <div class="kht-today-top">
-          <span class="kht-today-k">${L('ورد اليوم', 'Wird de hoy', "Today's ward")}</span>
+          <span class="kht-today-k">${L('ورد اليوم', 'Wird de hoy', "Today's ward")} · <b class="kht-today-name">${this.esc(k.name || '')}</b></span>
           <span class="kht-today-d">${dayNo ? `${L('اليوم', 'Día', 'Day')} ${this.ar(dayNo)} / ${this.ar(totalDays)}` : ''}</span>
         </div>
         <div class="kht-today-range">${this.esc(wardLine)}</div>
@@ -116,6 +119,7 @@ const KhatmaPage = {
       </div>
       ${todayCard}
       ${stats}
+      ${this._listHtml()}
       <div class="kht-sec-h"><b>${L('آخر ٣٠ يومًا', 'Últimos 30 días', 'Last 30 days')}</b><span>${L('كل مربّع يوم', 'cada cuadro = un día', 'each square = a day')}</span></div>
       <div class="kht-heat">${heat}</div>
       <div class="kht-plan">
@@ -130,6 +134,71 @@ const KhatmaPage = {
         <button class="kht-act kht-danger" onclick="KhatmaPage.confirmDelete()"><i class="fas fa-trash"></i> ${L('حذف الختمة', 'Eliminar', 'Delete')}</button>
       </div>
     </div>`;
+  },
+
+  // v1.0.137: قائمة كل الختمات — وصول ومتابعة وتحكّم وتذكير وحذف
+  _listHtml() {
+    let list = [];
+    try { list = KhatmaStore.all() || []; } catch (e) { list = []; }
+    if (!list.length) return '';
+    const L = (a, e, en) => this.L(a, e, en);
+    let activeId = null;
+    // v1.0.145: الواجهة تقرأ «النشطة» من نفس مصدر التنفيذ (active) لا من
+    // الحقل الخام — كانا قد يختلفان فتُعلَّم ختمة ويُفتح ورد أخرى.
+    try { const cur = KhatmaStore.active(); activeId = cur && cur.id; } catch (e) {}
+    const rows = list.slice().sort((a, b) => (b.created || 0) - (a.created || 0)).map(k => {
+      let pr = { read: 0, total: 604, pct: 0 };
+      try { pr = KhatmaStore.progress(k); } catch (e) {}
+      const isA = k.id === activeId;
+      const rem = !!(k.remind && k.remind.on);
+      const time = rem ? `${String((k.remind.hour | 0)).padStart(2, '0')}:${String((k.remind.minute | 0)).padStart(2, '0')}` : '';
+      return `<div class="kht-lrow${isA ? ' is-active' : ''}">
+        <button class="kht-lmain" onclick="KhatmaPage.switchTo('${k.id}')">
+          <span class="kht-lpct" style="--p:${pr.pct}"><b>${this.ar(pr.pct)}%</b></span>
+          <span class="kht-ltx">
+            <b>${this.esc(k.name || '')}</b>
+            <em>${this.ar(pr.read)}/${this.ar(pr.total)} ${L('صفحة', 'págs', 'pages')} · ${this.ar(k.days)} ${L('يوم', 'días', 'days')}${time ? ' · ⏰ ' + time : ''}</em>
+          </span>
+          ${isA ? `<span class="kht-lnow">${L('الحالية', 'Actual', 'Current')}</span>` : `<span class="kht-lgo"><i class="fas fa-arrow-left"></i></span>`}
+        </button>
+        <button class="kht-lbtn${rem ? ' is-on' : ''}" onclick="event.stopPropagation();KhatmaPage.toggleRemindOf('${k.id}')" aria-label="${L('تذكير', 'Recordatorio', 'Reminder')}" title="${L('تذكير', 'Recordatorio', 'Reminder')}"><i class="fas ${rem ? 'fa-bell' : 'fa-bell-slash'}"></i></button>
+        <button class="kht-lbtn kht-lbtn-del" onclick="event.stopPropagation();KhatmaPage.confirmDeleteOf('${k.id}')" aria-label="${L('حذف', 'Eliminar', 'Delete')}" title="${L('حذف', 'Eliminar', 'Delete')}"><i class="fas fa-trash"></i></button>
+      </div>`;
+    }).join('');
+    return `<div class="kht-list">
+      <div class="kht-sec-h"><b>${L('ختماتي', 'Mis jatmas', 'My khatmas')}</b><span>${this.ar(list.length)}</span></div>
+      ${rows}
+      <button class="kht-add" onclick="Router.go('quran/khatma',{view:'create'})"><i class="fas fa-plus"></i> ${L('ختمة جديدة', 'Nueva jatma', 'New khatma')}</button>
+    </div>`;
+  },
+
+  switchTo(id) {
+    const k = KhatmaStore.setActive(id);
+    if (!k) return;
+    // v1.0.145: تحقّق فعلي بعد التبديل — لا نُعلن ختمة ونعمل على أخرى
+    const now = KhatmaStore.active();
+    try { showToast(this.L('الختمة الحالية: ', 'Jatma actual: ', 'Current: ') + ((now && now.name) || k.name || ''), 1500); } catch (e) {}
+    this.render(null, {});
+  },
+  toggleRemindOf(id) {
+    const on = KhatmaStore.toggleRemind(id);
+    if (on === null) return;
+    try { showToast(on ? this.L('تشغيل التذكير لهذه الختمة', 'Recordatorio activado', 'Reminder on') : this.L('إيقاف التذكير', 'Recordatorio desactivado', 'Reminder off'), 1400); } catch (e) {}
+    this.render(null, {});
+  },
+  confirmDeleteOf(id) {
+    const k = KhatmaStore.get(id); if (!k) return;
+    this._delId = id;
+    this._sheet(this.L('حذف الختمة', 'Eliminar jatma', 'Delete khatma'), `
+      <p class="kht-hint"><b>${this.esc(k.name || '')}</b> — ${this.L('سيُحذف سجل القراءة لهذه الختمة نهائيًا.', 'Se borrará su registro de lectura.', 'Its reading log will be erased.')}</p>
+      <button class="kht-btn kht-danger" onclick="KhatmaPage.doDeleteId()">${this.L('نعم، احذف', 'Sí, eliminar', 'Yes, delete')}</button>`);
+  },
+  doDeleteId() {
+    const id = this._delId; this._delId = null;
+    if (!id) return;
+    KhatmaStore.remove(id);
+    this.closeSheet();
+    this.render(null, {});
   },
 
   _planRow(k, w) {
@@ -428,10 +497,15 @@ const KhatmaPage = {
         <div class="kht-sec-h"><b>${L('من أول الورد', 'Inicio del wird', 'Ward opening')}</b></div>
         ${ayahs.map(a => `<p class="kht-ayah">${this.esc(a[2])} <span class="kht-ay-n">﴿${this.ar(a[1])}﴾</span></p>`).join('')}
       </div>` : ''}
+      ${(w && w.pages > 0) ? `<div class="kht-bounds">
+        <div class="kht-bound"><i class="fas fa-flag"></i><span>${L('يبدأ', 'Empieza', 'Starts')}</span><b>${L('صفحة', 'pág.', 'page')} ${this.ar(w.from)}</b><em>${this.esc(KhatmaStore.surahName(KhatmaStore.pageRef(w.from).s))} ${this.ar(KhatmaStore.pageRef(w.from).a)}</em></div>
+        <div class="kht-bound is-end"><i class="fas fa-flag-checkered"></i><span>${L('ينتهي', 'Termina', 'Ends')}</span><b>${L('صفحة', 'pág.', 'page')} ${this.ar(w.to)}</b><em>${this.esc(KhatmaStore.surahName(KhatmaStore.pageRef(w.to).sEnd || KhatmaStore.pageRef(w.to).s))} ${this.ar(KhatmaStore.pageRef(w.to).aEnd || KhatmaStore.pageRef(w.to).a)}</em></div>
+      </div>` : ''}
       <div class="kht-actions">
         <button class="kht-act kht-act-main" onclick="KhatmaPage.openWard(true)"><i class="fas fa-book-quran"></i> ${L('افتح الورد في المصحف', 'Abrir en el mushaf', 'Open ward in mushaf')}</button>
         <button class="kht-act" onclick="KhatmaPage.openWard()"><i class="fas fa-book-open-reader"></i> ${L('قراءة بالترجمة', 'Con traducción', 'With translation')}</button>
         <button class="kht-act" onclick="KhatmaPage.markAllToday()"><i class="fas fa-check-double"></i> ${L('أتممت ورد اليوم', 'Completé el wird', "I finished today's ward")}</button>
+        ${wr.done > 0 ? `<button class="kht-act kht-danger" onclick="KhatmaPage.undoToday()"><i class="fas fa-rotate-left"></i> ${L('إزالة تقدّم اليوم', 'Quitar progreso de hoy', "Remove today's progress")}</button>` : ''}
       </div>
     </div>`;
   },
@@ -440,17 +514,67 @@ const KhatmaPage = {
   openWard(toMushaf) {
     const k = KhatmaStore.active(); if (!k) return;
     const w = KhatmaStore.wardToday(k);
+    if (w && w.before) {
+      try { showToast(this.L('ختمتك تبدأ في ', 'Tu jatma empieza el ', 'Your khatma starts on ') + w.date, 2000); } catch (e) {}
+      return;
+    }
     if (!w || w.pages <= 0) { try { showToast(this.L('لا ورد لهذا اليوم', 'Sin wird hoy', 'No ward today'), 1600); } catch (e) {} return; }
-    if (toMushaf) { Router.go('mushaf', { page: k.dir === -1 ? w.to : w.from, ward: 1 }); return; }
+    // v1.0.145: نُثبّت هوية الختمة في المسار (kid) ونمرّر وجهة رجوع صريحة.
+    // بدون ذلك كان أي تغيير للختمة النشطة يقلب الورد إلى ختمة أخرى، وكان
+    // الرجوع من القارئ يهبط على صفحة غير صفحة الختمة.
+    const start = k.dir === -1 ? w.to : w.from;
+    const back = 'quran/khatma';
+    if (toMushaf) { Router.go('mushaf', { page: start, ward: 1, kid: k.id, back: back }); return; }
     const r = KhatmaStore.pageRef(w.from);
-    try { QuranPage.quickOpen(r.s, r.a); } catch (e) { Router.go('mushaf', { page: w.from, ward: 1 }); }
+    try {
+      Router.push('surah', { surahNumber: r.s, ayah: r.a, kid: k.id, ward: 1, back: back });
+    } catch (e) { Router.go('mushaf', { page: start, ward: 1, kid: k.id, back: back }); }
   },
   markAllToday() {
     const k = KhatmaStore.active(); if (!k) return;
     const w = KhatmaStore.wardToday(k);
+    const L = (a, e, en) => this.L(a, e, en);
+    if (w && w.before) { try { showToast(L('ختمتك تبدأ في ', 'Tu jatma empieza el ', 'Your khatma starts on ') + w.date, 2000); } catch (e) {} return; }
+    if (!w || w.pages <= 0) { try { showToast(L('لا ورد لهذا اليوم', 'Sin wird hoy', 'No ward today'), 1600); } catch (e) {} return; }
+    const wr = KhatmaStore.wardProgress(k);
+    const opt = (how, icon, title, desc) => `<button class="kht-man-opt" onclick="KhatmaPage.applyManual('${how}')">
+      <span class="kht-man-ic"><i class="fas ${icon}"></i></span>
+      <span class="kht-man-tx"><b>${title}</b><em>${desc}</em></span>
+      <i class="fas fa-chevron-left kht-man-go"></i>
+    </button>`;
+    const html = `
+      <div class="kht-man-sum">
+        <span>${L('ورد اليوم', 'Wird de hoy', "Today's ward")}</span>
+        <b>${this.esc(KhatmaStore.rangeLabel(k, w))}</b>
+        <em>${this.ar(w.pages)} ${L('صفحة', 'págs', 'pages')} · ${this.ar(wr.done)}/${this.ar(wr.total)} ${L('مقروءة', 'leídas', 'read')}</em>
+      </div>
+      ${opt('external', 'fa-book-quran', L('أتممته من مصحف خارجي', 'Lo leí en un mushaf externo', 'Read from an external mushaf'), L('ورقي أو تطبيق آخر — يُحتسب الورد كاملًا', 'Papel u otra app — cuenta el wird completo', 'Paper or another app — full ward counted'))}
+      ${opt('inapp', 'fa-mobile-screen-button', L('قرأته داخل قُبا ونسيت التتبّع', 'Lo leí en Quba sin seguimiento', 'Read in Quba untracked'), L('لم يُحتسب تلقائيًا فأتمّه الآن', 'No se registró — márcalo', 'Not auto-counted — mark it'))}
+      ${opt('catchup', 'fa-clock-rotate-left', L('قضاء ورد فائت', 'Poner al día un wird', 'Catch up a missed ward'), L('أحتسبه لهذا اليوم بدل اليوم الفائت', 'Lo cuento para hoy', 'Count it for today'))}
+      ${wr.done > 0 ? `<button class="kht-man-opt kht-man-danger" onclick="KhatmaPage.undoToday()">
+        <span class="kht-man-ic"><i class="fas fa-rotate-left"></i></span>
+        <span class="kht-man-tx"><b>${L('إزالة تقدّم اليوم', 'Quitar el progreso de hoy', "Remove today's progress")}</b><em>${L('ضغطت بالخطأ؟ يُرجع الورد كما كان', '¿Un error? Revierte el wird', 'Pressed by mistake? Reverts it')}</em></span>
+        <i class="fas fa-chevron-left kht-man-go"></i>
+      </button>` : ''}
+      <p class="kht-hint">${L('الإتمام اليدوي يُسجّل كمصدره، ويمكن إزالته في أي وقت.', 'La marca manual se registra con su origen y se puede deshacer.', 'Manual entries keep their source and can be undone anytime.')}</p>`;
+    this._sheet(L('كيف أتممت الورد؟', '¿Cómo completaste el wird?', 'How did you complete it?'), html);
+  },
+  applyManual(how) {
+    const k = KhatmaStore.active(); if (!k) return;
+    const w = KhatmaStore.wardToday(k);
     if (!w || w.pages <= 0) return;
-    KhatmaStore.markRange(w.from, w.to);
-    try { showToast(this.L('تم احتساب ورد اليوم', 'Wird completado', 'Ward recorded'), 1800); } catch (e) {}
+    const n = KhatmaStore.markRange(w.from, w.to, how);
+    this.closeSheet();
+    try { showToast(this.L('تم احتساب ورد اليوم', 'Wird completado', 'Ward recorded') + (n ? '' : ''), 1800); } catch (e) {}
+    this.render(null, {});
+  },
+  undoToday() {
+    const k = KhatmaStore.active(); if (!k) return;
+    const w = KhatmaStore.wardToday(k);
+    if (!w || w.pages <= 0) return;
+    const n = KhatmaStore.unmarkRange(w.from, w.to);
+    this.closeSheet();
+    try { showToast(this.L('أُزيل تقدّم اليوم (' + n + ' صفحة)', 'Progreso de hoy eliminado', 'Today\'s progress removed'), 1900); } catch (e) {}
     this.render(null, {});
   },
   gaps() {

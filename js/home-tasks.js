@@ -47,17 +47,35 @@ const HomeTasks = {
     if (s.done.indexOf(id) !== -1) return;
 
     if (task.nav) {
-      s.done.push(id); this._save(s); this._vibrate();
+      if (s.done.indexOf(id) === -1) s.done.push(id);
+      this._save(s); this._vibrate();
+      let gained = 0;
+      if (typeof Gamification !== 'undefined' && Gamification.awardOnce) {
+        gained = Gamification.awardOnce('home_task', id, Gamification.XP_PER_DAILY_TASK || 15);
+        if (s.done.length >= this.TASKS.length) {
+          gained += Gamification.awardOnce('home_task', '__all__', Gamification.XP_BONUS_ALL_TASKS || 25);
+        }
+      }
       this.render();
+      if (gained && typeof showToast === 'function') showToast('✔ +' + gained + ' XP', 1700);
       try { task.open(); } catch (e) {}
       return;
     }
     s.counts[id] = (s.counts[id] || 0) + 1;
-    if (s.counts[id] >= task.goal) { s.done.push(id); this._save(s); this._vibrate(); }
-    else this._save(s);
+    const doneNow = s.counts[id] >= task.goal;
+    if (doneNow && s.done.indexOf(id) === -1) s.done.push(id);
+    this._save(s);
+    this._vibrate();
+    let gained = 0;
+    if (doneNow && typeof Gamification !== 'undefined' && Gamification.awardOnce) {
+      gained = Gamification.awardOnce('home_task', id, Gamification.XP_PER_DAILY_TASK || 15);
+      if (s.done.length >= this.TASKS.length) {
+        gained += Gamification.awardOnce('home_task', '__all__', Gamification.XP_BONUS_ALL_TASKS || 25);
+      }
+    }
     this.render();
-    if (s.counts[id] >= task.goal && typeof showToast === 'function') {
-      showToast('✔ ' + this._L('أحسنت', '¡Bien!', 'Well done'), 1500);
+    if (doneNow && typeof showToast === 'function') {
+      showToast('✔ ' + this._L('أحسنت', '¡Bien!', 'Well done') + (gained ? ' · +' + gained + ' XP' : ''), 1800);
     }
   },
 
@@ -66,27 +84,24 @@ const HomeTasks = {
     const left = this._left();
     const total = this.TASKS.length;
     const doneN = total - left.length;
-    if (!left.length) {
-      return `<div class="ht-card ht-done" id="home-tasks-card">
-        <div class="ht-head"><span class="ht-t"><i class="fas fa-circle-check"></i> ${this._L('مهام اليوم', 'Tareas de hoy', "Today's tasks")}</span>
-        <span class="ht-count">${doneN}/${total}</span></div>
-        <div class="ht-all"><i class="fas fa-star"></i> ${this._L('أتممت مهام اليوم — تقبّل الله', 'Completaste las tareas de hoy', 'All of today’s tasks done')}</div>
-      </div>`;
-    }
+    // v1.0.136: عند إتمام كل المهام تختفي البطاقة تمامًا من الصفحة
+    if (!left.length) return '';
+    const pctAll = Math.round((doneN / total) * 100);
     const rows = left.map(t => {
       const c = s.counts[t.id] || 0;
-      const pct = Math.round((c / t.goal) * 100);
+      const pct = t.goal > 1 ? Math.round((c / t.goal) * 100) : 0;
       return `<button class="ht-row" onclick="HomeTasks.tap('${t.id}')" aria-label="${escapeAttr ? escapeAttr(t[this._loc()]) : t[this._loc()]}">
         <span class="ht-ic"><i class="fas ${t.icon}"></i></span>
-        <span class="ht-txt"><b>${t[this._loc()]}</b><em>${t.goal > 1 ? c + ' / ' + t.goal : this._L('اضغط عند الإتمام', 'Toca al terminar', 'Tap when done')}</em></span>
-        <span class="ht-prog"><span style="width:${t.goal > 1 ? pct : 0}%"></span></span>
-        <i class="fas fa-check ht-tick"></i>
+        <span class="ht-txt"><b>${t[this._loc()]}</b><em>${t.goal > 1 ? c + ' / ' + t.goal : this._L('اضغط عند الإتمام', 'Toca al terminar', 'Tap when done')}</em>
+          ${t.goal > 1 ? `<span class="ht-bar"><span style="width:${pct}%"></span></span>` : ''}
+        </span>
+        <span class="ht-cbox"><i class="fas fa-check"></i></span>
       </button>`;
     }).join('');
     return `<div class="ht-card" id="home-tasks-card">
       <div class="ht-head">
         <span class="ht-t"><i class="fas fa-list-check"></i> ${this._L('مهام اليوم', 'Tareas de hoy', "Today's tasks")}</span>
-        <span class="ht-count">${doneN}/${total}</span>
+        <span class="ht-count"><span class="ht-ring" style="--p:${pctAll}"></span>${doneN}/${total}</span>
       </div>
       <div class="ht-rows">${rows}</div>
     </div>`;
@@ -101,11 +116,13 @@ const HomeTasks = {
       return;
     }
     const card = document.getElementById('home-tasks-card');
-    if (card) { card.outerHTML = this._html(); return; }
+    const html = this._html();
+    if (card) { if (html) card.outerHTML = html; else card.remove(); return; }
+    if (!html) return;
     const hero = document.getElementById('home-hero');
     if (!hero) return;
     const wrap = document.createElement('div');
-    wrap.innerHTML = this._html();
+    wrap.innerHTML = html;
     const el = wrap.firstElementChild;
     hero.insertAdjacentElement('afterend', el);
   },

@@ -79,6 +79,44 @@ const RadioLib = {
   },
   _dk(rid, n) { return 'radiodl:' + rid + ':' + Number(n); },
 
+  // ============ v1.0.149: مسار تنزيل لا يمرّ بـCSP/CORS ============
+  // ملفات التلاوات على https://cdn.mp3quran.net، وسياسة connect-src لم تكن
+  // تسمح بها فكان fetch/XHR يُحجب ويكتب «تعذّر التحميل». الآن: CSP مُصحَّحة،
+  // وإن فشل الجلب في الويب (CORS/حصة) يُنزَّل الملف أصليًا إلى مجلد التنزيلات.
+  deviceReady() {
+    try { return typeof Android !== 'undefined' && typeof Android.saveUrlToDevice === 'function'; }
+    catch (e) { return false; }
+  },
+  fileName(rid, surah) {
+    const r = (typeof RadioData !== 'undefined') ? RadioData.reciter(rid) : null;
+    const base = String((r && r.id) || rid || 'reciter').replace(/[^A-Za-z0-9-]+/g, '_');
+    return 'Quba-' + base + '-' + String(surah).padStart(3, '0') + '.mp3';
+  },
+  autoSaveOn() { try { return localStorage.getItem('quba_radio_autosave') === '1'; } catch (e) { return false; } },
+  setAutoSave(v) { try { localStorage.setItem('quba_radio_autosave', v ? '1' : '0'); } catch (e) {} return !!v; },
+
+  /** تنزيل مباشر إلى مجلد التنزيلات عبر الجسر الأصلي (HttpURLConnection). */
+  saveViaNative(rid, surah) {
+    if (!this.deviceReady()) return false;
+    const n = Number(surah);
+    const r = (typeof RadioData !== 'undefined') ? RadioData.reciter(rid) : null;
+    const url = (typeof RadioData !== 'undefined') ? RadioData.surahFileUrl(r, n) : '';
+    if (!url) return false;
+    try { Android.saveUrlToDevice(url, this.fileName(rid, n), 'audio/mpeg'); return true; }
+    catch (e) { return false; }
+  },
+
+  /** 'db' = حُفظت في الجهاز للتشغيل بلا إنترنت، 'device' = نُزّلت إلى التنزيلات، 'fail'. */
+  async download(rid, surah, onProgress) {
+    const n = Number(surah);
+    let bytes = 0;
+    try { bytes = await this.save(rid, n, onProgress); } catch (e) { bytes = 0; }
+    if (bytes) return 'db';
+    if (this.has(rid, n)) return 'db';
+    if (this.saveViaNative(rid, n)) return 'device';
+    return 'fail';
+  },
+
   // v1.0.130: تنزيل موثوق — يتحقق من وجود الصوت فعليًا (لا من الفهرس فقط)،
   // ويستخدم fetch ثم XHR كبديل (fetch يفشل في بعض إصدارات WebView مع
   // إعادة توجيه CDN)، ويحفظ بانتظار اكتمال الكتابة في IndexedDB.
@@ -107,6 +145,7 @@ const RadioLib = {
       rec.unshift({ rid, surah: n, bytes: blob.size, at: Date.now() });
       this._dls = rec;
       this._write(this.DL_KEY, rec);
+      if (this.autoSaveOn()) { try { this.saveToDevice(rid, n); } catch (e) {} }
       return blob.size;
     } catch (e) {
       try { console.warn('RadioLib.save:', e && e.message); } catch (_) {}
@@ -167,7 +206,7 @@ const RadioLib = {
   async saveToDevice(rid, surah) {
     const n = Number(surah);
     const blob = await this._blobOf(this._dk(rid, n));
-    if (!blob || !blob.size) return false;
+    if (!blob || !blob.size) return this.saveViaNative(rid, n);
     const reciter = (typeof RadioData !== 'undefined') ? RadioData.reciter(rid) : null;
     const base = (reciter && (reciter.id || reciter.name)) ? String(reciter.id || '') : String(rid);
     const name = 'Quba-' + base + '-' + String(n).padStart(3, '0') + '.mp3';

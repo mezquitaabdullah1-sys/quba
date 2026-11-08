@@ -60,6 +60,10 @@ const PrayerPdf = {
       friday:       { es: 'Viernes',                        ar: 'الجمعة',                    en: 'Friday' },
       today:        { es: 'Hoy',                            ar: 'اليوم',                     en: 'Today' },
       sunrise:      { es: 'Amanecer',                       ar: 'الشروق',                    en: 'Sunrise' },
+      weekTitle:    { es: 'Oraciones de la semana',          ar: 'صلوات الأسبوع',             en: 'Week Prayers' },
+      nightMid:     { es: 'Medianoche',                     ar: 'منتصف الليل',               en: 'Midnight' },
+      nightThird:   { es: 'Último tercio',                  ar: 'الثلث الأخير',              en: 'Last third' },
+      weekNote:     { es: 'Horarios calculados para tu ciudad · Adhan', ar: 'مواقيت محسوبة لمدينتك · الأذان', en: 'Times computed for your city · Adhan' },
     };
     return (T[key] && T[key][lang]) || key;
   },
@@ -348,16 +352,7 @@ const PrayerPdf = {
       const canvas = await this._renderDailyCanvas();
       const d = new Date();
       const fname = `quba-prayers-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.png`;
-      const blob = await new Promise((res) => canvas.toBlob(res, 'image/png'));
-      if (!blob) throw new Error('toBlob no disponible');
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fname;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      await this._saveImage(canvas, fname);
       if (typeof showToast === 'function') showToast('🖼️ PNG ✓');
     } catch (e) {
       console.warn('PNG daily error:', e);
@@ -372,114 +367,7 @@ const PrayerPdf = {
     this._busy(btn, true);
     try {
       await this._ensureJsPdf();
-      if (document.fonts && document.fonts.ready) await document.fonts.ready;
-      const monthly = (typeof PrayerPage !== 'undefined') && PrayerPage._monthly;
-      if (!monthly || !monthly.data || !monthly.data.length) throw new Error('no monthly data');
-      const { data, month, year } = monthly;
-
-      const { canvas, ctx } = this._newCanvas();
-      const C = this.COLORS, W = this.PAGE_W;
-      const monthName = new Date(year, month - 1).toLocaleString(
-        this._lang() === 'ar' ? 'ar-EG' : this._lang(), { month: 'long' }
-      );
-      let y = await this._drawHeader(ctx, `${this._L('monthTitle')} — ${monthName} ${year}`);
-
-      const x0 = 50, x1 = W - 50;
-      const headH = 84;
-      // Altura de fila calculada para que todo quepa en UNA página A4
-      const footerSpace = 130;
-      const avail = this.PAGE_H - y - footerSpace - 90; // 90 = leyenda
-      const rowH = Math.min(46, Math.floor(avail / data.length));
-
-      const names = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
-      // Columnas: día (doble línea) + 5 oraciones
-      const dayW = 250;
-      const cw = (x1 - x0 - dayW) / names.length;
-
-      // Cabecera
-      ctx.fillStyle = C.navy;
-      ctx.fillRect(x0, y, x1 - x0, headH);
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '700 30px Inter, Amiri, "Noto Naskh Arabic", sans-serif';
-      ctx.fillText(this._L('day'), x0 + dayW / 2, y + headH / 2 + 10);
-      names.forEach((n, i) => {
-        // v50: solo el nombre árabe en la cabecera (sin el nombre latín duplicado)
-        ctx.font = '700 26px Amiri, "Noto Naskh Arabic", serif';
-        ctx.fillStyle = C.gold;
-        ctx.fillText(this._prayerArabic(n), x0 + dayW + cw * i + cw / 2, y + headH / 2 + 9);
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '700 30px Inter, Amiri, "Noto Naskh Arabic", sans-serif';
-      });
-      y += headH;
-
-      const today = new Date();
-      const isCurrentMonth = today.getMonth() + 1 === month && today.getFullYear() === year;
-
-      data.forEach((day, i) => {
-        const g = day.date?.gregorian;
-        const h = day.date?.hijri;
-        const dayNum = parseInt(g?.day, 10);
-        const isToday = isCurrentMonth && dayNum === today.getDate();
-        const iso = g?.date ? g.date.split('-').reverse().join('-') : '';
-        const isFriday = iso ? (new Date(iso + 'T00:00:00').getDay() === 5) : false;
-
-        ctx.fillStyle = isToday ? C.today : (isFriday ? C.friday : (i % 2 ? C.rowAlt : '#ffffff'));
-        ctx.fillRect(x0, y, x1 - x0, rowH);
-        ctx.strokeStyle = C.line;
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x0, y, x1 - x0, rowH);
-        if (isToday) {
-          ctx.fillStyle = C.gold;
-          ctx.fillRect(x0, y, 7, rowH);
-        }
-
-        // Columna día: gregoriano + hijri
-        ctx.textAlign = 'center';
-        ctx.fillStyle = isFriday ? '#8E6E1E' : C.ink;
-        ctx.font = '700 27px Inter, sans-serif';
-        const hijriTxt = `${h?.day ?? ''} ${(h?.month?.ar || h?.month?.en || '')}`;
-        const gregTxt = `${dayNum}`;
-        if (rowH >= 40) {
-          ctx.fillText(`${gregTxt}  ·  ${hijriTxt}`, x0 + dayW / 2, y + rowH / 2 + 9);
-        } else {
-          ctx.fillText(gregTxt, x0 + dayW / 2, y + rowH / 2 + 9);
-        }
-
-        // Oraciones (adhan + iqamah pequeña debajo si hay espacio)
-        names.forEach((n, j) => {
-          const t24 = this._t24(day.timings?.[n]);
-          const cx = x0 + dayW + cw * j + cw / 2;
-          ctx.fillStyle = C.ink;
-          ctx.font = '600 27px Inter, sans-serif';
-          if (rowH >= 40) {
-            ctx.fillText(t24, cx, y + 20);
-            const iq = (typeof getIqamahTime === 'function') ? getIqamahTime(n, t24) : null;
-            if (iq) {
-              ctx.fillStyle = C.gold;
-              ctx.font = '600 20px Inter, sans-serif';
-              ctx.fillText(iq, cx, y + rowH - 7);
-            }
-          } else {
-            ctx.fillText(t24, cx, y + rowH / 2 + 9);
-          }
-        });
-
-        y += rowH;
-      });
-
-      // Leyenda
-      y += 30;
-      ctx.textAlign = 'center';
-      ctx.font = '400 25px Inter, Amiri, "Noto Naskh Arabic", sans-serif';
-      ctx.fillStyle = C.muted;
-      ctx.fillText(`● ${this._L('today')}    ● ${this._L('friday')}`, W / 2, y + 10);
-      ctx.fillStyle = C.gold;
-      ctx.beginPath(); ctx.arc(W / 2 - ctx.measureText(`● ${this._L('today')}    ● ${this._L('friday')}`).width / 2 - 0, 0, 0, 0, 0); ctx.closePath();
-
-      this._drawFooter(ctx);
-
-      const fname = `quba-prayers-${year}-${String(month).padStart(2, '0')}.pdf`;
+      const { canvas, fname } = await this._renderMonthCanvas();
       this._save(canvas, fname);
       if (typeof showToast === 'function') showToast('📄 PDF ✓');
     } catch (e) {
@@ -489,6 +377,223 @@ const PrayerPdf = {
       this._busy(btn, false);
     }
   },
+
+  // v1.0.138: لوحة جدول الشهر (مشتركة بين PDF والصورة)
+  async _renderMonthCanvas() {
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const monthly = (typeof PrayerPage !== 'undefined') && PrayerPage._monthly;
+    if (!monthly || !monthly.data || !monthly.data.length) throw new Error('no monthly data');
+    const data = monthly.data, month = monthly.month, year = monthly.year;
+
+    const { canvas, ctx } = this._newCanvas();
+    const C = this.COLORS, W = this.PAGE_W;
+    const lang = this._lang();
+    const monthName = new Date(year, month - 1).toLocaleString(lang === 'ar' ? 'ar-EG' : lang, { month: 'long' });
+    let y = await this._drawHeader(ctx, `${this._L('monthTitle')} — ${monthName} ${year}`);
+
+    const x0 = 50, x1 = W - 50;
+    const headH = 84;
+    const footerSpace = 130;
+    const avail = this.PAGE_H - y - footerSpace - 90;
+    const rowH = Math.min(46, Math.floor(avail / data.length));
+
+    const names = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+    const dayW = 250;
+    const cw = (x1 - x0 - dayW) / names.length;
+
+    ctx.fillStyle = C.navy;
+    ctx.fillRect(x0, y, x1 - x0, headH);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 30px Inter, Amiri, "Noto Naskh Arabic", sans-serif';
+    ctx.fillText(this._L('day'), x0 + dayW / 2, y + headH / 2 + 10);
+    names.forEach((n, i) => {
+      ctx.font = '700 26px Amiri, "Noto Naskh Arabic", serif';
+      ctx.fillStyle = C.gold;
+      ctx.fillText(this._prayerArabic(n), x0 + dayW + cw * i + cw / 2, y + headH / 2 + 9);
+    });
+    y += headH;
+
+    const today = new Date();
+    const isCurrentMonth = today.getMonth() + 1 === month && today.getFullYear() === year;
+
+    data.forEach((day, i) => {
+      const g = day.date && day.date.gregorian;
+      const h = day.date && day.date.hijri;
+      const dayNum = parseInt(g && g.day, 10);
+      const isToday = isCurrentMonth && dayNum === today.getDate();
+      const iso = g && g.date ? g.date.split('-').reverse().join('-') : '';
+      const isFriday = iso ? (new Date(iso + 'T00:00:00').getDay() === 5) : false;
+
+      ctx.fillStyle = isToday ? C.today : (isFriday ? C.friday : (i % 2 ? C.rowAlt : '#ffffff'));
+      ctx.fillRect(x0, y, x1 - x0, rowH);
+      ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+      ctx.strokeRect(x0, y, x1 - x0, rowH);
+      if (isToday) { ctx.fillStyle = C.gold; ctx.fillRect(x0, y, 7, rowH); }
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = isFriday ? '#8E6E1E' : C.ink;
+      ctx.font = '700 27px Inter, sans-serif';
+      const hijriTxt = `${(h && h.day) || ''} ${(h && h.month && (h.month.ar || h.month.en)) || ''}`;
+      ctx.fillText(rowH >= 40 ? `${dayNum}  ·  ${hijriTxt}` : String(dayNum), x0 + dayW / 2, y + rowH / 2 + 9);
+
+      names.forEach((n, j) => {
+        const t24 = this._t24(day.timings && day.timings[n]);
+        const cx = x0 + dayW + cw * j + cw / 2;
+        ctx.fillStyle = C.ink;
+        ctx.font = '600 27px Inter, sans-serif';
+        if (rowH >= 40) {
+          ctx.fillText(t24, cx, y + 20);
+          const iq = (typeof getIqamahTime === 'function') ? getIqamahTime(n, t24) : null;
+          if (iq) { ctx.fillStyle = C.gold; ctx.font = '600 20px Inter, sans-serif'; ctx.fillText(iq, cx, y + rowH - 7); }
+        } else {
+          ctx.fillText(t24, cx, y + rowH / 2 + 9);
+        }
+      });
+      y += rowH;
+    });
+
+    y += 30;
+    ctx.textAlign = 'center';
+    ctx.font = '400 25px Inter, Amiri, "Noto Naskh Arabic", sans-serif';
+    ctx.fillStyle = C.muted;
+    ctx.fillText(`● ${this._L('today')}    ● ${this._L('friday')}`, W / 2, y + 10);
+
+    this._drawFooter(ctx);
+    const fname = `quba-prayers-${year}-${String(month).padStart(2, '0')}.pdf`;
+    return { canvas: canvas, fname: fname };
+  },
+
+  async saveMonthImage(btn) {
+    this._busy(btn, true);
+    try {
+      const { canvas, fname } = await this._renderMonthCanvas();
+      await this._saveImage(canvas, fname.replace(/\.pdf$/, '.png'));
+      if (typeof showToast === 'function') showToast('🖼️ PNG ✓');
+    } catch (e) {
+      console.warn('PNG month error:', e);
+      if (typeof showToast === 'function') showToast((typeof t === 'function' && t('errorLoading')) || 'Error');
+    } finally {
+      this._busy(btn, false);
+    }
+  },
+
+  // v1.0.138: لوحة صلوات الأسبوع
+  async _renderWeekCanvas() {
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const rowsData = (typeof PrayerPage !== 'undefined' && PrayerPage.weekData) ? PrayerPage.weekData() : [];
+    if (!rowsData.length) throw new Error('no week data');
+
+    const { canvas, ctx } = this._newCanvas();
+    const C = this.COLORS, W = this.PAGE_W;
+    let y = await this._drawHeader(ctx, this._L('weekTitle'));
+
+    const x0 = 40, x1 = W - 40;
+    const names = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+    const dayW = 220;
+    const cols = names.length + 2;
+    const cw = (x1 - x0 - dayW) / cols;
+    const headH = 96;
+
+    ctx.fillStyle = C.navy;
+    ctx.fillRect(x0, y, x1 - x0, headH);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 26px Inter, Amiri, "Noto Naskh Arabic", sans-serif';
+    ctx.fillText(this._L('day'), x0 + dayW / 2, y + headH / 2 + 9);
+    names.forEach((n, i) => {
+      ctx.font = '700 24px Amiri, "Noto Naskh Arabic", serif';
+      ctx.fillStyle = C.gold;
+      ctx.fillText(this._prayerArabic(n), x0 + dayW + cw * i + cw / 2, y + headH / 2 + 8);
+    });
+    ['nightMid', 'nightThird'].forEach((k, i) => {
+      ctx.font = '700 19px Amiri, "Noto Naskh Arabic", sans-serif';
+      ctx.fillStyle = '#BFD8CC';
+      ctx.fillText(this._L(k), x0 + dayW + cw * (names.length + i) + cw / 2, y + headH / 2 + 7);
+    });
+    y += headH;
+
+    const rowH = Math.min(118, Math.floor((this.PAGE_H - y - 230) / rowsData.length));
+    rowsData.forEach((row, i) => {
+      const isToday = i === 0;
+      const isFriday = row.date.getDay() === 5;
+      ctx.fillStyle = isToday ? C.today : (isFriday ? C.friday : (i % 2 ? C.rowAlt : '#ffffff'));
+      ctx.fillRect(x0, y, x1 - x0, rowH);
+      ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+      ctx.strokeRect(x0, y, x1 - x0, rowH);
+      if (isToday) { ctx.fillStyle = C.gold; ctx.fillRect(x0, y, 7, rowH); }
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = isFriday ? '#8E6E1E' : C.ink;
+      ctx.font = '700 25px Inter, sans-serif';
+      ctx.fillText(row.weekday || '', x0 + dayW / 2, y + rowH / 2 - 5);
+      ctx.fillStyle = C.muted;
+      ctx.font = '400 20px Inter, sans-serif';
+      ctx.fillText(row.gdate || '', x0 + dayW / 2, y + rowH / 2 + 22);
+
+      names.forEach((n, j) => {
+        ctx.fillStyle = C.ink;
+        ctx.font = '600 26px Inter, sans-serif';
+        ctx.fillText(this._t24(row.timings && row.timings[n]) || '--:--', x0 + dayW + cw * j + cw / 2, y + rowH / 2 + 9);
+      });
+      ctx.fillStyle = C.navy;
+      ctx.font = '600 22px Inter, sans-serif';
+      ctx.fillText(this._t24(row.night && row.night.mid) || '—', x0 + dayW + cw * names.length + cw / 2, y + rowH / 2 + 8);
+      ctx.fillText(this._t24(row.night && row.night.third) || '—', x0 + dayW + cw * (names.length + 1) + cw / 2, y + rowH / 2 + 8);
+
+      y += rowH;
+    });
+
+    y += 34;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = C.muted;
+    ctx.font = '400 24px Inter, Amiri, "Noto Naskh Arabic", sans-serif';
+    ctx.fillText(this._L('weekNote'), W / 2, y + 8);
+
+    this._drawFooter(ctx);
+    const d = new Date();
+    return { canvas: canvas, fname: `quba-week-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.pdf` };
+  },
+
+  async downloadWeek(btn) {
+    this._busy(btn, true);
+    try {
+      await this._ensureJsPdf();
+      const { canvas, fname } = await this._renderWeekCanvas();
+      this._save(canvas, fname);
+      if (typeof showToast === 'function') showToast('📄 PDF ✓');
+    } catch (e) {
+      console.warn('PDF week error:', e);
+      if (typeof showToast === 'function') showToast((typeof t === 'function' && t('errorLoading')) || 'Error');
+    } finally {
+      this._busy(btn, false);
+    }
+  },
+
+  async saveWeekImage(btn) {
+    this._busy(btn, true);
+    try {
+      const { canvas, fname } = await this._renderWeekCanvas();
+      await this._saveImage(canvas, fname.replace(/\.pdf$/, '.png'));
+      if (typeof showToast === 'function') showToast('🖼️ PNG ✓');
+    } catch (e) {
+      console.warn('PNG week error:', e);
+      if (typeof showToast === 'function') showToast((typeof t === 'function' && t('errorLoading')) || 'Error');
+    } finally {
+      this._busy(btn, false);
+    }
+  },
+
+  async _saveImage(canvas, filename) {
+    const blob = await new Promise((res) => canvas.toBlob(res, 'image/png'));
+    if (!blob) throw new Error('toBlob no disponible');
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  },
+
 };
 
 if (typeof window !== 'undefined') window.PrayerPdf = PrayerPdf;

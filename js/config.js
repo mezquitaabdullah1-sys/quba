@@ -80,6 +80,8 @@ const CONFIG = {
     'es.cortes': 'Julio Cortés (Español)',
     'en.sahih': 'Sahih International (English)',
     'en.pickthall': 'Pickthall (English)',
+    'en.hilali': 'Hilali & Khan (King Fahd Complex)',
+    'en.yusufali': 'Yusuf Ali (English)',
   },
 
   API: {

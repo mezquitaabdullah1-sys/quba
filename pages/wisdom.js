@@ -35,18 +35,12 @@ const WisdomPage = {
         color: '#0F4C3A',
         route: 'wisdom/quiz',
       },
+      // v1.0.151: دمج الأدعية والأذكار في وحدة واحدة
       {
-        id: 'duas', icon: '<i class="fas fa-hands-praying"></i>',
-        title: t('duasTitle') || "Du'as y Súplicas",
-        desc: t('duasModuleDesc') || '300+ súplicas auténticas · 27 categorías',
+        id: 'dua_adhkar', icon: '<i class="fas fa-hands-praying"></i>',
+        title: (currentLocale === 'ar' ? 'الأدعية والأذكار' : (currentLocale === 'en' ? "Du'as & Adhkar" : "Du'as y Adhkar")),
+        desc: (currentLocale === 'ar' ? '١٣ مجموعة أذكار + ٣٠٠ دعاء · بطاقات بأشكال وألوان' : (currentLocale === 'en' ? "13 adhkar sets + 300+ du'as · styled cards" : "13 grupos de adhkar + 300+ du'as · tarjetas con estilo")),
         color: '#D4AF37',
-        route: 'wisdom/duas',
-      },
-      {
-        id: 'adhkar', icon: '<i class="fas fa-cloud-sun"></i>',
-        title: t('adhkarTitle') || 'Adhkar diarios',
-        desc: t('adhkarModuleDesc') || 'Mañana · Tarde · Antes de dormir · Tras la oración',
-        color: '#FF7043',
         route: 'wisdom/adhkar',
       },
       {
@@ -119,8 +113,8 @@ const WisdomPage = {
               <div class="stat-value"><i class="fas fa-fire"></i> ${stats.streak || 0}</div>
               <div class="stat-label">${t('streak')}</div>
             </div>
-            <div class="stat-item">
-              <div class="stat-value"><i class="fas fa-trophy"></i> ${stats.achievements?.length || 0}</div>
+            <div class="stat-item stat-item-link" onclick="Router.go('wisdom/achievements')">
+              <div class="stat-value"><i class="fas fa-trophy"></i> ${stats.achievements?.length || 0}<span class="stat-total">/${Gamification.TOTAL_BADGES || 21}</span></div>
               <div class="stat-label">${t('badges')}</div>
             </div>
             <div class="stat-item">
@@ -128,6 +122,19 @@ const WisdomPage = {
               <div class="stat-label">${t('answered')}</div>
             </div>
           </div>
+        </div>
+
+        <div class="wisdom-ach-link" onclick="Router.go('wisdom/achievements')">
+          <div class="wal-ic"><i class="fas fa-medal"></i></div>
+          <div class="wal-txt">
+            <div class="wal-title">${currentLocale === 'ar' ? 'الأوسمة والمستويات' : (currentLocale === 'en' ? 'Badges & levels' : 'Medallas y niveles')}</div>
+            <div class="wal-sub">${currentLocale === 'ar'
+              ? `${stats.achievements?.length || 0} من ${Gamification.TOTAL_BADGES || 21} وسامًا · المستوى ${stats.level}`
+              : (currentLocale === 'en'
+                ? `${stats.achievements?.length || 0} of ${Gamification.TOTAL_BADGES || 21} badges · Level ${stats.level}`
+                : `${stats.achievements?.length || 0} de ${Gamification.TOTAL_BADGES || 21} medallas · Nivel ${stats.level}`)}</div>
+          </div>
+          <i class="fas fa-chevron-${document.documentElement.dir === 'rtl' ? 'left' : 'right'}"></i>
         </div>
 
         <!-- 4 modules: Quiz / Du'as / Adhkar / Tasbih -->

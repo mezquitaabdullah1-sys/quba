@@ -1,0 +1,160 @@
+/* ============================================================
+   Quba v1.0.170 — وضوح النصوص: بقية الصفحات
+   نطاق هذا الملف: المكتبة · الأوسمة · الدورات · الأدعية والأذكار
+   · الراديو · الخاتمة · القبلة · المسبحة · تتبّع العبادات · الأذكار
+   · صلاة · التوجيه · الميزات · المقتطفات · العالم
+   القاعدة: لون النص/الأيقونة فقط — لا خلفيات، لا أحجام، لا ترتيب.
+   قيم الثيمات الفاتحة (light/emerald/brown) مضبوطة على AA محسوبًا
+   فوق السطح المركّب فعليًا. الثيمات الداكنة تُترك لأنها تحمل
+   تعديلاتها الخاصة أصلًا، إلا ما لم يكن له تعديل (البلوك ٢).
+   ============================================================ */
+
+/* ---------- رموز إضافية للثيمات الداكنة ---------- */
+[data-theme="dark"],
+[data-theme="maroon"] {
+  --ink-danger: #FF9C93;
+  --ink-warn: #FFC46B;
+  --ink-info: #8FC0FF;
+  --ink-purple: #C9A6F2;
+  --ink-brown: #D9B896;
+}
+
+/* ============================================================
+   ١) الثيمات الفاتحة: نص ذهبي وأبيض فوق أسطح ورقية
+   ============================================================ */
+html:not([data-theme="dark"]):not([data-theme="maroon"]) {
+
+  /* --- الأوسمة والمستويات: الذهبي الفاتح على الورق --- */
+  .lv-title,
+  .lv-next b,
+  .lv-eyebrow,
+  .lv-next,
+  .ach-topbar-count,
+  .ach-inline-link,
+  .ach-toast-eyebrow,
+  .ach-lvl.is-now .ach-lvl-sub,
+  .ach-lvl.is-on .ach-lvl-num,
+  .cert-v152 .cert-header h3,
+  .cert-v152 .cert-course-name,
+  .cert-v152 .cert-edit-name-btn,
+  .cert-v152 .cert-signature,
+  .cert-header h3,
+  .cert-course-name,
+  .cert-edit-name-btn,
+  .cert-signature { color: var(--ink-accent) !important; }
+
+  .lv-sub,
+  .cert-v152 .cert-eyebrow,
+  .cert-v152 .cert-presented,
+  .cert-v152 .cert-completed,
+  .cert-eyebrow,
+  .cert-presented,
+  .cert-completed,
+  .cert-meta-item span,
+  .cert-v152 .cert-id,
+  .ach-medal-ic { color: var(--text-secondary) !important; }
+
+  .lv-xp i,
+  .ach-chip i,
+  .ach-ring-icon,
+  .cert-divider i,
+  .cert-v152 .cert-corner,
+  .dua-source i,
+  .dua-translit i,
+  .adhkar-benefit i,
+  .dq-chip i,
+  .dq-benefit i,
+  .al-note i,
+  .al-section-label i,
+  .al-warning i,
+  .kht-bound.is-end i,
+  .kht-lbtn.is-on,
+  .msh-ward-note.is-end,
+  .qr-ks-note.is-out,
+  .wk-today-badge,
+  .wk-night i,
+  .quran-list-download-btn,
+  .makkah-title,
+  .makkah-dist,
+  .cp-val,
+  .radio-ctl.side.rep-all,
+  .tl-label,
+  .cert-tier-gold,
+  .cert-tier-silver,
+  .cert-tier-bronze,
+  .dua-times,
+  .ps-dhikr-label { color: var(--ink-accent-ico) !important; }
+
+  /* --- حدود/رموز ملوّنة أخرى --- */
+  .ach-lvl.is-off .ach-lvl-mark,
+  .prayer-bell.off,
+  .rc-fav,
+  .lpdf-ph,
+  .pg-note,
+  .pg-nav-chevron,
+  .cardinal-sub,
+  .mascot-tip-close,
+  .cert-date { color: var(--text-secondary) !important; }
+
+  /* --- نص فوق زر بلونه الأساسي (الأساسي ذهبي في الثيم الداكن) --- */
+  .qs-ok { color: #FFFFFF !important; }
+  .tk-pill, .tk-pill i, .tracker-pill { color: #241B05 !important; }
+
+  /* --- شارات نجاح/خطر/تحذير على الورق --- */
+  .pass, .correct, .is-ok, .ok { color: #1D6B3F !important; }
+  .is-danger, .warn { color: #8A3A00 !important; }
+}
+
+/* ============================================================
+   ٢) الثيمات الداكنة: ما لم يكن له تعديل أصلًا
+   ============================================================ */
+[data-theme="dark"] .ps-hadith-text,
+[data-theme="maroon"] .ps-hadith-text { color: var(--ink-purple) !important; }
+[data-theme="dark"] .ps-hadith-label,
+[data-theme="maroon"] .ps-hadith-label,
+[data-theme="dark"] .ps-hadith-trans,
+[data-theme="maroon"] .ps-hadith-trans { color: #C9A6F2 !important; }
+
+[data-theme="dark"] .cx-wheel-text,
+[data-theme="maroon"] .cx-wheel-text,
+[data-theme="dark"] .cmp-num b,
+[data-theme="maroon"] .cmp-num b { color: var(--text) !important; }
+
+[data-theme="dark"] .sleep-modal-head .fa-moon,
+[data-theme="maroon"] .sleep-modal-head .fa-moon,
+[data-theme="dark"] .wudu-step-lesson .ps-title,
+[data-theme="maroon"] .wudu-step-lesson .ps-title { color: #8FC0FF !important; }
+
+[data-theme="dark"] .lq-option.wrong,
+[data-theme="maroon"] .lq-option.wrong,
+[data-theme="dark"] .quiz-diff-medium,
+[data-theme="maroon"] .quiz-diff-medium,
+[data-theme="dark"] .courses .qf-status,
+[data-theme="maroon"] .courses .qf-status { color: #FFB4A8 !important; }
+
+[data-theme="dark"] .quiz-diff-easy,
+[data-theme="maroon"] .quiz-diff-easy,
+[data-theme="dark"] .lq-option.correct,
+[data-theme="maroon"] .lq-option.correct,
+[data-theme="dark"] .cxm-chip.ok,
+[data-theme="maroon"] .cxm-chip.ok { color: #7FE7B4 !important; }
+
+[data-theme="dark"] .cert-name,
+[data-theme="maroon"] .cert-name { color: #7FE7B4 !important; }
+
+/* ============================================================
+   ٣) حقول الإدخال والـplaceholder — كانت بيضاء على ورق فاتح
+   ============================================================ */
+html:not([data-theme="dark"]):not([data-theme="maroon"]) input::placeholder,
+html:not([data-theme="dark"]):not([data-theme="maroon"]) textarea::placeholder { color: #6B6656 !important; opacity: 1; }
+[data-theme="dark"] input::placeholder,
+[data-theme="maroon"] input::placeholder,
+[data-theme="dark"] textarea::placeholder,
+[data-theme="maroon"] textarea::placeholder { color: rgba(245,240,230,.62) !important; opacity: 1; }
+
+/* ============================================================
+   ٤) حالات معطّلة/مقفلة: تبقى باهتة لكن فوق 3:1
+   ============================================================ */
+html:not([data-theme="dark"]):not([data-theme="maroon"]) button:disabled,
+html:not([data-theme="dark"]):not([data-theme="maroon"]) .is-disabled,
+html:not([data-theme="dark"]):not([data-theme="maroon"]) .locked { color: #5F5A4C !important; }

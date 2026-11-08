@@ -1,0 +1,103 @@
+/* ============================================================
+   Quba v1.0.169 — طبقة وضوح النصوص عبر الثيمات (Contrast Overlay)
+   Loaded LAST: only sets text/icon colours, never backgrounds,
+   so layout & atmosphere stay identical. Every value below was
+   computed against the composited surface of each theme and
+   checked for WCAG AA (>=4.5 body text, >=3.0 icons).
+   ============================================================ */
+
+/* --- رموز دلالية: نص ذهبي/أخضر/أيقونات يتبدّل تلقائيًا مع الثيم --- */
+:root,
+[data-theme="light"],
+[data-theme="emerald"],
+[data-theme="brown"] {
+  --ink-accent:#77590F;
+  --ink-accent-ico:#8F6E1E;
+  --ink-deep:#0E4B3C;
+  --ink-success:#2E6B4E;
+  --on-primary:#FFFFFF;
+}
+
+[data-theme="dark"],
+[data-theme="maroon"] {
+  --ink-accent:#F2DFA6;
+  --ink-accent-ico:#E4CE8E;
+  --ink-deep:#9BE3C2;
+  --ink-success:#6FE3AE;
+  --on-primary:#17130A;
+}
+
+/* ---------- 1) أزرار: نص فوق اللون الأساسي ---------- */
+.btn-primary,
+.ayah-play-btn.playing,
+.modal-option:hover,
+.modal-option:active { color: var(--on-primary) !important; }
+.btn-primary i, .btn-primary .icon { color: inherit; }
+
+/* زر ذهبي صلب — حبر داكن في كل الثيمات (كان #fff بنسبة 2.1) */
+.ayah-action-btn.repeat-btn.active,
+.ayah-action-btn.repeat-btn.active i { color: #241B05 !important; }
+
+/* ---------- 2) نص ذهبي على أسطح فاتحة ---------- */
+.monthly-iqamah,
+.week-header .week-day.friday,
+.monthly-today-badge,
+.adhan-alert-title,
+.imsk-tv-label,
+.imsk-tv-foot b,
+.quran-list-settings-btn { color: var(--ink-accent) !important; }
+
+/* ---------- 3) أيقونات ذهبية (تحتاج 3:1) ---------- */
+.prayer-iqamah i,
+.ht-done .ht-all i,
+.imsk-city-btn > i:first-child,
+.imsk-cover-kicker i,
+.imsk-cover-loc i,
+.imsk-note i,
+.imsk-range i,
+.imsk-spin,
+.imsk-sheet-title i,
+.imsk-hint i,
+.imsk-live-f i,
+.imsk-method-h i,
+.imsk-tv-city i,
+.imsk-card-h > i,
+.imsk-rnote > i,
+.quran-quick-chip i,
+.verse-wisdom .fas,
+.mosque-footer-title,
+.player-xp,
+.rmd-card-h > i,
+.rmd-deed > i,
+.rmd-nchip.is-odd > i,
+.rmd-note > i,
+.rmd-gchev { color: var(--ink-accent-ico) !important; }
+
+/* ---------- 4) نصوص خضراء داكنة (كانت تختفي في الثيم الداكن: 1.53) ---------- */
+.rmd-title, .rmd-card-h, .rmd-done, .rmd-dua-x, .rmd-fav,
+.rmd-it-t, .rmd-it-stats b, .rmd-kh-ring b, .rmd-kh-grid b,
+.rmd-night-bar > b, .rmd-sec-h, .rmd-zr b, .rmd-drow > b,
+.rmd-kh-name,
+.imsk-city-btn, .imsk-city-edit, .imsk-city-reset, .imsk-daynum,
+.imsk-stat-v, .imsk-method-diff b, .imsk-method-h, .imsk-mopt,
+.list-row-btn, .monthly-table th, .quiz-badge, .virtue-box-quote,
+.lib-hcard-r, .lib-hnote, .acc .acc-ico { color: var(--ink-deep) !important; }
+
+/* ---------- 5) نصوص ثانوية ضعيفة ---------- */
+.rmd-kh-sub, .rmd-kh-grid span, .rmd-empty > i,
+.week-header .week-day.weekend,
+.prayer-check.locked { color: var(--text-secondary) !important; }
+.prayer-checkin-progress { color: var(--ink-success) !important; }
+
+/* ---------- 6) تجويد القرآن: ألوان فاتحة كانت غير مقروءة على الورق ---------- */
+html:not([data-theme="dark"]):not([data-theme="maroon"]) .tjw-ghunnah{color:#177D3C!important}
+html:not([data-theme="dark"]):not([data-theme="maroon"]) .tjw-ikhfa{color:#714DFA!important}
+html:not([data-theme="dark"]):not([data-theme="maroon"]) .tjw-idgham{color:#057A89!important}
+html:not([data-theme="dark"]):not([data-theme="maroon"]) .tjw-iqlab{color:#AD5902!important}
+html:not([data-theme="dark"]):not([data-theme="maroon"]) .tjw-qalqalah{color:#DF0B0B!important}
+html:not([data-theme="dark"]):not([data-theme="maroon"]) .tjw-madd{color:#046BDE!important}
+html:not([data-theme="dark"]):not([data-theme="maroon"]) .tjw-laam{color:#816C01!important}
+
+/* ---------- 7) ثيم داكن: الأيقونات الذهبية على الرأس الداكن تبقى ساطعة ---------- */
+[data-theme="dark"] .mosque-footer-title,
+[data-theme="maroon"] .mosque-footer-title { color: #F2DFA6 !important; }

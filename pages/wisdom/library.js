@@ -117,7 +117,6 @@ const LibraryPage = {
 
         <button class="lib-refresh" onclick="LibraryPage._refreshShelf(this)"><i class="fas fa-rotate"></i> ${esc(this.L('libRefreshShelf'))}</button>
         <div class="lib-refresh-note">${esc(this.L('libRefreshShelfNote'))}</div>
-        <button class="lib-src-btn" onclick="LibraryPage._srcSettings()"><i class="fas fa-plug"></i> ${esc(this.L('libSourceSettings'))}</button>
         ${this._attribution()}
       </div>`;
   },
@@ -195,7 +194,7 @@ const LibraryPage = {
   // v1.0.83 — الجامع: كل الأبواب + تصنيف اللغة العام (من زر «استكشاف وأضف»)
   _openJami() {
     this._view = 'jami'; this._topic = null; this._q = ''; this._results = null;
-    this._jcat = null; this._jlimit = 240; this._loading = false;
+    this._jcat = null; this._jlimit = 60; this._loading = false;
     const el = this._el(); if (!el) return;
     el.innerHTML = `
       <div class="lib-page lib-jami">
@@ -837,8 +836,8 @@ const LibraryPage = {
     try {
       const list = await LibrarySources.hadithList(this._lang, cat, 1);
       if (token !== this._token) return;
-      this._hlist = list;
-    } catch (e) { if (token === this._token) this._hlist = []; }
+      this._hlist = list; this._hloadErr = false;
+    } catch (e) { if (token === this._token) { this._hlist = []; this._hloadErr = true; } }
     const box = document.getElementById('lib-hadiths'); if (box) box.innerHTML = this._hadithHtml();
   },
   _pickHadithCat(id) { this._hcat = id; this._hlist = null; this._paintHadith(); this._loadHadith(); },
@@ -956,7 +955,7 @@ const LibraryPage = {
     } catch (e) {
       const t = document.getElementById('lib-rtext');
       if (t) t.innerHTML = `<div style="text-align:center;color:var(--text-secondary);padding:26px 14px;line-height:1.7;">${esc(this.L('libReaderNoNet'))}</div>
-        <div style="text-align:center;padding:6px 14px 20px;"><button class="lib-btn ghost" onclick="LibraryPage._srcSettings()"><i class="fas fa-plug"></i> ${esc(this.L('libSourceSettings'))}</button></div>`;
+        <div style="text-align:center;padding:6px 14px 20px;"><button class="lib-btn ghost" onclick="LibraryPage._retryRead()"><i class="fas fa-rotate"></i> ${esc(this.L('libRetry'))}</button></div>`;
     }
   },
   _sanitize(text) {
@@ -1122,13 +1121,13 @@ const LibraryPage = {
     const c = document.getElementById('lib-cats'); if (c) c.innerHTML = this._jamiChips();
     const b = document.getElementById('lib-books'); if (b) b.innerHTML = this._jamiHtml();
     const m = document.getElementById('lib-jami-more');
-    if (m) m.hidden = this._jamiBooks().length <= (this._jlimit || 240);   // لا زر «المزيد» إن كانت كل الكتب ظاهرة
+    if (m) m.hidden = this._jamiBooks().length <= (this._jlimit || 60);   // لا زر «المزيد» إن كانت كل الكتب ظاهرة
   },
   _setJcat(id) {
-    this._jcat = id; this._results = null; this._jlimit = 240;
+    this._jcat = id; this._results = null; this._jlimit = 60;
     this._paintJami();
   },
-  _moreJami() { this._jlimit += 120; this._paintJami(); },
+  _moreJami() { this._jlimit += 60; this._paintJami(); },
   // v1.0.125 — يجمع كتب الجامع في مجموعات حسب التصنيف بدل صف واحد مسحوب
   _jamiSections() {
     const lang = this._lang;
@@ -1167,7 +1166,7 @@ const LibraryPage = {
     if (this._loading) return `<div class="lib-empty-list">${esc(this.L('libLoading'))}</div>`;
     const secs = this._jamiSections();
     if (!secs.length) return `<div class="lib-empty-list">${esc(this.L('libNoCatBooks'))}</div>`;
-    let budget = this._jlimit || 240;
+    let budget = this._jlimit || 60;
     let html = '';
     for (const sec of secs) {
       if (budget <= 0) break;
@@ -1245,7 +1244,81 @@ const LibraryPage = {
       <div class="lib-card-slot" data-dlb="${dlk}">${this._dlBar(dlk)}</div>
     </div>`;
   },
+
+  // v1.0.139 — كانت الدالة مُستدعاة وغير معرّفة (this._hadithHtml is not a function)
+  // وهو سبب أن قسم «أحاديث مترجمة بشرحها» لا يفتح / يظهر فارغًا.
+  _hadithHtml() {
+    if (!this._hlist) return `<div class="lib-empty-list">${esc(this.L('libLoading'))}</div>`;
+    if (!this._hlist.length) return '';
+    return `<div class="lib-hlist">${this._hlist.map(h => `
+      <button class="lib-hcard" onclick="LibraryPage._openHadithItem('${esc(String(h.id))}')">
+        ${h.title ? `<span class="lib-hcard-t" dir="auto">${esc(h.title)}</span>` : ''}
+        ${h.body && h.body !== h.title ? `<span class="lib-hcard-b" dir="auto">${esc(h.body)}</span>` : ''}
+        ${h.ref ? `<span class="lib-hcard-r"><i class="fas fa-book"></i> ${esc(h.ref)}</span>` : ''}
+      </button>`).join('')}</div>`;
+  },
+
+  // v1.0.139 — إعادة محاولة فتح الكتاب بعد فشل الشبكة
+  _retryRead() {
+    const id = Number(this._book && this._book.id) || Number(this._pdfId) || 0;
+    if (id && this._openReader) { this._openReader(id, 1); return; }
+    if (id && this._openPdfById) { this._openPdfById(id, this._from || 'topic'); return; }
+    this._home();
+  },
+
+  // v1.0.139 — بديل محلي لأحاديث مترجمة بشرحها عند تعذّر الواجهة
+  _localHadithList() {
+    const lang = (this._lang === 'es' || this._lang === 'en') ? this._lang : 'ar';
+    const arr = (typeof DAILY_HADITHS !== 'undefined' && Array.isArray(DAILY_HADITHS)) ? DAILY_HADITHS : [];
+    return arr.map((h, i) => ({
+      id: 'local-' + i,
+      title: lang === 'ar' ? (h.arabic || '') : (h['translation_' + lang] || h.translation_en || ''),
+      body: lang === 'ar' ? '' : (h.arabic || ''),
+      expl: '',
+      ref: h['source_' + lang] || h.source_ar || '',
+      _local: h,
+    }));
+  },
+  _hadithFallbackHtml() {
+    const list = this._localHadithList();
+    if (!list.length) {
+      return `<div class="lib-empty"><i class="fas fa-wifi"></i>
+        <div class="lib-empty-title">${esc(this.L('libHadithEmptyT'))}</div>
+        <div class="lib-empty-desc">${esc(this.L('libHadithEmptyD'))}</div></div>`;
+    }
+    this._hlist = list;
+    const cards = list.map((h, i) => `
+      <button class="lib-hcard" onclick="LibraryPage._openLocalHadith(${i})">
+        <span class="lib-hcard-t" dir="auto">${esc(h.title || '')}</span>
+        ${h.body ? `<span class="lib-hcard-b" dir="rtl">${esc(h.body)}</span>` : ''}
+        ${h.ref ? `<span class="lib-hcard-r"><i class="fas fa-book"></i> ${esc(h.ref)}</span>` : ''}
+      </button>`).join('');
+    return `<div class="lib-hnote"><i class="fas fa-database"></i> ${esc(this.L('libHadithOffline'))}</div>
+      <div class="lib-hlist">${cards}</div>`;
+  },
+  _openLocalHadith(i) {
+    const h = (this._hlist || [])[i]; if (!h) return;
+    const overlay = document.createElement('div');
+    overlay.className = 'lib-sheet-overlay';
+    overlay.innerHTML = `<div class="lib-sheet">
+      ${h.body ? `<div class="lib-hadith-body" dir="rtl">${esc(h.body)}</div>` : ''}
+      <div class="lib-sheet-title" dir="auto">${esc(h.title || '')}</div>
+      ${h.ref ? `<div class="lib-hadith-expl"><i class="fas fa-book"></i> ${esc(h.ref)}</div>` : ''}
+      <div class="lib-actions"><button class="lib-btn ghost" onclick="this.closest('.lib-sheet-overlay').remove()">${esc(this.L('libBack'))}</button></div>
+    </div>`;
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+  },
 };
 // ضمان الوصول من معالِجات onclick المُضمَّنة في القوالب
-if (typeof window !== 'undefined') { window.LibraryPage = LibraryPage; }
+if (typeof window !== 'undefined') {
+  // v1.0.139 — لا صفحة بيضاء: تحميل/خطأ/بديل محلي
+  const _hOrig = LibraryPage._hadithHtml;
+  LibraryPage._hadithHtml = function () {
+    if (this._hloadErr || (this._hlist && this._hlist.length === 0 && !this._hLoading)) return this._hadithFallbackHtml();
+    if (!this._hlist) return `<div class="lib-empty-list">${esc(this.L('libLoading'))}</div>`;
+    return _hOrig.call(this);
+  };
+  window.LibraryPage = LibraryPage;
+}
 if (typeof module !== 'undefined') module.exports = LibraryPage;

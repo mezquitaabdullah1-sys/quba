@@ -28,6 +28,9 @@ const QuranHubPage = {
     container.innerHTML = `
       <div class="qhb" dir="rtl">
         <div class="qhb-hero">
+          <button class="qhb-back" onclick="Router.go('home')" aria-label="${L('رجوع', 'Atrás', 'Back')}">
+            <i class="fas fa-chevron-${currentLocale === 'ar' ? 'right' : 'left'}"></i>
+          </button>
           <div class="qhb-hero-orn"></div>
           <div class="qhb-hero-in">
             <div class="qhb-hero-kicker">${L('كتاب الله', 'Libro de Allah', 'Book of Allah')}</div>

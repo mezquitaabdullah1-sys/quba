@@ -522,7 +522,12 @@ const ClipsPage = {
 
   // رابط التضمين — وضع التكرار في يوتيوب يحتاج loop=1 مع playlist=<المعرّف نفسه>
   _embedUrl(id, start) {
-    const q = ['autoplay=1', 'rel=0', 'playsinline=1', 'enablejsapi=1'];
+    const q = ['autoplay=1', 'rel=0', 'playsinline=1', 'enablejsapi=1', 'modestbranding=1'];
+    // v1.0.139: يوتيوب لا يرسل أحداث الحالة بلا origin صالح
+    try {
+      const o = (typeof location !== 'undefined' && /^https?:/.test(location.origin)) ? location.origin : '';
+      if (o) q.push('origin=' + encodeURIComponent(o));
+    } catch (e) {}
     if (this._loop) q.push('loop=1', 'playlist=' + id);
     if (start && start > 3) q.push('start=' + Math.floor(start));
     return 'https://www.youtube-nocookie.com/embed/' + id + '?' + q.join('&');
@@ -581,21 +586,26 @@ const ClipsPage = {
   // ── التشغيل التلقائي: عند انتهاء المقطع ينتقل إلى التالي ──
   toggleAuto() {
     this._auto = !this._auto;
+    try { if (typeof Storage !== 'undefined') Storage.set('clips_autoplay', this._auto ? 1 : 0); } catch (e) {}
     const root = document.getElementById('main-content') || document;
     root.querySelectorAll('[data-clip-auto]').forEach(b => {
       b.classList.toggle('on', this._auto);
       b.setAttribute('aria-pressed', String(this._auto));
+      const t = b.querySelector('.clip-auto-t');
+      if (t) t.textContent = ClipsData.L(this._auto ? 'clipsAutoOn' : 'clipsAutoPlay');
     });
     if (typeof showToast === 'function') {
-      showToast((this._auto ? '▶️ ' : '⏸️ ') + ClipsData.L('clipsAutoPlay'));
+      showToast((this._auto ? '▶️ ' : '⏸️ ') + ClipsData.L(this._auto ? 'clipsAutoOn' : 'clipsAutoOff'));
     }
     this._clearAutoTimer();
     if (!this._auto) return;
-    if (this._ytSeen) return;
+    // v1.0.139: التسليح فورًا — لا ننتظر إشارات المشغّل (قد لا تصل داخل WebView)
+    this._ytListen();
     this._armAutoTimer();
   },
 
   _playNext() {
+    if (!this._auto) return;
     if (this._qIds && this._qIds.length > 1 && this._curId) {
       this._qi = (this._qi + 1) % this._qIds.length;
       const nid = this._qIds[this._qi];
@@ -616,7 +626,7 @@ const ClipsPage = {
       this._ytSeen = true;
       this._clearAutoTimer();
       if (typeof info.currentTime === 'number') this._ct = info.currentTime;
-      if (info.playerState === 0 && this._auto) this._playNext();   // 0 = انتهى المقطع
+      if (info.playerState === 0 && this._auto) { this._clearAutoTimer(); this._playNext(); }   // 0 = انتهى المقطع
     };
     window.addEventListener('message', this._ytH);
     // شبكة أمان: إن لم تصل إشارات (WebView بلا postMessage) نعتمد مدّة المقطع
@@ -630,9 +640,23 @@ const ClipsPage = {
 
   _armAutoTimer() {
     this._clearAutoTimer();
-    const d = ClipsData.durOf(this._curId);
-    if (!this._auto || !d) return;
-    this._autoTimer = setTimeout(() => { if (this._auto) this._playNext(); }, (d + 15) * 1000);
+    if (!this._auto || !this._curId) return;
+    // مدة معروفة من قاعدة البيانات، وإلا ١٠ دقائق كتقدير آمن
+    const d = ClipsData.durOf(this._curId) || 600;
+    this._autoTimer = setTimeout(() => { if (this._auto) this._playNext(); }, (d + 12) * 1000);
+  },
+
+  // v1.0.139: مصافحة يوتيوب — بلا «listening» لا يصل أي حدث حالة إلى الصفحة
+  _ytListen() {
+    const fr = document.getElementById('clip-iframe');
+    if (!fr) return;
+    const send = () => {
+      try {
+        fr.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 'clip-iframe', channel: 'widget' }), '*');
+      } catch (e) {}
+    };
+    send();
+    [700, 1800, 3600].forEach(t => setTimeout(send, t));
   },
   _clearAutoTimer() { if (this._autoTimer) { clearTimeout(this._autoTimer); this._autoTimer = null; } },
 
@@ -710,6 +734,8 @@ const ClipsPage = {
       </div>
     `;
     this._bindYT();
+    this._ytListen();
+    if (this._auto) this._armAutoTimer();
   },
 
   closePlayer() {

@@ -152,3 +152,112 @@
 [data-theme="dark"] .kht-opt.is-on{background:rgba(127,211,172,.14);color:#7fd3ac;border-color:#7fd3ac}
 [data-theme="dark"] .msh-ward,[data-theme="dark"] .msh-ward-end{color:#7fd3ac;background:rgba(127,211,172,.12);border-color:rgba(127,211,172,.3)}
 [data-theme="dark"] .msh-ward-bar i{background:#7fd3ac}
+
+/* ═══════════ v1.0.137 — قائمة الختمات · الإتمام اليدوي · حدود الورد ═══════════ */
+.kht-list { margin: 6px 0 12px; }
+.kht-lrow {
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 7px; padding: 8px 9px;
+  border-radius: 14px; border: 1px solid var(--line, #E7E0D0);
+  background: var(--card, #fff);
+}
+.kht-lrow.is-active { border-color: rgba(27, 122, 90, .45); box-shadow: 0 6px 18px -16px rgba(27,122,90,.9); }
+.kht-lmain {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px;
+  background: transparent; border: 0; padding: 0; text-align: start;
+  font-family: inherit; color: var(--ink, #26251F); cursor: pointer;
+}
+.kht-lpct {
+  flex: 0 0 auto; width: 38px; height: 38px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 10.5px; font-weight: 800;
+  color: var(--accent, #1B7A5A);
+  background: conic-gradient(var(--accent, #1B7A5A) calc(var(--p, 0) * 1%), rgba(128,128,128,.16) 0);
+  -webkit-mask: radial-gradient(circle, transparent 62%, #000 64%);
+  mask: radial-gradient(circle, transparent 62%, #000 64%);
+}
+.kht-lpct b { color: var(--accent, #1B7A5A); font-size: 10px; }
+.kht-ltx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.kht-ltx b { font-size: 12.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kht-ltx em { font-style: normal; font-size: 10px; color: var(--muted, #8A8577); }
+.kht-lnow { font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 8px;
+  background: rgba(27,122,90,.13); color: var(--accent, #1B7A5A); }
+.kht-lgo { font-size: 11px; color: var(--muted, #8A8577); }
+.kht-lbtn {
+  flex: 0 0 auto; width: 30px; height: 30px; border-radius: 10px;
+  display: grid; place-items: center; font-size: 11px;
+  border: 1px solid var(--line, #E7E0D0); background: transparent;
+  color: var(--muted, #8A8577); cursor: pointer;
+}
+.kht-lbtn.is-on { color: #B8860B; border-color: rgba(212,175,55,.5); background: rgba(212,175,55,.12); }
+.kht-lbtn-del:active { color: #B3261E; border-color: rgba(179,38,30,.5); }
+.kht-add {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 7px;
+  margin-top: 3px; padding: 10px; border-radius: 13px;
+  border: 1px dashed var(--line, #D8D2C2); background: transparent;
+  color: var(--accent, #1B7A5A); font-family: inherit; font-size: 12px; font-weight: 800; cursor: pointer;
+}
+/* الإتمام اليدوي */
+.kht-man-sum {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 11px 12px; margin-bottom: 10px; border-radius: 14px;
+  background: rgba(27,122,90,.08); border: 1px solid rgba(27,122,90,.20);
+}
+.kht-man-sum span { font-size: 10px; font-weight: 800; color: var(--muted, #8A8577); }
+.kht-man-sum b { font-size: 14px; }
+.kht-man-sum em { font-style: normal; font-size: 10.5px; color: var(--muted, #8A8577); }
+.kht-man-opt {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  padding: 11px 10px; margin-bottom: 8px; border-radius: 14px;
+  border: 1px solid var(--line, #E7E0D0); background: var(--card, #fff);
+  font-family: inherit; text-align: start; cursor: pointer;
+  color: var(--ink, #26251F);
+}
+.kht-man-opt:active { background: var(--chip, rgba(0,0,0,.04)); }
+.kht-man-ic { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 11px;
+  display: grid; place-items: center; font-size: 13px;
+  background: rgba(27,122,90,.12); color: #1B7A5A; }
+.kht-man-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.kht-man-tx b { font-size: 12.5px; font-weight: 800; }
+.kht-man-tx em { font-style: normal; font-size: 10px; color: var(--muted, #8A8577); }
+.kht-man-go { font-size: 10px; color: var(--muted, #8A8577); }
+.kht-man-danger { border-color: rgba(179,38,30,.35); }
+.kht-man-danger .kht-man-ic { background: rgba(179,38,30,.10); color: #B3261E; }
+.kht-man-danger .kht-man-tx b { color: #B3261E; }
+/* حدود الورد في شاشة اليوم */
+.kht-bounds { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+.kht-bound {
+  display: flex; flex-direction: column; gap: 1px;
+  padding: 10px; border-radius: 14px;
+  background: rgba(27,122,90,.08); border: 1px solid rgba(27,122,90,.20);
+}
+.kht-bound.is-end { background: rgba(212,175,55,.10); border-color: rgba(212,175,55,.35); }
+.kht-bound i { font-size: 11px; color: var(--accent, #1B7A5A); }
+.kht-bound.is-end i { color: #B8860B; }
+.kht-bound span { font-size: 9.5px; font-weight: 800; color: var(--muted, #8A8577); }
+.kht-bound b { font-size: 12.5px; }
+.kht-bound em { font-style: normal; font-size: 10px; color: var(--muted, #8A8577); }
+[data-theme="dark"] .kht-lrow, [data-theme="dark"] .kht-man-opt { border-color: rgba(255,255,255,.10); }
+
+/* ═══════════ v1.0.137 — شريط الورد في المصحف ═══════════════ */
+.msh-ward { display: block; margin: 0 10px 7px; padding: 8px 11px 7px; border-radius: 13px;
+  background: rgba(31,111,80,.10); border: 1px solid rgba(31,111,80,.24); color: #1f6f50; }
+.msh-ward-top { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; }
+.msh-ward-ttl { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msh-ward-rng { font-size: 10px; font-weight: 700; opacity: .85; background: rgba(31,111,80,.12); padding: 1px 6px; border-radius: 7px; }
+.msh-ward-n { font-size: 10.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.msh-ward-bar { height: 5px; border-radius: 99px; background: rgba(31,111,80,.18); overflow: hidden; margin-top: 6px; }
+.msh-ward-bar i { display: block; height: 100%; background: linear-gradient(90deg,#1f6f50,#3fb98c); border-radius: 99px; transition: width .3s ease; }
+.msh-ward-sub { font-size: 9.5px; margin-top: 4px; opacity: .9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msh-ward-edges { display: flex; flex-direction: column; gap: 5px; margin-bottom: 5px; }
+.msh-ward-note {
+  display: flex; align-items: center; gap: 6px; padding: 6px 9px; border-radius: 10px;
+  font-size: 10px; font-weight: 700;
+  background: rgba(31,111,80,.10); border: 1px solid rgba(31,111,80,.24); color: #1f6f50;
+}
+.msh-ward-note b { font-weight: 800; }
+.msh-ward-note span { opacity: .85; }
+.msh-ward-note.is-end { background: rgba(212,175,55,.14); border-color: rgba(212,175,55,.40); color: #8A6D1F; }
+.msh-ward-note.is-out { background: rgba(120,120,120,.10); border-color: rgba(120,120,120,.28); color: var(--muted, #777); }
+[data-theme="dark"] .msh-ward, [data-theme="dark"] .msh-ward-note { color: #7fd3ac; background: rgba(127,211,172,.12); border-color: rgba(127,211,172,.30); }
+[data-theme="dark"] .msh-ward-note.is-end { color: #F0C761; background: rgba(212,175,55,.16); border-color: rgba(212,175,55,.38); }
+[data-theme="dark"] .msh-ward-bar i { background: #7fd3ac; }

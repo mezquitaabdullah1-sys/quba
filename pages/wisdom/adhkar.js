@@ -184,9 +184,13 @@ const AdhkarPage = {
 
   markSetComplete() {
     if (!this.currentSet) return;
-    Gamification.addXP(Gamification.XP_PER_ADHKAR_SET);
+    // v1.0.151: XP مرة واحدة يوميًا لكل مجموعة (كان يتكرر بلا حدّ)
+    const xp = (typeof Gamification !== 'undefined' && Gamification.awardOnce)
+      ? Gamification.awardOnce('adhkar_set', this.currentSet.id, Gamification.XP_PER_ADHKAR_SET)
+      : 0;
     Gamification.recordAdhkarCompleted(this.currentSet.id);
-    showToast(`${t(this.currentSet.nameKey) || this.currentSet.id} +${Gamification.XP_PER_ADHKAR_SET} XP`, 3000);
+    const nm = t(this.currentSet.nameKey) || this.currentSet.id;
+    showToast(xp ? `${nm} +${xp} XP` : `✔ ${nm} — ${t('alreadyDone') || 'ya registrado hoy'}`, 3000);
     setTimeout(() => Router.go('wisdom/adhkar'), 1500);
   },
 

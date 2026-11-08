@@ -1,0 +1,95 @@
+/* ==========================================================================
+   v1.0.163 — إصلاحات القرآن (صفحة المصحف الكاملة · متابعة الورد · شريط الورد الثابت)
+   ١) الجذر: .msh-sheetmenu كانت position:fixed;inset:0;display:flex مع سمة
+      [hidden] — وقاعدة المؤلف display:flex تتغلب على display:none الافتراضية
+      للسمة، فبقيت طبقة شفافة بعرض الشاشة وz-index:350 تبتلع كل لمسة:
+      لا تقليب، لا إعدادات، لا رجوع — «كأنها صورة».
+   ٢) شبكة أمان ثانية: أي ورقة غير مفتوحة لا تستقبل لمسًا إطلاقًا.
+   ٣) شريط الورد في القارئ المترجم أصبح ثابتًا (sticky) يتبع القراءة.
+   ٤) زر «أكمل قراءة الورد» في المصحف والقارئ المترجم.
+   ========================================================================== */
+
+/* ---------- ١+٢) لا طبقة شفافة تبتلع اللمس ---------- */
+.msh-sheetmenu[hidden],
+.msh-set-scrim[hidden],
+.msh-audio[hidden],
+.msh-pick-scrim[hidden] { display: none !important; }
+
+.msh-sheetmenu:not(.on) { pointer-events: none !important; }
+.msh-sheetmenu.on { pointer-events: auto; }
+
+/* أوراق أيقونة الإعدادات/الفهرس/القائمة: الطبقة السفلية وحدها تستقبل اللمس */
+.msh-menu-card, .msh-set-card, .msh-pick-card { pointer-events: auto; }
+
+/* ---------- ٣) شريط الورد الثابت في القارئ المترجم ---------- */
+.qr-kstrip {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  margin: 0 12px 8px;
+  padding: 9px 12px 8px;
+  border-radius: 0 0 16px 16px;
+  background: linear-gradient(135deg, rgba(31,111,80,.16), rgba(31,111,80,.06));
+  border: 1px solid rgba(31,111,80,.26);
+  border-top: none;
+  box-shadow: 0 6px 18px rgba(15,76,58,.10);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transition: box-shadow .2s ease, padding .2s ease;
+}
+.qr-kstrip.is-stuck { box-shadow: 0 10px 24px rgba(15,76,58,.18); }
+.qr-ks-top { font-size: 12px; }
+.qr-ks-pill {
+  font-size: 10.5px; font-weight: 800;
+  background: rgba(31,111,80,.16); color: #1f6f50;
+  padding: 3px 9px; border-radius: 99px;
+  font-variant-numeric: tabular-nums;
+}
+.qr-ks-bar { height: 6px; }
+
+/* زر «أكمل الورد» داخل شريط القارئ */
+.qr-ks-go {
+  border: none; flex: 0 0 auto;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 11px; border-radius: 99px;
+  background: linear-gradient(135deg, #1f6f50, #2f8f68);
+  color: #fff; font-size: 10.5px; font-weight: 800;
+  box-shadow: 0 3px 10px rgba(31,111,80,.28);
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.qr-ks-go i { font-size: 9px; }
+.qr-ks-go:active { transform: scale(.97); }
+
+/* ---------- ٤) زر «أكمل قراءة الورد» في المصحف ---------- */
+.msh-ward-go {
+  width: 100%; margin-top: 8px;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 9px 12px; border: none; border-radius: 11px;
+  background: linear-gradient(135deg, #0F4C3A, #1f6f50);
+  color: #fff; font-size: 11.5px; font-weight: 800;
+  font-family: inherit;
+  box-shadow: 0 3px 12px rgba(15,76,58,.24);
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.msh-ward-go i { font-size: 10px; color: #9FE3C3; }
+.msh-ward-go:active { transform: scale(.985); }
+.msh-ward.is-collapsed .msh-ward-go { display: none; }
+
+/* ---------- زر الرجوع في واجهة القرآن الرئيسية ---------- */
+.qhb-hero { position: relative; }
+.qhb-back {
+  position: absolute; top: 12px; inset-inline-start: 12px; z-index: 3;
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.30);
+  background: rgba(0,0,0,.22); color: #fff;
+  display: grid; place-items: center; font-size: 13px;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.qhb-back:active { background: rgba(0,0,0,.36); }
+
+[data-theme="dark"] .qr-kstrip {
+  background: linear-gradient(135deg, rgba(127,211,172,.14), rgba(127,211,172,.05));
+  border-color: rgba(127,211,172,.24);
+  box-shadow: 0 6px 18px rgba(0,0,0,.35);
+}
+[data-theme="dark"] .qr-ks-pill { background: rgba(127,211,172,.18); color: #7fd3ac; }

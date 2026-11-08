@@ -51,7 +51,10 @@ const QuranMushafPage = {
 
   /* ---------------- إعدادات ---------------- */
   loadSettings() {
-    this.fontSize = Storage.get('mushaf_font') || 'medium';
+    // v1.0.141: حجم خط موحّد بين المصحف والقارئ المترجم
+    let fs = Storage.get('mushaf_font');
+    if (!fs) { try { fs = (Storage.get('reader_settings') || {}).fontSize; } catch (e) {} }
+    this.fontSize = fs || 'medium';
     const ms = Storage.get('mushaf_settings') || {};
     this.paper = ms.paper || 'auto';
     this.lineHeight = ms.lineHeight || 'normal';
@@ -65,21 +68,30 @@ const QuranMushafPage = {
 
   /* ---------------- صفحة ---------------- */
   render(container, params = {}) {
+    // v1.0.145: جلسة الورد تُثبّت ختمتها بالمعرّف (kid) — التبديل بين الختمات
+    // أثناء القراءة لم يعد يسرق الورد إلى ختمة أخرى، ووجهة الرجوع صريحة.
+    this._kid = (params && params.kid) ? String(params.kid) : null;
+    this._backTo = (params && params.back) ? String(params.back) : null;
     // v1.0.134: وضع الورد — يُفتح من بطاقة «ورد اليوم»
-    this._ward = !!(params && params.ward);
+    this._ward = !!(params && params.ward) || !!this._kid;
+    let _wc = false;
+    try { _wc = !!Storage.get('msh_ward_collapsed'); } catch (e) {}
+    this._wc = _wc;
     if (this._ward && !(params && params.page)) {
       try {
-        const k = KhatmaStore.active();
+        const k = this._khatma();
         const w = k && KhatmaStore.wardToday(k);
-        if (w && w.pages > 0) params.page = (k.dir === -1 ? w.to : w.from);
+        if (w && w.pages > 0) params.page = this._wardResumePage() || (k.dir === -1 ? w.to : w.from);
       } catch (e) {}
     }
     this._tIn = Date.now();
     this._tracked = 0;
+    this._wardStop();
     this.loadSettings();
     let p = parseInt(params.page, 10);
     if (!(p >= 1 && p <= this.TOTAL_PAGES)) p = parseInt(Storage.get('mushaf_last_page'), 10) || 1;
     this.showPage(container || document.getElementById('main-content'), p, 0);
+    this._trackStart();
   },
 
   _lineHTML(l) {
@@ -125,10 +137,9 @@ const QuranMushafPage = {
   },
 
   showPage(container, p, dir = 0) {
-    // التتبّع الحقيقي: الصفحة تُحتسب إذا مكثت ≥ ١٢ ثانية قبل تقليبها
-    if (this._ward && this.page && p !== this.page && (Date.now() - (this._tIn || 0)) >= 12000) {
-      try { KhatmaStore.markPage(this.page, 'mushaf'); } catch (e) {}
-    }
+    // v1.0.144: الاحتساب لم يعد حصرًا على وضع الورد — أي ختمة نشطة تتابع
+    // القراءة من المصحف الكامل. الصفحة تُحتسب بعد مكوث ≥ ١٢ ثانية.
+    if (this.page && p !== this.page) this._markPageIfDue(this.page);
     this._tIn = Date.now();
     p = Math.min(this.TOTAL_PAGES, Math.max(1, p));
     const prev = this.page;
@@ -159,7 +170,7 @@ const QuranMushafPage = {
     return `
       <div class="msh-wrap" dir="rtl">
         <div class="msh-topbar">
-          <button class="msh-ic" onclick="${this._ward ? "Router.go('quran/khatma')" : "Router.go('quran')"}" aria-label="${t('backToWisdom')}"><i class="fas fa-chevron-right"></i></button>
+          <button class="msh-ic" onclick="QuranMushafPage.goBack()" aria-label="${t('backToWisdom')}"><i class="fas fa-chevron-right"></i></button>
           <div class="msh-ttl">
             <b>${t('mushafTitle')}</b>
             <em id="msh-sub">${t('mushafJuz')} ${this.arDigits(this._juzOf(p))} · ${this._esc(this._surahName(first))}</em>
@@ -169,7 +180,7 @@ const QuranMushafPage = {
           <button class="msh-ic" onclick="QuranMushafPage.openSettings(event)" aria-label="${t('settings_reader') || 'Ajustes'}"><i class="fas fa-sliders-h"></i></button>
         </div>
 
-        ${this._ward ? this._wardBarHTML() : ""}
+        ${this._wardBarHTML()}
         <div class="msh-vp" id="msh-vp">
           <div class="msh-layer" id="msh-lay-a">${this._frameHTML(p, this._pageBodyHTML(p))}</div>
           <div class="msh-layer msh-layer-off" id="msh-lay-b"></div>
@@ -184,14 +195,24 @@ const QuranMushafPage = {
         <div class="msh-prog"><i id="msh-prog-i" style="width:${(p / this.TOTAL_PAGES) * 100}%"></i></div>
 
         <div class="msh-audio" id="msh-audio" hidden>
-          <button class="msh-a-btn" onclick="QuranMushafPage.audioToggle()" id="msh-a-play"><i class="fas fa-play"></i></button>
-          <div class="msh-a-info">
-            <b id="msh-a-ref">—</b>
-            <em id="msh-a-rec">—</em>
+          <div class="msh-a-row">
+            <button class="msh-a-btn" onclick="QuranMushafPage.audioPrev()" title="السابق"><i class="fas fa-backward-step"></i></button>
+            <button class="msh-a-btn" onclick="QuranMushafPage.audioToggle()" id="msh-a-play"><i class="fas fa-play"></i></button>
+            <button class="msh-a-btn" onclick="QuranMushafPage.audioNextAyah()" title="التالي"><i class="fas fa-forward-step"></i></button>
+            <div class="msh-a-info">
+              <b id="msh-a-ref">—</b>
+              <em id="msh-a-rec">—</em>
+            </div>
+            <button class="msh-a-btn" onclick="QuranMushafPage.audioNextReciter()" title="${t('reciter') || 'القارئ'}"><i class="fas fa-user-pen"></i></button>
+            <button class="msh-a-btn msh-a-stop" onclick="QuranMushafPage.audioStop()" title="${t('stop') || 'إيقاف'}"><i class="fas fa-xmark"></i></button>
           </div>
-          <button class="msh-a-btn" onclick="QuranMushafPage.audioRestart()" title="${t('repeatAudio') || 'إعادة'}"><i class="fas fa-rotate-left"></i></button>
-          <button class="msh-a-btn" onclick="QuranMushafPage.audioNextReciter()" title="${t('reciter') || 'القارئ'}"><i class="fas fa-user-pen"></i></button>
-          <button class="msh-a-btn msh-a-stop" onclick="QuranMushafPage.audioStop()" title="${t('stop') || 'إيقاف'}"><i class="fas fa-xmark"></i></button>
+          <div class="msh-a-row msh-a-row2">
+            <span class="msh-a-time" id="msh-a-now">0:00</span>
+            <input type="range" class="msh-a-seek" id="msh-a-seek" min="0" max="1000" value="0" step="1" oninput="QuranMushafPage.seekInput(this.value)">
+            <span class="msh-a-time" id="msh-a-dur">0:00</span>
+            <button class="msh-a-vol-btn" id="msh-a-volb" onclick="QuranMushafPage.toggleMute()"><i class="fas fa-volume-high"></i></button>
+            <input type="range" class="msh-a-vol" id="msh-a-vol" min="0" max="100" value="100" step="1" oninput="QuranMushafPage.volInput(this.value)">
+          </div>
         </div>
 
         <div class="msh-sheetmenu" id="msh-menu" hidden>
@@ -267,11 +288,15 @@ const QuranMushafPage = {
     const levels = { small: .9, medium: 1, large: 1.08, xlarge: 1.16 };
     const scale = levels[this.fontSize] || 1;
 
+    // v1.0.141: نسبة تباعد الأسطر من CSS الفعلي بدل رقم ثابت
+    let lhr = 1.55;
+    try { lhr = (parseFloat(cs.lineHeight) || 0) / (parseFloat(cs.fontSize) || 1) || 1.55; } catch (e) {}
+
     let best = 9;
     for (let fs = 27; fs >= 8.5; fs -= 0.25) {
       const test = fs * scale;
       // ١٥ سطرًا يجب أن تدخل في الارتفاع المتاح
-      if (texts.length * test * 1.55 > availH + 4) continue;
+      if (texts.length * test * lhr > availH + 4) continue;
       m.style.fontSize = test + 'px';
       let ok = true;
       for (const t of texts) {
@@ -281,6 +306,12 @@ const QuranMushafPage = {
       if (ok) { best = test; break; }
     }
     lines.style.fontSize = best.toFixed(2) + 'px';
+    this._mirrorFit(lines.style.fontSize);
+  },
+
+  /* v1.0.141: الطبقة الاحتياطية تُرسم بنفس حجم الطبقة الظاهرة حتى لا «تقفز» */
+  _mirrorFit(fs) {
+    document.querySelectorAll('#msh-lay-b .msh-lines').forEach(el => { if (fs) el.style.fontSize = fs; });
   },
 
   /* ---------------- حركة التقليب ---------------- */
@@ -294,6 +325,7 @@ const QuranMushafPage = {
     const w = vp.clientWidth;
 
     b.innerHTML = this._frameHTML(p, this._pageBodyHTML(p));
+    this._mirrorFit(a.querySelector('.msh-lines') && a.querySelector('.msh-lines').style.fontSize);
     b.classList.remove('msh-layer-off');
     a.style.transition = 'transform .3s cubic-bezier(.22,.75,.25,1)';
     b.style.transition = 'transform .3s cubic-bezier(.22,.75,.25,1)';
@@ -340,7 +372,7 @@ const QuranMushafPage = {
           if (!moved) { this.openMenu(ay); if (navigator.vibrate) navigator.vibrate(12); }
         }, 480);
       }
-    }, { passive: true });
+    }, { passive: false });
 
     vp.addEventListener('touchmove', e => {
       if (this._animating) return;
@@ -356,6 +388,7 @@ const QuranMushafPage = {
           const target = dx > 0 ? this.page + 1 : this.page - 1;
           if (target >= 1 && target <= this.TOTAL_PAGES && b) {
             b.innerHTML = this._frameHTML(target, this._pageBodyHTML(target));
+            this._mirrorFit(a().querySelector('.msh-lines') && a().querySelector('.msh-lines').style.fontSize);
             b.classList.remove('msh-layer-off');
             b.style.transition = 'none';
             a().style.transition = 'none';
@@ -413,9 +446,14 @@ const QuranMushafPage = {
         return;
       }
       if (!moved && dt < 320) {
-        // ضغطة واحدة: إخفاء/إظهار الأشرطة + إغلاق القائمة
+        // v1.0.144: ضغطة على حافة الصفحة = تقليب (المصحف RTL: اليسار = التالي)
+        const tt = e.changedTouches && e.changedTouches[0];
+        const rc = vp.getBoundingClientRect();
+        const frac = (tt && rc.width) ? (tt.clientX - rc.left) / rc.width : 0.5;
+        const onAyah = e.target && e.target.closest && e.target.closest('.msh-ay');
+        if (!onAyah && frac < 0.26) { this._zoneHint('l'); this.nextPage(); return; }
+        if (!onAyah && frac > 0.74) { this._zoneHint('r'); this.prevPage(); return; }
         this.closeMenu();
-        if (!document.querySelector('.msh-menu:not([hidden])')) document.body.classList.toggle('msh-immersive');
       }
     }, { passive: true });
 
@@ -515,7 +553,10 @@ const QuranMushafPage = {
     if (!this._au) {
       const el = new Audio();
       el.preload = 'none';
+      el.volume = this.volume();
       el.addEventListener('ended', () => this.audioEnded());
+      el.addEventListener('timeupdate', () => this._audioProgress());
+      el.addEventListener('loadedmetadata', () => this._audioProgress(true));
       el.addEventListener('error', () => { showToast(t('error') || 'تعذّر التشغيل', 2000); });
       this._au = el;
     }
@@ -527,6 +568,7 @@ const QuranMushafPage = {
     this._audioRef = { s, a };
     const el = this._audioEl();
     const g = this._globalAyah(s, a);
+    el.volume = this.volume();
     el.src = `https://cdn.islamic.network/quran/audio/128/${rec.id}/${g}.mp3`;
     el.play().catch(() => showToast(t('error') || 'تعذّر تشغيل التلاوة', 2200));
     this._audioUI(true);
@@ -571,6 +613,74 @@ const QuranMushafPage = {
     if (this._audioRef) this.playAyah(this._audioRef.s, this._audioRef.a);
   },
 
+  /* ---------- مستوى الصوت والتقدّم (v1.0.141) ---------- */
+  volume() {
+    const v = parseFloat(Storage.get('mushaf_volume'));
+    return isNaN(v) ? 1 : Math.max(0, Math.min(1, v));
+  },
+  _paintVol() {
+    const v = this._au ? this._au.volume : this.volume();
+    const sl = document.getElementById('msh-a-vol');
+    if (sl) sl.value = Math.round(v * 100);
+    const b = document.getElementById('msh-a-volb');
+    if (b) b.innerHTML = v === 0 ? '<i class="fas fa-volume-xmark"></i>' : (v < .5 ? '<i class="fas fa-volume-low"></i>' : '<i class="fas fa-volume-high"></i>');
+  },
+  volInput(val) {
+    const v = Math.max(0, Math.min(100, parseInt(val, 10) || 0)) / 100;
+    Storage.set('mushaf_volume', v);
+    if (this._au) this._au.volume = v;
+    this._paintVol();
+  },
+  toggleMute() {
+    const cur = this._au ? this._au.volume : this.volume();
+    if (cur > 0) { this._prevVol = cur; this.volInput(0); }
+    else this.volInput(Math.round((this._prevVol || 0.8) * 100));
+  },
+  _fmt(sec) {
+    sec = Math.max(0, Math.floor(sec || 0));
+    const m = Math.floor(sec / 60), ss = sec % 60;
+    return m + ':' + (ss < 10 ? '0' + ss : ss);
+  },
+  _audioProgress(force) {
+    const el = this._au;
+    if (!el || !this._audioRef) return;
+    const dur = el.duration || 0;
+    const now = el.currentTime || 0;
+    const dn = document.getElementById('msh-a-dur');
+    const nn = document.getElementById('msh-a-now');
+    if (dn) dn.textContent = this._fmt(dur);
+    if (nn) nn.textContent = this._fmt(now);
+    const sk = document.getElementById('msh-a-seek');
+    if (sk && (force || !this._seekLock) && dur > 0) sk.value = Math.round((now / dur) * 1000);
+  },
+  seekInput(val) {
+    const el = this._au;
+    if (!el || !el.duration) return;
+    this._seekLock = true;
+    el.currentTime = (parseInt(val, 10) / 1000) * el.duration;
+    const nn = document.getElementById('msh-a-now');
+    if (nn) nn.textContent = this._fmt(el.currentTime);
+    clearTimeout(this._seekT);
+    this._seekT = setTimeout(() => { this._seekLock = false; }, 500);
+  },
+  _prevAyahRef(s, a) {
+    const counts = (window.QURAN_LINES && window.QURAN_LINES.counts) || [];
+    if (a > 1) return [s, a - 1];
+    const prev = s - 1;
+    const tot = counts[prev - 1] || 0;
+    return tot ? [prev, tot] : null;
+  },
+  audioPrev() {
+    if (!this._audioRef) return;
+    const r = this._prevAyahRef(this._audioRef.s, this._audioRef.a);
+    if (r) this.playAyah(r[0], r[1]);
+  },
+  audioNextAyah() {
+    if (!this._audioRef) return;
+    const r = this._nextAyahRef(this._audioRef.s, this._audioRef.a);
+    if (r) this.playAyah(r[0], r[1]); else this.audioStop();
+  },
+
   audioEnded() {
     if (!this._audioRef) return;
     const { s, a } = this._audioRef;
@@ -599,24 +709,48 @@ const QuranMushafPage = {
     if (rn) rn.textContent = rec.nameAr || rec.name || '';
     const pb = document.getElementById('msh-a-play');
     if (pb) pb.innerHTML = playing ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
+    this._paintVol();
+    this._audioProgress(true);
     if (!this._audioRef) { bar.hidden = true; bar.classList.remove('on'); }
   },
 
   /* ---------------- تبديل العرض المترجم ---------------- */
-  switchToTranslation() {
-    const s = this._audioRef ? this._audioRef.s : this._surahAtPage(this.page);
-    const a = this._audioRef ? this._audioRef.a : 1;
+  /* v1.0.141: أول آية في الصفحة — نقطة الارتساء الصحيحة عند التحويل للترجمة */
+  _pageFirstAyah(p) {
     try {
-      if (typeof QuranPage !== 'undefined' && QuranPage.quickOpen) { QuranPage.quickOpen(s, a); return; }
+      const all = (typeof window !== 'undefined') && window.QURAN_FULL_AR;
+      if (all && all.pages) {
+        const pg = all.pages.find(x => x.n === p);
+        const a = pg && pg.ayahs && pg.ayahs[0];
+        if (a) return [a[0], a[1]];
+      }
     } catch (e) {}
-    Router.go('quran/read');
+    const ls = this._lines(p) || [];
+    for (const l of ls) if (l[0] === 't' && l[2] && l[2].length) return [l[2][0][0], l[2][0][1]];
+    return [this._surahAtPage(p), 1];
+  },
+
+  // نفس الصفحة + نفس الإعدادات + نفس حجم الخط (كان ينتقل لأول السورة بحجم مختلف)
+  switchToTranslation() {
+    const first = this._pageFirstAyah(this.page);
+    try {
+      if (typeof QuranPage !== 'undefined' && QuranPage.readerSettings) {
+        QuranPage.readerSettings.fontSize = this.fontSize;
+        if (QuranPage.saveReaderSettings) QuranPage.saveReaderSettings();
+      }
+      Storage.set('mushaf_font', this.fontSize);
+      Storage.set('quran_target_page', this.page);
+    } catch (e) {}
+    Router.push('surah', { surahNumber: first[0], ayah: first[1], kid: this._kid || undefined, ward: this._kid ? 1 : undefined, back: this._backTo || undefined });
   },
 
   /* ---------------- الإعدادات ---------------- */
   openSettings(ev) {
-    if (ev) ev.stopPropagation();
+    if (ev) { ev.stopPropagation(); if (ev.preventDefault) ev.preventDefault(); }
     let sh = document.getElementById('msh-set-sheet');
     if (sh) return;
+    const chip = (grp, val, cur, label) =>
+      `<button class="msh-chip ${cur === val ? 'on' : ''}" data-g="${grp}" data-v="${val}" onclick="QuranMushafPage.setOpt('${grp}','${val}')">${label}</button>`;
     sh = document.createElement('div');
     sh.id = 'msh-set-sheet';
     sh.className = 'msh-set-scrim';
@@ -625,17 +759,23 @@ const QuranMushafPage = {
         <div class="msh-set-h"><b>${t('settings_reader') || 'إعدادات القراءة'}</b><button onclick="QuranMushafPage.closeSettings()"><i class="fas fa-xmark"></i></button></div>
         <div class="msh-set-lbl">${t('fontSize') || 'حجم الخط'}</div>
         <div class="msh-set-row">
-          ${['small', 'medium', 'large', 'xlarge'].map(k => `<button class="msh-chip ${this.fontSize === k ? 'on' : ''}" onclick="QuranMushafPage.setOpt('size','${k}')">${({ small: 'ص', medium: 'م', large: 'ك', xlarge: 'ك+' })[k]}</button>`).join('')}
+          ${chip('size', 'small', this.fontSize, 'ص')}
+          ${chip('size', 'medium', this.fontSize, 'م')}
+          ${chip('size', 'large', this.fontSize, 'ك')}
+          ${chip('size', 'xlarge', this.fontSize, 'ك+')}
         </div>
         <div class="msh-set-lbl">${t('lineSpacing') || 'تباعد الأسطر'}</div>
         <div class="msh-set-row">
-          <button class="msh-chip ${this.lineHeight === 'tight' ? 'on' : ''}" onclick="QuranMushafPage.setOpt('lh','tight')">مضغوط</button>
-          <button class="msh-chip ${this.lineHeight === 'normal' ? 'on' : ''}" onclick="QuranMushafPage.setOpt('lh','normal')">عادي</button>
-          <button class="msh-chip ${this.lineHeight === 'wide' ? 'on' : ''}" onclick="QuranMushafPage.setOpt('lh','wide')">واسع</button>
+          ${chip('lh', 'tight', this.lineHeight, 'مضغوط')}
+          ${chip('lh', 'normal', this.lineHeight, 'عادي')}
+          ${chip('lh', 'wide', this.lineHeight, 'واسع')}
         </div>
         <div class="msh-set-lbl">${t('paper') || 'ورق الصفحة'}</div>
         <div class="msh-set-row">
-          ${['auto', 'sepia', 'white', 'dark'].map(k => `<button class="msh-chip ${this.paper === k ? 'on' : ''}" onclick="QuranMushafPage.setOpt('paper','${k}')">${({ auto: 'تلقائي', sepia: 'عاجي', white: 'أبيض', dark: 'ليلي' })[k]}</button>`).join('')}
+          ${chip('paper', 'auto', this.paper, 'تلقائي')}
+          ${chip('paper', 'sepia', this.paper, 'عاجي')}
+          ${chip('paper', 'white', this.paper, 'أبيض')}
+          ${chip('paper', 'dark', this.paper, 'ليلي')}
         </div>
         <button class="msh-set-close" onclick="QuranMushafPage.closeSettings()">${t('done') || 'تم'}</button>
       </div>`;
@@ -645,28 +785,187 @@ const QuranMushafPage = {
 
   closeSettings() { const s = document.getElementById('msh-set-sheet'); if (s) s.remove(); },
 
+  // v1.0.141: يُطبّق التغيير فورًا ويُبقي الورقة مفتوحة (كانت تُغلق وتُعاد فتُربك المستخدم)
   setOpt(grp, val) {
     if (grp === 'size') this.fontSize = val;
-    if (grp === 'lh') this.lineHeight = val;
-    if (grp === 'paper') this.paper = val;
+    else if (grp === 'lh') this.lineHeight = val;
+    else if (grp === 'paper') this.paper = val;
+    else return;
     this.saveSettings();
-    const lines = document.querySelector('.msh-lines');
-    if (lines) {
-      const sheet = lines.closest('.msh-sheet');
-      sheet.className = sheet.className.replace(/msh-paper-\w+|font-\w+|lh-\w+/g, '').trim();
+    document.querySelectorAll('.msh-sheet').forEach(sheet => {
+      sheet.classList.remove('msh-paper-auto', 'msh-paper-sepia', 'msh-paper-white', 'msh-paper-dark',
+                             'font-small', 'font-medium', 'font-large', 'font-xlarge',
+                             'lh-tight', 'lh-normal', 'lh-wide');
       sheet.classList.add('msh-paper-' + this.paper, 'font-' + this.fontSize, 'lh-' + this.lineHeight);
-    }
+    });
     this._fit();
-    this.closeSettings();
-    this.openSettings();
+    const sh = document.getElementById('msh-set-sheet');
+    if (sh) {
+      sh.querySelectorAll('.msh-chip').forEach(b => {
+        b.classList.toggle('on', b.dataset.g === grp && b.dataset.v === val);
+      });
+    }
   },
 
   /* ---------------- الفهرس / الانتقال ---------------- */
+  // v1.0.144: الفهرس كان يستدعي دالة غير موجودة (QuranPage.openMushafPicker)
+  // ثم «يتدارك» بالانتقال إلى قائمة السور — أي أن زر الفهرس ورقم الصفحة
+  // كانا يُخرجان القارئ من المصحف. الآن ورقة فهرس داخلية: صفحة/جزء/سورة.
   openPicker() {
-    try { if (typeof QuranPage !== 'undefined' && QuranPage.openMushafPicker) { QuranPage.openMushafPicker(); return; } } catch (e) {}
-    Router.go('quran/read');
+    this._ensurePickerSheet();
+    const sh = document.getElementById('msh-pick-sheet');
+    if (!sh) return;
+    sh.hidden = false;
+    requestAnimationFrame(() => sh.classList.add('on'));
+    const inp = document.getElementById('msh-pick-inp');
+    if (inp) inp.value = this.page;
+    this._pickTab = this._pickTab || 'juz';
+    this._renderPickBody();
   },
   openPagePicker() { this.openPicker(); },
+
+  closePicker() {
+    const sh = document.getElementById('msh-pick-sheet');
+    if (!sh) return;
+    sh.classList.remove('on');
+    setTimeout(() => { if (sh) sh.hidden = true; }, 240);
+  },
+
+  _pickTabSet(t) { this._pickTab = t; this._renderPickBody(); },
+
+  _ensurePickerSheet() {
+    if (document.getElementById('msh-pick-sheet')) return;
+    const sh = document.createElement('div');
+    sh.id = 'msh-pick-sheet';
+    sh.className = 'msh-pick-scrim';
+    sh.hidden = true;
+    sh.innerHTML = `
+      <div class="msh-pick-card">
+        <div class="msh-pick-h">
+          <b>${t('mushafIndex') || 'الفهرس'}</b>
+          <button onclick="QuranMushafPage.closePicker()" aria-label="×"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="msh-pick-search">
+          <input type="number" class="msh-pick-inp" id="msh-pick-inp" min="1" max="604" inputmode="numeric" placeholder="1 – 604"
+                 onkeydown="if(event.key==='Enter')QuranMushafPage.jumpInput()">
+          <button class="msh-pick-go" onclick="QuranMushafPage.jumpInput()">${t('go') || 'انتقال'}</button>
+        </div>
+        <div class="msh-pick-tabs">
+          <button class="msh-pick-tab" id="msh-ptab-juz" onclick="QuranMushafPage._pickTabSet('juz')">${t('mushafJuz') || 'الأجزاء'}</button>
+          <button class="msh-pick-tab" id="msh-ptab-surah" onclick="QuranMushafPage._pickTabSet('surah')">${t('surahs') || 'السور'}</button>
+        </div>
+        <div class="msh-pick-body" id="msh-pick-body"></div>
+      </div>`;
+    sh.addEventListener('click', e => { if (e.target === sh) this.closePicker(); });
+    document.body.appendChild(sh);
+  },
+
+  _renderPickBody() {
+    const body = document.getElementById('msh-pick-body');
+    if (!body) return;
+    const tab = this._pickTab || 'juz';
+    const bj = document.getElementById('msh-ptab-juz');
+    const bs = document.getElementById('msh-ptab-surah');
+    if (bj) bj.classList.toggle('on', tab === 'juz');
+    if (bs) bs.classList.toggle('on', tab === 'surah');
+    if (tab === 'juz') {
+      const jz = this._divs().juzs || [];
+      body.innerHTML = `<div class="msh-pick-grid">` + jz.map(x => {
+        const n = x.juz || x.n || x.number;
+        const pg = x.page || x.startPage || x.start || 1;
+        return `<button class="msh-pick-cell ${this._juzOf(this.page) === n ? 'cur' : ''}" onclick="QuranMushafPage.goToPage(${pg})">${this.arDigits(n)}</button>`;
+      }).join('') + `</div>`;
+      return;
+    }
+    let rows = '';
+    for (let s = 1; s <= 114; s++) {
+      let pg = 1;
+      try { pg = (typeof KhatmaStore !== 'undefined' && KhatmaStore.surahStart) ? KhatmaStore.surahStart(s) : 1; } catch (e) {}
+      const nm = this._surahName(s);
+      rows += `<button class="msh-pick-row ${this._surahAtPage(this.page) === s ? 'cur' : ''}" onclick="QuranMushafPage.goToPage(${pg})">
+        <span class="msh-pick-cell" style="width:26px;flex:0 0 26px;padding:3px 0;background:transparent;border:none;">${this.arDigits(s)}</span>
+        <b>${this._esc(nm)}</b><em>${t('mushafPage') || 'ص'} ${this.arDigits(pg)}</em>
+      </button>`;
+    }
+    body.innerHTML = `<div class="msh-pick-list">${rows}</div>`;
+  },
+
+  jumpInput() {
+    const inp = document.getElementById('msh-pick-inp');
+    if (!inp) return;
+    const n = parseInt(String(inp.value).replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))), 10);
+    if (!(n >= 1 && n <= this.TOTAL_PAGES)) { showToast(t('error') || 'رقم غير صالح', 1400); return; }
+    this.goToPage(n);
+  },
+
+  goToPage(n) {
+    n = Math.min(this.TOTAL_PAGES, Math.max(1, parseInt(n, 10) || 1));
+    this.closePicker();
+    if (this._animating) this._animating = false;
+    this.showPage(null, n, n > this.page ? 1 : -1);
+  },
+
+  _zoneHint(side) {
+    try {
+      let h = document.getElementById('msh-zhint');
+      if (!h) {
+        h = document.createElement('div');
+        h.id = 'msh-zhint';
+        document.body.appendChild(h);
+      }
+      h.className = 'msh-zone-hint ' + (side === 'l' ? 'zl' : 'zr') + ' on';
+      h.innerHTML = `<i class="fas fa-chevron-${side === 'l' ? 'left' : 'right'}"></i>`;
+      clearTimeout(this._zhTo);
+      this._zhTo = setTimeout(() => { h.classList.remove('on'); }, 260);
+    } catch (e) {}
+  },
+
+  /* ---------------- v1.0.144: ربط ختمة اليوم ---------------- */
+  _markPageIfDue(p) {
+    if (!p) return false;
+    if ((Date.now() - (this._tIn || 0)) < (this._kMinSec() * 1000)) return false;
+    try {
+      if (typeof KhatmaStore === 'undefined') return false;
+      // v1.0.145: الاحتساب على ختمة الجلسة المثبَّتة (أو النشطة) لا على أي ختمة
+      const k = this._khatma();
+      if (!k) return false;
+      const set = KhatmaStore.readSet(k);
+      if (set.has(p)) return false;
+      const r = KhatmaStore.markPage(p, 'mushaf', k.id);
+      if (!r || !r.added) return false;
+      // ملاحظة راجعة دائمًا — كانت لا تظهر إلا في وضع الورد فيبدو التتبّع معطلًا
+      try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) {}
+      try { showToast(this._wl('احتُسبت صفحة ' + this.arDigits(p) + ' في ختمتك', 'Página ' + this.arDigits(p) + ' registrada', 'Page ' + this.arDigits(p) + ' recorded'), 1200); } catch (e) {}
+      try { this._syncWardBar(); } catch (e) {}
+      return true;
+    } catch (e) { return false; }
+  },
+
+  _kMinSec() {
+    try { return (typeof KhatmaStore !== 'undefined' && KhatmaStore.MIN_SEC) || 12; } catch (e) { return 12; }
+  },
+
+  _trackStart() {
+    this._trackStop();
+    this._trackIv = setInterval(() => {
+      if (document.hidden) return;
+      this._markPageIfDue(this.page);
+    }, 1500);
+    try { this._syncWardBar(); } catch (e) {}
+  },
+
+  _trackStop() {
+    if (this._trackIv) { clearInterval(this._trackIv); this._trackIv = null; }
+  },
+
+  goBack() {
+    // v1.0.145: وجهة رجوع صريحة تُمرَّر من الفاتح (الختمة/القارئ). كان
+    // history.back() يهبط على صفحة أخرى (أو نسخة مصحف قديمة) بدل الختمة.
+    const to = this._backTo || ((this._ward || this._kid) ? 'quran/khatma' : null);
+    if (to && Router.routes[to]) { Router.go(to, {}, { replace: true }); return; }
+    try { if (window.history && history.length > 1) { history.back(); return; } } catch (e) {}
+    Router.go('quran');
+  },
 
   goToAyah(s, a) {
     const pages = this._all();
@@ -685,39 +984,171 @@ const QuranMushafPage = {
     }
   },
 
-  // ===== v1.0.134: شريط الورد داخل المصحف =====
+  // ===== v1.0.137: وضع الورد — حدود واضحة + شريط تقدّم حيّ + احتساب أثناء القراءة =====
+  _wl(a, e, en) {
+    try { if (window.KhatmaPage && KhatmaPage.L) return KhatmaPage.L(a, e, en); } catch (err) {}
+    return a;
+  },
+  /* ---------------- v1.0.145: شريط الختمة والورد (يعمل بلا وضع ورد) ---------------- */
+  _khatma() {
+    try {
+      if (typeof KhatmaStore === 'undefined') return null;
+      if (this._kid) { const k = KhatmaStore.get(this._kid); if (k && !k.archived) return k; }
+      return KhatmaStore.active();
+    } catch (e) { return null; }
+  },
+
+  _wardCtx() {
+    try {
+      const k = this._khatma(); if (!k) return null;
+      const info = KhatmaStore.wardInfo(k);
+      if (!info) return null;
+      return { k: k, w: info.w, st: info.st, from: info.from, to: info.to, i: info.i, n: info.n };
+    } catch (e) { return null; }
+  },
+
+  _wardStart() { this._trackStart(); },
+  // v1.0.161: كانت تُوقف مؤقّتًا لا وجود له (‎_wardIv‎) بينما المؤقّت الحقيقي
+  // هو ‎_trackIv‎ من _trackStart، فكان أي نداء لها لا يوقف الاحتساب.
+  _wardStop() { this._trackStop(); },
+
+  /* v1.0.163: أول صفحة غير مقروءة في ورد اليوم — المتابعة تكمل من حيث توقّف
+     القارئ بدل إعادته إلى أول الورد في كل مرة. */
+  _wardResumePage() {
+    try {
+      const c = this._wardCtx();
+      if (!c || c.st !== 'open' || typeof KhatmaStore === 'undefined') return null;
+      const set = KhatmaStore.readSet(c.k);
+      const rev = (c.k.dir === -1);
+      const lo = Math.min(c.from, c.to), hi = Math.max(c.from, c.to);
+      for (let pg = rev ? hi : lo; rev ? pg >= lo : pg <= hi; pg += rev ? -1 : 1) {
+        if (!set.has(pg)) return pg;
+      }
+      return null;
+    } catch (e) { return null; }
+  },
+
+  continueWard() {
+    const c = this._wardCtx();
+    if (!c) { showToast(this._wl('لا توجد ختمة نشطة', 'Sin jatma activa', 'No active khatma'), 1600); return; }
+    if (c.st !== 'open') { showToast(this._wardLine(c), 1800); return; }
+    const p = this._wardResumePage();
+    if (p === null) {
+      showToast(this._wl('أكملت ورد اليوم — بارك الله فيك', 'Wird de hoy completado', "Today's ward complete"), 1800);
+      this.goToPage(c.to);
+      return;
+    }
+    this.goToPage(p);
+    showToast(this._wl('متابعة الورد من صفحة ' + this.arDigits(p), 'Wird desde la pág. ' + this.arDigits(p), 'Ward from page ' + this.arDigits(p)), 1400);
+  },
+
+  toggleWard() {
+    const box = document.getElementById('msh-ward');
+    if (!box) return;
+    this._wc = box.classList.toggle('is-collapsed');
+    try { Storage.set('msh_ward_collapsed', this._wc); } catch (e) {}
+    try { this._fit(); } catch (e) {}
+  },
+
+  _wardLine(c) {
+    const L = (a, e, en) => this._wl(a, e, en);
+    if (!c) return '';
+    if (c.st === 'rest') return L('يوم راحة — لا ورد اليوم', 'Día de descanso', 'Rest day');
+    if (c.st === 'before') return L('ختمتك تبدأ في ', 'Tu jatma empieza el ', 'Your khatma starts ') + (c.w.date || '');
+    if (c.st === 'after') return L('انتهت أيام الختمة — بارك الله فيك', 'Días de la jatma terminados', 'Khatma days finished');
+    return L('لا ورد محدَّد', 'Sin wird', 'No ward');
+  },
+
   _wardBarHTML() {
     try {
-      const k = KhatmaStore.active(); const w = KhatmaStore.wardToday(k);
-      if (!k || !w || w.pages <= 0) return '';
-      const wp = KhatmaStore.wardProgress(k);
-      return `<div class="msh-ward" id="msh-ward">
-        <i class="fas fa-bookmark"></i>
-        <span>${t('wardToday') || 'ورد اليوم'} ${this.arDigits(w.i)}/${this.arDigits(KhatmaStore.plan(k).length)}</span>
-        <span class="msh-ward-bar"><i id="msh-ward-i" style="width:${wp.pct}%"></i></span>
-        <span id="msh-ward-n">${this.arDigits(wp.done)}/${this.arDigits(wp.total)}</span>
+      const c = this._wardCtx();
+      if (!c) return '';
+      const kp = KhatmaStore.progress(c.k);
+      const nm = this._esc(c.k.name || '');
+      const coll = this._wc ? ' is-collapsed' : '';
+      if (c.st !== 'open') {
+        return `<div class="msh-ward is-idle${coll}" id="msh-ward">
+          <div class="msh-ward-top" onclick="QuranMushafPage.toggleWard()">
+            <i class="fas fa-bookmark"></i>
+            <span class="msh-ward-ttl">${nm}</span>
+            <span class="msh-ward-n">${this.arDigits(kp.pct)}%</span>
+          </div>
+          <div class="msh-ward-bar"><i style="width:${kp.pct}%"></i></div>
+          <div class="msh-ward-sub">${this._esc(this._wardLine(c))} · ${this.arDigits(kp.read)}/${this.arDigits(kp.total)}</div>
+        </div>`;
+      }
+      const wp = KhatmaStore.wardProgress(c.k);
+      const rl = KhatmaStore.rangeLabel(c.k, c.w);
+      const rp = this._wardResumePage();
+      const goLbl = (rp === null)
+        ? this._wl('أكملت ورد اليوم', 'Wird de hoy completo', "Today's ward done")
+        : this._wl('أكمل قراءة الورد', 'Continuar el wird', 'Continue ward') + ' · ' + this._wl('ص', 'p.', 'p.') + ' ' + this.arDigits(rp);
+      return `<div class="msh-ward${coll}" id="msh-ward">
+        <div class="msh-ward-top" onclick="QuranMushafPage.toggleWard()">
+          <i class="fas fa-bookmark"></i>
+          <span class="msh-ward-ttl">${this._wl('ورد اليوم', 'Wird de hoy', "Today's ward")} · ${nm}</span>
+          <span class="msh-ward-rng" id="msh-ward-rng">${this._wl('ص', 'pág.', 'p.')} ${this.arDigits(c.from)}–${this.arDigits(c.to)}</span>
+          <span class="msh-ward-n" id="msh-ward-n">${this.arDigits(wp.done)}/${this.arDigits(wp.total)}</span>
+        </div>
+        <div class="msh-ward-bar"><i id="msh-ward-i" style="width:${wp.pct}%"></i></div>
+        <div class="msh-ward-sub" id="msh-ward-sub">${this._esc(rl)} · ${this._wl('الختمة', 'Jatma', 'Khatma')} ${this.arDigits(kp.pct)}% · ${this._wl('اليوم', 'Día', 'Day')} ${this.arDigits(c.i)}/${this.arDigits(c.n)}</div>
+        <button class="msh-ward-go" onclick="QuranMushafPage.continueWard()">
+          <i class="fas fa-${rp === null ? 'circle-check' : 'play'}"></i><span>${goLbl}</span>
+        </button>
       </div>`;
     } catch (e) { return ''; }
   },
+
   _syncWardBar() {
-    if (!this._ward) return;
-    const k = KhatmaStore.active(); const wp = KhatmaStore.wardProgress(k);
+    const c = this._wardCtx();
+    const box = document.getElementById('msh-ward');
+    if (!c) { if (box) box.remove(); return; }
+    if (!box) {
+      const top = document.querySelector('.msh-topbar');
+      if (top && top.parentNode) top.insertAdjacentHTML('afterend', this._wardBarHTML());
+      return;
+    }
+    const kp = KhatmaStore.progress(c.k);
+    if (c.st !== 'open') {
+      const bb = box.querySelector('.msh-ward-bar i'); if (bb) bb.style.width = kp.pct + '%';
+      const nn = box.querySelector('.msh-ward-n'); if (nn) nn.textContent = this.arDigits(kp.pct) + '%';
+      const ss = box.querySelector('.msh-ward-sub');
+      if (ss) ss.textContent = this._wardLine(c) + ' · ' + this.arDigits(kp.read) + '/' + this.arDigits(kp.total);
+      const eb = document.getElementById('msh-ward-edges'); if (eb) eb.remove();
+      return;
+    }
+    const wp = KhatmaStore.wardProgress(c.k);
     const bar = document.getElementById('msh-ward-i'); if (bar) bar.style.width = wp.pct + '%';
     const n = document.getElementById('msh-ward-n'); if (n) n.textContent = this.arDigits(wp.done) + '/' + this.arDigits(wp.total);
-    const host = document.querySelector('.msh-lines');
-    if (host && wp.ward && wp.ward.pages > 0) {
-      const isEnd = this.page === wp.ward.to;
-      let el = document.getElementById('msh-ward-end');
-      if (isEnd && !el) {
-        el = document.createElement('div'); el.id = 'msh-ward-end'; el.className = 'msh-ward-end';
-        el.textContent = (t('wardEnd') || 'نهاية ورد اليوم') + ' · ' + (t('wardTapToRecord') || 'اضغط للاحتساب');
-        el.onclick = () => { try { KhatmaStore.markPage(this.page, 'mushaf'); this._syncWardBar(); showToast(t('wardRecorded') || 'تم الاحتساب', 1400); } catch (e) {} };
-        host.parentNode.insertBefore(el, host);
-      } else if (!isEnd && el) el.remove();
-    }
+    const rng = document.getElementById('msh-ward-rng');
+    if (rng) rng.textContent = this._wl('ص', 'pág.', 'p.') + ' ' + this.arDigits(c.from) + '–' + this.arDigits(c.to);
+    const sub = document.getElementById('msh-ward-sub');
+    if (sub) sub.textContent = KhatmaStore.rangeLabel(c.k, c.w) + ' · ' + this._wl('الختمة', 'Jatma', 'Khatma') + ' ' + this.arDigits(kp.pct) + '% · ' + this._wl('اليوم', 'Día', 'Day') + ' ' + this.arDigits(c.i) + '/' + this.arDigits(c.n);
+
+    // حدود الورد: تُعرض فقط عند صفحة البداية/النهاية أو خارج النطاق
+    const frame = document.querySelector('.msh-frame');
+    if (!frame) return;
+    let ebox = document.getElementById('msh-ward-edges');
+    const p = this.page;
+    const out = p < c.from || p > c.to;
+    const isStart = p === c.from;
+    const isEnd = p === c.to;
+    if (!out && !isStart && !isEnd) { if (ebox) ebox.remove(); return; }
+    if (!ebox) { ebox = document.createElement('div'); ebox.id = 'msh-ward-edges'; ebox.className = 'msh-ward-edges'; frame.insertBefore(ebox, frame.firstChild); }
+    const L = (a, e, en) => this._wl(a, e, en);
+    const refF = KhatmaStore.pageRef(c.from), refT = KhatmaStore.pageRef(c.to);
+    ebox.innerHTML = `
+      ${isStart ? `<div class="msh-ward-note is-start"><i class="fas fa-flag"></i><b>${L('بداية الورد', 'Inicio del wird', 'Ward start')}</b><span>${L('صفحة', 'pág.', 'page')} ${this.arDigits(c.from)} · ${this._esc(KhatmaStore.surahName(refF.s) + ' ' + this.arDigits(refF.a))}</span></div>` : ''}
+      ${isEnd ? `<div class="msh-ward-note is-end"><i class="fas fa-flag-checkered"></i><b>${L('نهاية الورد', 'Fin del wird', 'Ward end')}</b><span>${L('صفحة', 'pág.', 'page')} ${this.arDigits(c.to)} · ${this._esc(KhatmaStore.surahName(refT.sEnd || refT.s) + ' ' + this.arDigits(refT.aEnd || refT.a))}</span></div>` : ''}
+      ${out ? `<div class="msh-ward-note is-out"><i class="fas fa-circle-info"></i><span>${L('خارج ورد اليوم — من', 'Fuera del wird — de la pág.', "Outside today's ward — pages")} ${this.arDigits(c.from)} ${L('إلى', 'a', 'to')} ${this.arDigits(c.to)}</span></div>` : ''}`;
   },
 
   cleanup() {
+    // v1.0.137: احتساب الصفحة الأخيرة قبل مغادرة وضع الورد
+    try { this._markPageIfDue(this.page); } catch (e) {}
+    this._trackStop();
+    this._wardStop();
+    this.closePicker();
     this.closeMenu();
     this.closeSettings();
     this.audioStop();

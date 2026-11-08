@@ -16,32 +16,88 @@ const KhatmaStore = {
     return d;
   },
   save(d) {
+    // v1.0.145: قبل كل كتابة نتأكد أن «الختمة النشطة» تشير إلى ختمة موجودة.
+    // كانت activeId قد تبقى معلّقة على ختمة محذوفة أو غائبة في بيانات قديمة،
+    // فيذهب التنفيذ إلى أول ختمة في القائمة بينما الواجهة لا تُظهر أيتها
+    // النشطة → «أبدأ ورد ختمة فيفتح ورد ختمة أخرى».
+    try { this._fixActive(d); } catch (e) {}
     try { localStorage.setItem(this.KEY, JSON.stringify(d)); } catch (e) {}
     if (d && d.activeId) this.syncReminder(this.get(d.activeId));
   },
+
+  /** v1.0.145: اختيار ختمة نشطة صحيحة وحفظ الإصلاح فورًا (بدلًا من الحالة الضمنية) */
+  _fixActive(d) {
+    if (!d) return null;
+    if (!Array.isArray(d.list)) d.list = [];
+    const cur = d.list.find(x => x && x.id === d.activeId);
+    if (cur) return cur;
+    const pool = d.list.filter(x => x && !x.archived);
+    const pick = (pool.length ? pool : d.list).slice()
+      .sort((a, b) => (b.used || b.created || 0) - (a.used || a.created || 0))[0] || null;
+    const nid = pick ? pick.id : null;
+    if (nid !== d.activeId) {
+      d.activeId = nid;
+      try { localStorage.setItem(this.KEY, JSON.stringify(d)); } catch (e) {}
+    }
+    return pick;
+  },
   all() { return this.load().list; },
   active() {
-    const d = this.load();
-    return d.list.find(k => k.id === d.activeId) || d.list.find(k => !k.archived) || null;
+    // v1.0.145: نفس ترتيب _fixActive — لا سقوط إلى «أول ختمة» بل إلى آخر
+    // ختمة استُخدمت، مع إصلاح activeId المحفوظ.
+    return this._fixActive(this.load());
   },
   get(id) { return this.load().list.find(k => k.id === id) || null; },
-  upsert(k) {
+  upsert(k, activate) {
     const d = this.load();
     const i = d.list.findIndex(x => x.id === k.id);
+    const isNew = i < 0;
     if (i >= 0) d.list[i] = k; else d.list.push(k);
-    d.activeId = k.id;
+    // v1.0.145: كان كل حفظ لأي ختمة يجعلها «النشطة» (d.activeId = k.id)، فأي
+    // تحديث لختمة غير مختارة كان يسرق التفعيل. الآن التفعيل عند الإنشاء أو
+    // بطلب صريح فقط.
+    if (activate === true || isNew || !d.activeId) { d.activeId = k.id; k.used = Date.now(); }
     this.save(d);
     return k;
   },
   remove(id) {
     const d = this.load();
     d.list = d.list.filter(k => k.id !== id);
-    if (d.activeId === id) d.activeId = (d.list[0] && d.list[0].id) || null;
+    // v1.0.145: لا نسقط إلى «أول ختمة» (الأقدم) — save() يختار الأنسب
+    if (d.activeId === id) d.activeId = null;
     this.save(d);
+    // لم تبقَ أي ختمة: أوقف التذكير المجدول فعلًا
+    if (!d.activeId) {
+      try {
+        if (window.AndroidBridge && typeof AndroidBridge.scheduleWard === 'function') {
+          AndroidBridge.scheduleWard(JSON.stringify({ enabled: false }));
+        }
+      } catch (e) {}
+    }
+  },
+  // v1.0.137: التبديل بين الختمات المنشأة بلا فقدان أي واحدة منها
+  setActive(id) {
+    const d = this.load();
+    const k = d.list.find(x => x.id === id);
+    if (!k) return null;
+    d.activeId = id;
+    k.used = Date.now();
+    this.save(d);
+    return this.get(id);
+  },
+  // v1.0.137: تشغيل/إيقاف تذكير ختمة محدّدة (يُعاد جدولة المنبّه للختمة النشطة فقط)
+  toggleRemind(id) {
+    const d = this.load();
+    const k = d.list.find(x => x.id === id);
+    if (!k) return null;
+    k.remind = k.remind || { on: false, hour: 19, minute: 0 };
+    k.remind.on = !k.remind.on;
+    this.save(d);
+    return k.remind.on;
   },
   archive(id) {
     const k = this.get(id); if (!k) return;
-    k.archived = true; this.upsert(k);
+    k.archived = true; this.upsert(k, false);
   },
 
   // ---------- حدود السور/الأجزاء/الأرباع ----------
@@ -103,11 +159,20 @@ const KhatmaStore = {
   /** تواريخ أيام القراءة: من البداية مع تخطّي أيام الراحة حتى نبلغ `days` يومًا */
   schedule(k) {
     const out = [];
-    const rest = Array.isArray(k.rest) ? k.rest : [];
+    const rest = Array.isArray(k.rest) ? k.rest.slice() : [];
+    // v1.0.160: اختيار أيام الأسبوع السبعة كلها «راحة» لا يترك أي يوم قراءة،
+    // فكانت الحلقة تنتهي ثم تُسقط الختمة كاملة (٦٠٤ صفحة) في يوم واحد.
+    // نتجاهل الراحة في هذه الحالة وحدها حتى تبقى الخطة قابلة للتنفيذ.
+    if (rest.length >= 7) rest.length = 0;
     const start = this._parse(k.start);
     const d = new Date(start.getTime());
+    const want = Math.max(1, k.days);
+    // v1.0.160: سقف ٩٠٠ دورة كان يقطع الخطة قبل نهايتها حين تجتمع مدة طويلة
+    // مع أيام راحة (٣٦٥ يومًا + ٦ راحة = ٢٥٥٥ دورة)، فتخرج أيام أقل من
+    // المطلوب وتُقسم الصفحات على عدد خاطئ.
+    const guardMax = Math.max(900, want * 8);
     let guard = 0;
-    while (out.length < Math.max(1, k.days) && guard++ < 900) {
+    while (out.length < want && guard++ < guardMax) {
       if (rest.indexOf(d.getDay()) < 0) out.push(this._fmt(d));
       d.setDate(d.getDate() + 1);
     }
@@ -205,8 +270,8 @@ const KhatmaStore = {
     this._merge(k.reads).forEach(r => { for (let p = r[0]; p <= r[1]; p++) set.add(p); });
     return set;
   },
-  markPage(p, src) {
-    const k = this.active();
+  markPage(p, src, kid) {
+    const k = (kid && this.get(kid)) || this.active();
     if (!k || !p) return null;
     p = Math.min(this.TOTAL, Math.max(1, p));
     const r = this.scopePages(k.scope);
@@ -217,11 +282,11 @@ const KhatmaStore = {
     k.log = k.log || {};
     if (!before) k.log[t] = (k.log[t] || 0) + 1;
     this._checkFire(k);
-    this.upsert(k);
+    this.upsert(k, false);
     return { added: !before, page: p };
   },
-  markRange(a, b) {
-    const k = this.active(); if (!k) return;
+  markRange(a, b, how, kid) {
+    const k = (kid && this.get(kid)) || this.active(); if (!k) return 0;
     a = Math.min(a, b); b = Math.max(a, b);
     let added = 0;
     const had = this.readSet(k);
@@ -230,14 +295,93 @@ const KhatmaStore = {
     const t = this.today();
     k.log = k.log || {};
     k.log[t] = (k.log[t] || 0) + added;
+    if (how) {
+      k.manual = k.manual || [];
+      k.manual.push({ d: t, a, b, how: String(how), at: Date.now() });
+    }
     this._checkFire(k);
-    this.upsert(k);
+    this.upsert(k, false);
+    return added;
+  },
+  /** v1.0.137: إزالة تقدّم نطاق — تُرجع عدد الصفحات التي أُزيلت */
+  unmarkRange(a, b, kid) {
+    const k = (kid && this.get(kid)) || this.active(); if (!k) return 0;
+    a = Math.min(a, b); b = Math.max(a, b);
+    const set = this.readSet(k);
+    let removed = 0;
+    for (let p = a; p <= b; p++) if (set.has(p)) { set.delete(p); removed++; }
+    k.reads = this._merge(Array.from(set).map(x => [x, x]));
+    const t = this.today();
+    k.log = k.log || {};
+    if (removed) k.log[t] = Math.max(0, (k.log[t] || 0) - removed);
+    k.manual = (k.manual || []).filter(m => m.d !== t);
+    this.upsert(k, false);
+    return removed;
+  },
+  /** v1.0.137: إزالة إتمام يدوي محدّد (بالخطأ) وإرجاع تقدّمه */
+  undoManual(i) {
+    const k = this.active(); if (!k) return 0;
+    const m = (k.manual || [])[i]; if (!m) return 0;
+    const set = this.readSet(k);
+    let removed = 0;
+    for (let p = m.a; p <= m.b; p++) if (set.has(p)) { set.delete(p); removed++; }
+    k.reads = this._merge(Array.from(set).map(x => [x, x]));
+    k.log = k.log || {};
+    if (m.d) k.log[m.d] = Math.max(0, (k.log[m.d] || 0) - removed);
+    k.manual.splice(i, 1);
+    this.upsert(k, false);
+    return removed;
+  },
+  manualOf(k) {
+    const arr = (k && k.manual) || [];
+    return arr.map((m, i) => Object.assign({ i: i }, m));
   },
   unmarkPage(p) {
     const k = this.active(); if (!k) return;
     const set = this.readSet(k); set.delete(p);
     k.reads = this._merge(Array.from(set).map(x => [x, x]));
-    this.upsert(k);
+    this.upsert(k, false);
+  },
+
+  /** v1.0.145: كل ما تحتاجه واجهة القراءة عن ورد اليوم في نداء واحد */
+  wardInfo(k) {
+    if (!k) return null;
+    const w = this.wardToday(k);
+    if (!w) return null;
+    const st = w.rest ? 'rest'
+      : (w.before ? 'before'
+        : (w.after ? 'after'
+          : (w.pages > 0 ? 'open' : 'none')));
+    const wp = this.wardProgress(k);
+    const kp = this.progress(k);
+    let n = 0;
+    try { n = this.plan(k).length; } catch (e) { n = 0; }
+    return {
+      k, w, st,
+      from: w.from, to: w.to, i: w.i || 0, n,
+      done: wp.done, total: wp.total, pct: wp.pct,
+      running: !!(k.wrun && k.wrun.d === this.today() && !k.wrun.done),
+      kRead: kp.read, kTotal: kp.total, kPct: kp.pct,
+    };
+  },
+
+  /** v1.0.145: خريطة (سورة:آية) → صفحة مصحف — لربط القراءة المترجمة بالصفحات */
+  _ayahPageMap() {
+    if (this._apm) return this._apm;
+    const m = new Map();
+    try {
+      const pages = (window.QURAN_FULL_AR && window.QURAN_FULL_AR.pages) || [];
+      pages.forEach(pg => {
+        const n = pg.n || (pg.page || 0);
+        (pg.ayahs || []).forEach(r => { if (r && n) m.set(r[0] + ':' + r[1], n); });
+      });
+    } catch (e) {}
+    this._apm = m;
+    return m;
+  },
+  pageOfAyah(s, a) {
+    const p = this._ayahPageMap().get(Number(s) + ':' + Number(a));
+    return p || 0;
   },
 
   // ---------- إحصاءات ----------
@@ -348,3 +492,37 @@ const KhatmaStore = {
 };
 
 window.KhatmaStore = KhatmaStore;
+
+
+/* ============================================================
+   v1.0.171 — جلسة الورد: تبدأ الحساب فورًا وتستمر مهما كان مدخل
+   القارئ (المصحف، القارئ المترجم، شاشة الورد). الجلسة تُحفظ مع الختمة
+   فتبقى بعد إغلاق التطبيق، وتنتهي تلقائيًا عند إتمام ورد اليوم.
+   ============================================================ */
+if (typeof KhatmaStore !== 'undefined') {
+  KhatmaStore.startWard = function (k) {
+    const kk = k || this.active();
+    if (!kk) return null;
+    kk.wrun = { d: this.today(), at: Date.now(), done: false };
+    this.upsert(kk, false);
+    return kk.wrun;
+  };
+  KhatmaStore.endWard = function (k) {
+    const kk = k || this.active();
+    if (!kk) return null;
+    kk.wrun = { d: this.today(), at: Date.now(), done: true };
+    this.upsert(kk, false);
+    return kk.wrun;
+  };
+  KhatmaStore.wardRunning = function (k) {
+    const kk = k || this.active();
+    if (!kk || !kk.wrun) return false;
+    if (kk.wrun.d !== this.today() || kk.wrun.done) return false;
+    // إتمام تلقائي عند بلوغ العدد
+    try {
+      const wp = this.wardProgress(kk);
+      if (wp && wp.total > 0 && wp.done >= wp.total) { this.endWard(kk); return false; }
+    } catch (e) {}
+    return true;
+  };
+}

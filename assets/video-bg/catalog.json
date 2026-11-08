@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "note": "خلفيات فيديو تُنزَّل عند الطلب فقط (لا تُحزَم في الـAPK). كل مقطع هنا مُلك عام أو CC0 — لا يحتاج ترخيصًا ولا ذكر مصدر إلزاميًا، ومع ذلك يُذكر المصدر أدناه للأمانة ولصفحة «مصادر الخلفيات» داخل التطبيق.",
+  "clips": [
+    {
+      "id": "clouds",
+      "type": "video",
+      "title": { "ar": "سحاب متحرّك", "es": "Nubes en movimiento", "en": "Drifting clouds" },
+      "url": "https://upload.wikimedia.org/wikipedia/commons/4/40/%E1%80%99%E1%80%AD%E1%80%AF%E1%80%B8%E1%80%90%E1%80%AD%E1%80%99%E1%80%BA%E1%80%90%E1%80%AD%E1%80%AF%E1%80%80%E1%80%BA.webm",
+      "mime": "video/webm",
+      "bytes": 9227469,
+      "license": "CC0 1.0",
+      "source": "https://commons.wikimedia.org/wiki/File:%E1%80%99%E1%80%AD%E1%80%AF%E1%80%B8%E1%80%90%E1%80%AD%E1%80%99%E1%80%BA%E1%80%90%E1%80%AD%E1%80%AF%E1%80%80%E1%80%BA.webm",
+      "credit": "Wikimedia Commons"
+    },
+    {
+      "id": "night-rock",
+      "type": "video",
+      "title": { "ar": "نجوم الليل", "es": "Estrellas nocturnas", "en": "Night stars" },
+      "url": "https://upload.wikimedia.org/wikipedia/commons/5/57/Skull_Rock_Trail_at_night_%2830230498613%29.webm",
+      "mime": "video/webm",
+      "bytes": 4194304,
+      "license": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:Skull_Rock_Trail_at_night_(30230498613).webm",
+      "credit": "Wikimedia Commons (NPS)"
+    },
+    {
+      "id": "stars-clouds",
+      "type": "video",
+      "title": { "ar": "نجوم وسحاب", "es": "Estrellas y nubes", "en": "Stars and clouds" },
+      "url": "https://upload.wikimedia.org/wikipedia/commons/1/12/Stars_and_Clouds_Over_Headstone_Rock_%2830230087163%29.webm",
+      "mime": "video/webm",
+      "bytes": 5767168,
+      "license": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:Stars_and_Clouds_Over_Headstone_Rock_(30230087163).webm",
+      "credit": "Wikimedia Commons (NPS)"
+    },
+    {
+      "id": "waterfall",
+      "type": "video",
+      "title": { "ar": "شلّال", "es": "Cascada", "en": "Waterfall" },
+      "url": "https://upload.wikimedia.org/wikipedia/commons/8/86/Watagataki_Falls_%28Video%29.webm",
+      "mime": "video/webm",
+      "bytes": 23173530,
+      "license": "CC0 1.0",
+      "source": "https://commons.wikimedia.org/wiki/File:Watagataki_Falls_(Video).webm",
+      "credit": "Wikimedia Commons"
+    },
+    {
+      "id": "ocean",
+      "type": "video",
+      "title": { "ar": "محيط من الفضاء", "es": "Océano desde el espacio", "en": "Ocean from orbit" },
+      "url": "https://upload.wikimedia.org/wikipedia/commons/2/2f/ASTER_VNIR_1_black_ocean.webm",
+      "mime": "video/webm",
+      "bytes": 8283750,
+      "license": "Public domain",
+      "source": "https://commons.wikimedia.org/wiki/File:ASTER_VNIR_1_black_ocean.webm",
+      "credit": "Wikimedia Commons (NASA)"
+    }
+  ]
+}

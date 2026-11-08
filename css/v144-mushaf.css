@@ -1,0 +1,135 @@
+/* ==========================================================================
+   v1.0.144 — إصلاحات جذرية لصفحة المصحف الكاملة
+   ١) شريط الصوت كان يظهر فارغًا دائمًا ([hidden] مغلوب بـ display:flex)
+   ٢) أهداف لمس أكبر + إزالة التضليل خلف أيقونات الترويسة
+   ٣) ورقة فهرس حقيقية (صفحة/جزء/سورة) بدل مغادرة الصفحة
+   ٤) مناطق لمس جانبية لتقليب الصفحات
+   ========================================================================== */
+
+/* ---------- ١) الشريط المخفي يبقى مخفيًا فعلًا ---------- */
+.msh-audio[hidden] { display: none !important; }
+
+/* ---------- ٢) أهداف اللمس والترويسة ---------- */
+.msh-wrap { padding-bottom: 0; }
+.msh-topbar {
+  /* v1.0.144: في WebView تكون env(safe-area-inset-top)=0 غالبًا، فتنزلق
+     الترويسة تحت شريط حالة أندرويد فيبتلع النظام لمس زرّي الرجوع والإعدادات.
+     نضمن حدًّا أدنى حقيقيًا من الهامش العلوي. */
+  padding-top: calc(8px + max(env(safe-area-inset-top, 0px), 22px));
+  gap: 4px;
+  position: relative;
+  z-index: 2;
+}
+.msh-ic {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  width: 36px; height: 36px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.msh-ic:active { background: rgba(0,0,0,.07) !important; border-radius: 50% !important; }
+[data-theme="dark"] .msh-ic:active { background: rgba(255,255,255,.12) !important; }
+.msh-ic i { font-size: 15px; }
+
+/* شريط التنقل: أهداف أكبر + مساحة آمنة أسفل الشاشة (منطقة إيماءات أندرويد) */
+.msh-bar {
+  padding: 6px 14px calc(8px + env(safe-area-inset-bottom, 0px));
+  gap: 14px;
+}
+.msh-nav {
+  width: 52px; height: 40px; border-radius: 13px;
+  font-size: 13px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.msh-pg {
+  min-height: 40px; padding: 0 14px; border-radius: 12px;
+  font-size: 12.5px;
+  touch-action: manipulation;
+}
+.msh-pg:active { background: rgba(0,0,0,.06); }
+
+/* ---------- ٣) ورقة الفهرس ---------- */
+.msh-pick-scrim {
+  position: fixed; inset: 0; z-index: 410;
+  display: flex; align-items: flex-end;
+  background: rgba(0,0,0,.40);
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s ease;
+}
+.msh-pick-scrim[hidden] { display: none !important; }
+.msh-pick-scrim.on { opacity: 1; pointer-events: auto; }
+.msh-pick-card {
+  width: 100%; max-height: 84vh; display: flex; flex-direction: column;
+  background: var(--card, #fff); color: var(--ink, #26251F);
+  border-radius: 22px 22px 0 0;
+  padding: 14px 14px calc(12px + env(safe-area-inset-bottom));
+  transform: translateY(100%);
+  transition: transform .26s cubic-bezier(.2,.8,.25,1);
+  box-shadow: 0 -10px 34px rgba(0,0,0,.22);
+}
+.msh-pick-scrim.on .msh-pick-card { transform: none; }
+.msh-pick-h {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 14px; font-weight: 800; margin-bottom: 10px;
+}
+.msh-pick-h button {
+  border: none; background: var(--surface-alt, #F2EDE0); color: inherit;
+  width: 30px; height: 30px; border-radius: 10px;
+}
+.msh-pick-search { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.msh-pick-inp {
+  flex: 1; min-width: 0; height: 42px; padding: 0 12px; border-radius: 13px;
+  border: 1px solid var(--border, rgba(0,0,0,.1));
+  background: var(--surface, #fff); color: inherit;
+  font-size: 15px; font-weight: 700; text-align: center;
+  font-family: inherit;
+}
+.msh-pick-go {
+  height: 42px; padding: 0 18px; border: none; border-radius: 13px;
+  background: var(--brand, #0F4C3A); color: #fff; font-size: 13px; font-weight: 800;
+  font-family: inherit;
+}
+.msh-pick-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+.msh-pick-tab {
+  flex: 1; height: 34px; border-radius: 11px; border: 1px solid var(--border, rgba(0,0,0,.09));
+  background: var(--surface-alt, #F7F2E5); color: inherit;
+  font-size: 12px; font-weight: 700; font-family: inherit;
+}
+.msh-pick-tab.on { background: var(--brand, #0F4C3A); color: #fff; border-color: transparent; }
+.msh-pick-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 120px; }
+.msh-pick-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; padding: 2px 0 8px; }
+.msh-pick-cell {
+  padding: 9px 2px; border-radius: 11px; border: 1px solid var(--border, rgba(0,0,0,.08));
+  background: var(--surface-alt, #F7F2E5); color: inherit;
+  font-size: 12px; font-weight: 700; font-family: inherit;
+  touch-action: manipulation;
+}
+.msh-pick-cell:active { transform: scale(.95); }
+.msh-pick-cell.cur { background: var(--brand, #0F4C3A); color: #fff; border-color: transparent; }
+.msh-pick-list { display: flex; flex-direction: column; gap: 5px; padding-bottom: 8px; }
+.msh-pick-row {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 9px 11px; border-radius: 12px; border: 1px solid var(--border, rgba(0,0,0,.07));
+  background: var(--surface, #fff); color: inherit;
+  font-size: 12.5px; font-family: inherit; text-align: start;
+  touch-action: manipulation;
+}
+.msh-pick-row.cur { border-color: var(--brand, #0F4C3A); }
+.msh-pick-row b { font-weight: 800; }
+.msh-pick-row em { font-style: normal; margin-left: auto; font-size: 11px; color: var(--muted, #8A8577); }
+.msh-pick-row .msh-pick-ar { font-family: var(--font-arabic, serif); font-size: 14px; }
+
+/* ---------- ٤) مناطق اللمس الجانبية (تلميح بصري لحظي) ---------- */
+.msh-zone-hint {
+  position: fixed; top: 50%; transform: translateY(-50%);
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(15,76,58,.86); color: #fff; font-size: 12px;
+  z-index: 305; pointer-events: none;
+  opacity: 0; transition: opacity .2s ease;
+}
+.msh-zone-hint.on { opacity: .92; }
+.msh-zone-hint.zl { left: 10px; }
+.msh-zone-hint.zr { right: 10px; }

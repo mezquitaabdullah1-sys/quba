@@ -49,6 +49,50 @@ const CertShare = {
     return size;
   },
 
+  /** Sello circular dorado — dibujado con vectores para que salga nítido al imprimir. */
+  _seal(ctx, cx, cy, r) {
+    ctx.save();
+    const grad = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.15, cx, cy, r);
+    grad.addColorStop(0, '#fff3c9');
+    grad.addColorStop(0.55, '#e8c877');
+    grad.addColorStop(1, '#a97f22');
+    ctx.strokeStyle = '#d4af37';
+    ctx.lineWidth = Math.max(2, r * 0.045);
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, r * 0.86, 0, Math.PI * 2); ctx.stroke();
+    // corona de rayos
+    for (let i = 0; i < 24; i++) {
+      const a = (Math.PI * 2 * i) / 24;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * r * 0.72, cy + Math.sin(a) * r * 0.72);
+      ctx.lineTo(cx + Math.cos(a) * r * 0.84, cy + Math.sin(a) * r * 0.84);
+      ctx.lineWidth = Math.max(1, r * 0.022);
+      ctx.stroke();
+    }
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(cx, cy, r * 0.68, 0, Math.PI * 2); ctx.fill();
+    // estrella de ocho puntas
+    ctx.fillStyle = 'rgba(122,90,16,0.85)';
+    ctx.beginPath();
+    for (let i = 0; i < 16; i++) {
+      const rad = (i % 2 === 0) ? r * 0.46 : r * 0.19;
+      const a = (Math.PI * 2 * i) / 16 - Math.PI / 2;
+      const px = cx + Math.cos(a) * rad;
+      const py = cy + Math.sin(a) * rad;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  },
+
+  /** Número corto y estable para verificar la autenticidad del certificado. */
+  _certId(seed) {
+    let h = 2166136261;
+    const s = String(seed || '');
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return 'QBA-' + (h >>> 0).toString(36).toUpperCase().slice(0, 6);
+  },
+
   _ornamentLine(ctx, cx, y, halfW, color) {
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
@@ -201,6 +245,22 @@ const CertShare = {
     ctx.font = `700 ${Math.round(this.W * 0.028)}px ${main}`;
     ctx.fillText(`Quba — ${data.signature}`, cx, footY + this.H * 0.045);
 
+    // v1.0.152: sello dorado dibujado (nítido a cualquier tamaño, sin peso extra en el APK)
+    const sealX = this.W * 0.795;
+    const sealY = this.H * 0.775;
+    const sealR = this.W * 0.072;
+    this._seal(ctx, sealX, sealY, sealR);
+
+    // v1.0.152: número de certificado verificable + nivel/nXP del alumno
+    const certId = this._certId(`${data.name}|${data.courseTitle}|${data.greg}`);
+    ctx.fillStyle = 'rgba(233,209,137,0.85)';
+    ctx.font = `600 ${Math.round(this.W * 0.020)}px ${main}`;
+    ctx.fillText(`${data.idLabel}: ${certId}`, cx, this.H * 0.918);
+    if (data.xpLine) {
+      ctx.font = `600 ${Math.round(this.W * 0.022)}px ${main}`;
+      ctx.fillText(data.xpLine, cx, this.H * 0.893);
+    }
+
     return canvas;
   },
 
@@ -228,6 +288,16 @@ const CertShare = {
       hijri,
       tierLine: tierMeta ? `${tierMeta.icon} ${tierMeta[locale] || tierMeta.es}` : '',
       tierColor: tierMeta ? tierMeta.color : null,
+      idLabel: locale === 'ar' ? 'رقم الشهادة' : (locale === 'en' ? 'Certificate no.' : 'N.º de certificado'),
+      xpLine: (() => {
+        try {
+          const gs = Gamification.getState();
+          const li = Gamification.getLevelInfo(gs.xp);
+          const lname = typeof li.name === 'object' ? (li.name[locale] || li.name.es) : li.name;
+          const lv = locale === 'ar' ? 'المستوى' : (locale === 'en' ? 'Level' : 'Nivel');
+          return `${lv} ${li.level} · ${lname} · ${gs.xp.toLocaleString()} XP`;
+        } catch (e) { return ''; }
+      })(),
     };
 
     this._renderModal(course);

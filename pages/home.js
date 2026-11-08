@@ -357,11 +357,15 @@ const HomePage = {
           </div>
         </section>
 
-        <!-- آية اليوم — بطاقة صغيرة (كما كانت، بحجم أصغر) -->
-        ${verse ? this._verseCardHtml(verse, loc0) : ''}
+        <!-- v1.0.136: صفّ مزدوج — ورد اليوم + آخر آية (فوق آية اليوم) -->
+        ${(() => {
+          const tw = [this._wardStrip(), this._resumeStripHtml()].filter(Boolean);
+          return tw.length ? `<div class="tw-row${tw.length === 1 ? ' tw-one' : ''}">${tw.join('')}</div>` : '';
+        })()}
 
-        <!-- «أكمل القراءة» — سطر واحد إن وُجد -->
-        ${(() => { const rs = this._resumeStripHtml(); return rs ? `<div class="hm-resume">${rs}</div>` : ''; })()}
+        <!-- آية اليوم — بطاقة صغيرة (كما كانت، بحجم أصغر) -->
+        ${this._studioCardHtml()}
+        ${verse ? this._verseCardHtml(verse, loc0) : ''}
 
         <!-- قسم واحد للوسائط: راديو · مقتطفات (بلغة التطبيق) · مكتبة -->
         <section class="hm-media">
@@ -437,16 +441,16 @@ const HomePage = {
         <!-- دعاء اليوم — بطاقة صغيرة -->
         ${dua ? this._duaCardHtml(dua, loc0) : ''}
 
+        <!-- v1.0.136: بطاقة واحدة — يوم الصيام القادم + المناسبة القادمة + فضل اليوم -->
+        ${this._occUnifiedHtml(virtue)}
+
         <!-- حديث اليوم — بطاقة صغيرة -->
         ${hadith ? this._hadithSmallHtml(hadith, loc0) : ''}
 
-        <!-- المناسبات: رمضان (مؤقت كامل) + الصيام + المناسبة القادمة + مناسبة اليوم -->
+        <!-- مؤقّت رمضان -->
         <section class="hm-occ">
           <div class="hm-occ-strip">
             ${this._ramadanCountdownHtml()}
-            ${this._nextFastHtml()}
-            ${this._nextEventHtml()}
-            ${virtue ? this._virtueCardHtml(virtue) : ''}
           </div>
         </section>
       </div>
@@ -577,16 +581,14 @@ const HomePage = {
         const days = Math.floor((Date.now() - lr.t) / 86400000);
         rel = days <= 0 ? t('resumeToday') : (days === 1 ? t('resumeYesterday') : t('resumeDaysAgo').replace('{n}', days));
       }
+      const K = { ar: 'آخر آية', es: 'Último versículo', en: 'Last verse' }[loc];
+      const M = [page ? t('resumePage') + ' ' + page : '', rel].filter(Boolean).join(' · ');
       return `
-      <button class="resume-strip" onclick="Router.go('surah',{surahNumber:${lr.s},ayah:${lr.a}})" aria-label="${escapeAttr(t('resumeReading'))}
-        ${this._wardStrip()}">
-        <span class="resume-strip-ic"><i class="fas fa-bookmark"></i></span>
-        <span class="resume-strip-body">
-          <span class="resume-strip-label">${t('resumeReading')} — ${t('resumeStoppedAt')}</span>
-          <span class="resume-strip-title">${loc === 'ar' ? 'سورة ' : ''}${escapeHtml(surahName)} — ${t('resumeAyah')} ${lr.a}</span>
-          <span class="resume-strip-meta">${page ? t('resumePage') + ' ' + page : ''}${page && rel ? ' · ' : ''}${rel}</span>
-        </span>
-        <i class="fas fa-chevron-${document.documentElement.dir === 'rtl' ? 'left' : 'right'} resume-strip-arrow"></i>
+      <button class="tw-card tw-last" onclick="Router.go('surah',{surahNumber:${lr.s},ayah:${lr.a}})" aria-label="${escapeAttr(t('resumeReading'))}">
+        <span class="tw-ic tw-ic-amber"><i class="fas fa-bookmark"></i></span>
+        <span class="tw-k">${K}</span>
+        <span class="tw-t">${escapeHtml((loc === 'ar' ? 'سورة ' : '') + surahName)} · ${lr.a}</span>
+        <span class="tw-m">${escapeHtml(M)}</span>
       </button>`;
     } catch (e) { return ''; }
   },
@@ -598,17 +600,17 @@ const HomePage = {
       const k = KhatmaStore.active(); if (!k) return '';
       const wp = KhatmaStore.wardProgress(k); const pr = KhatmaStore.progress(k);
       const w = wp.ward;
-      const range = (w && w.pages > 0) ? KhatmaStore.rangeLabel(k, w) : 'يوم راحة';
-      const dir = document.documentElement.dir === 'rtl' ? 'left' : 'right';
+      const loc = (typeof currentLocale !== 'undefined' && ['es','ar','en'].includes(currentLocale)) ? currentLocale : 'es';
+      const range = (w && w.pages > 0) ? KhatmaStore.rangeLabel(k, w) : ({ ar: 'يوم راحة', es: 'Día de descanso', en: 'Rest day' })[loc];
+      const K = { ar: 'ورد اليوم', es: 'Wird de hoy', en: "Today's wird" }[loc];
+      const U = { ar: 'صفحة', es: 'pág.', en: 'pp.' }[loc];
+      const done = wp.total ? Math.round((wp.done / wp.total) * 100) : 0;
       return `
-      <button class="resume-strip" onclick="Router.go('quran/khatma')" aria-label="ختمتي">
-        <span class="resume-strip-ic"><i class="fas fa-book-quran"></i></span>
-        <span class="resume-strip-body">
-          <span class="resume-strip-label">ورد اليوم · ${wp.done}/${wp.total} صفحة</span>
-          <span class="resume-strip-title">${range}</span>
-          <span class="resume-strip-meta">${pr.read} / ${pr.total} صفحة · ${pr.pct}% من الختمة</span>
-        </span>
-        <i class="fas fa-chevron-${dir} resume-strip-arrow"></i>
+      <button class="tw-card tw-ward" onclick="Router.go('quran/khatma')" aria-label="${escapeAttr(K)}">
+        <span class="tw-ic tw-ic-green"><i class="fas fa-book-quran"></i></span>
+        <span class="tw-k">${K} · ${done}%</span>
+        <span class="tw-t">${escapeHtml(range)}</span>
+        <span class="tw-m">${wp.done}/${wp.total} ${U} · ${pr.pct}%</span>
       </button>`;
     } catch (e) { return ''; }
   },
@@ -663,70 +665,95 @@ const HomePage = {
     return ((M[loc] || M.es)[m - 1]) || '';
   },
 
-  // ============ v61: المناسبة القادمة — بمحرك أم القرى المحلي (دون إنترنت) ============
-  // ============ v95: المناسبة القادمة — بطاقة ملوّنة ============
-  _nextEventHtml() {
+  // ============ v1.0.136: المناسبات — بيانات خام ثم بطاقة واحدة موحّدة ============
+  _eventData() {
     try {
-      if (typeof ISLAMIC_HOLIDAYS === 'undefined' || typeof HijriCalc === 'undefined' || !HijriCalc.nextOccurrence) return '';
+      if (typeof ISLAMIC_HOLIDAYS === 'undefined' || typeof HijriCalc === 'undefined' || !HijriCalc.nextOccurrence) return null;
       let best = null;
       for (const h of ISLAMIC_HOLIDAYS) {
         const oc = HijriCalc.nextOccurrence(h.month, h.day);
-        if (oc && (!best || oc.daysLeft < best.daysLeft)) best = { ...oc, h };
+        if (oc && (!best || oc.daysLeft < best.daysLeft)) best = Object.assign({}, oc, { h: h });
       }
-      if (!best) return '';
-      const loc = (typeof currentLocale !== 'undefined' && ['es', 'ar', 'en'].includes(currentLocale)) ? currentLocale : 'es';
+      if (!best) return null;
+      const loc = (typeof currentLocale !== 'undefined' && ['es','ar','en'].includes(currentLocale)) ? currentLocale : 'es';
       const name = best.h['name_' + loc] || best.h.name_es;
       let gFmt;
       try { gFmt = best.date.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }); }
       catch (e) { gFmt = best.date.toISOString().slice(0, 10); }
       const daysTxt = best.daysLeft === 0 ? t('todayWord') : (best.daysLeft === 1 ? t('tomorrowWord') : t('daysLeftTxt').replace('{n}', best.daysLeft));
-      return `
-      <div class="occ-card occ-event">
-        <div class="occ-head">
-          <span class="occ-ic"><i class="fas fa-star-and-crescent"></i></span>
-          <span class="occ-title">${t('nextEventTitle')}</span>
-        </div>
-        <div class="occ-main">${escapeHtml(name)}</div>
-        <div class="occ-meta">${best.h.day} ${this._hijriMonthName(best.h.month, loc)} ${best.hijriYear} ${loc === 'ar' ? 'هـ' : 'AH'} · ${escapeHtml(gFmt)} · ${daysTxt}</div>
-      </div>`;
-    } catch (e) { return ''; }
+      return {
+        title: t('nextEventTitle'),
+        main: name,
+        meta: best.h.day + ' ' + this._hijriMonthName(best.h.month, loc) + ' ' + best.hijriYear + (loc === 'ar' ? ' هـ' : ' AH') + ' · ' + gFmt + ' · ' + daysTxt,
+      };
+    } catch (e) { return null; }
   },
 
-  // ============ v61: يوم الصيام القادم (الاثنين/الخميس · الأيام البيض · عاشوراء وعرفة) ============
-  // داخل رمضان لا يُعرض — لرمضان عدّاده الخاص أعلاه.
-  // ============ v95: يوم الصيام القادم — بطاقة ملوّنة بأسلوب المناسبات ============
-  _nextFastHtml() {
+  _fastData() {
     try {
-      if (typeof HijriCalc === 'undefined' || !HijriCalc.fromDate) return '';
+      if (typeof HijriCalc === 'undefined' || !HijriCalc.fromDate) return null;
       const EVENT_FASTS = { '1,10': true, '12,9': true }; // عاشوراء · يوم عرفة
       for (let i = 0; i < 60; i++) {
         const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i);
         const h = HijriCalc.fromDate(d);
         if (!h) continue;
+        // v1.0.161: لا يُقترح صيام يومٍ حُرِّم صيامه: عيد الفطر، وأيام التشريق
+        // (١١–١٣ ذي الحجة) ويوم العيد العاشر. وكانت «الأيام البيض» تلتقط
+        // ١٣ ذي الحجة فتوصي بصيام يوم التشريق.
+        const forbidden = (h.month === 10 && h.day === 1)
+          || (h.month === 12 && h.day >= 10 && h.day <= 13);
+        if (forbidden) continue;
         let kind = null;
         if (EVENT_FASTS[h.month + ',' + h.day]) kind = 'fastEvent';
         else if (h.month !== 9 && h.day >= 13 && h.day <= 15) kind = 'fastWhite';
         else if (h.month !== 9 && (d.getDay() === 1 || d.getDay() === 4)) kind = 'fastWeekday';
         if (!kind) continue;
-        const loc = (typeof currentLocale !== 'undefined' && ['es', 'ar', 'en'].includes(currentLocale)) ? currentLocale : 'es';
+        const loc = (typeof currentLocale !== 'undefined' && ['es','ar','en'].includes(currentLocale)) ? currentLocale : 'es';
         let gFmt;
         try { gFmt = d.toLocaleDateString(loc, { day: 'numeric', month: 'long' }); } catch (e) { gFmt = d.toISOString().slice(0, 10); }
         const wd = (typeof getWeekdayName === 'function') ? getWeekdayName(d.getDay(), loc) : '';
         const daysTxt = i === 0 ? t('todayWord') : (i === 1 ? t('tomorrowWord') : t('daysLeftTxt').replace('{n}', i));
-        return `
-      <div class="occ-card occ-fast">
-        <div class="occ-head">
-          <span class="occ-ic"><i class="fas fa-moon"></i></span>
-          <span class="occ-title">${t('nextFastTitle')} — ${t(kind)}</span>
-        </div>
-        <div class="occ-main">${escapeHtml(wd)} · ${escapeHtml(gFmt)}</div>
-        <div class="occ-meta">${h.day} ${this._hijriMonthName(h.month, loc)} ${h.year} ${loc === 'ar' ? 'هـ' : 'AH'} · ${daysTxt}</div>
-      </div>`;
+        return {
+          title: t('nextFastTitle') + ' — ' + t(kind),
+          main: wd + ' · ' + gFmt,
+          meta: h.day + ' ' + this._hijriMonthName(h.month, loc) + ' ' + h.year + (loc === 'ar' ? ' هـ' : ' AH') + ' · ' + daysTxt,
+        };
       }
     } catch (e) {}
-    return '';
+    return null;
   },
 
+  // بطاقة واحدة تجمع: يوم الصيام القادم · المناسبة القادمة · فضل اليوم
+  _occUnifiedHtml(virtue) {
+    try {
+      const loc = (typeof currentLocale !== 'undefined' && ['es','ar','en'].includes(currentLocale)) ? currentLocale : 'es';
+      const ev = this._eventData();
+      const fa = this._fastData();
+      const vTitle = virtue ? (virtue.title || '') : '';
+      const vBody = virtue ? (virtue.verse || '') : '';
+      const vSrc = virtue ? (virtue.source || '') : '';
+      if (!ev && !fa && !vBody) return '';
+      const head = { ar: 'لمحات اليوم', es: 'Pinceladas del día', en: 'Today at a glance' }[loc];
+      const row = (tone, icon, k, main, meta) => `
+        <div class="occ-uni-row">
+          <span class="occ-uni-ic ${tone}"><i class="fas ${icon}"></i></span>
+          <span class="occ-uni-body">
+            <span class="occ-uni-k">${escapeHtml(k)}</span>
+            <span class="occ-uni-m">${escapeHtml(main)}</span>
+            ${meta ? `<span class="occ-uni-meta">${escapeHtml(meta)}</span>` : ''}
+          </span>
+        </div>`;
+      return `
+      <section class="hm-card hm-occ-uni">
+        <div class="hm-card-head">
+          <h2 class="hm-title"><i class="fas fa-star-and-crescent"></i> ${escapeHtml(head)}</h2>
+        </div>
+        ${fa ? row('i-fast', 'fa-moon', fa.title, fa.main, fa.meta) : ''}
+        ${ev ? row('i-event', 'fa-star', ev.title, ev.main, ev.meta) : ''}
+        ${vBody ? row('i-virtue', 'fa-sparkles', vTitle, vBody, vSrc ? '— ' + vSrc : '') : ''}
+      </section>`;
+    } catch (e) { return ''; }
+  },
 
   // ============ v120: التوقيت الثانوي (مدينة ثانية) — أسفل توقيت الصلوات، بلا أيقونات ============
   _dualStripHtml() {
@@ -980,6 +1007,25 @@ const HomePage = {
   },
 
   // ============ v95: بطاقات صغيرة للآية/الدعاء/الحديث/مناسبة اليوم ============
+  // ============ v1.0.168: بطاقة استوديو الفيديو القرآني في الرئيسية ============
+  _studioCardHtml() {
+    try {
+      return `
+      <section class="hm-card hm-studio" onclick="Router.go('studio/video')" role="button" tabindex="0">
+        <div class="hm-studio-bg"></div>
+        <div class="hm-studio-in">
+          <span class="hm-studio-ic"><i class="fas fa-clapperboard"></i></span>
+          <div class="hm-studio-txt">
+            <h2>${escapeHtml(t('vsHomeTitle') || 'استوديو الفيديو القرآني')}</h2>
+            <p>${escapeHtml(t('vsHomeDesc') || 'اختر آية وقارئًا وخلفية، وأنشئ فيديو جاهزًا للمشاركة')}</p>
+          </div>
+          <span class="hm-studio-go"><i class="fas fa-arrow-right"></i></span>
+        </div>
+        <span class="hm-studio-badge">${escapeHtml(t('vsHomeBadge') || 'جديد')}</span>
+      </section>`;
+    } catch (e) { return ''; }
+  },
+
   _verseCardHtml(verse, loc0) {
     try {
       if (!verse) return '';
@@ -989,7 +1035,7 @@ const HomePage = {
       <section class="hm-card hm-small hm-c-verse">
         <div class="hm-card-head">
           <h2 class="hm-title"><i class="fas fa-book-open-reader"></i> ${t('verseOfDay')}</h2>
-          <button class="hm-icon-btn" onclick="ShareCard.open('verse')" aria-label="${escapeAttr(t('shareCardBtn') || '')}"><i class="fas fa-share-nodes"></i></button>
+          <button class="hm-icon-btn" onclick="ShareCard.open('verse')" aria-label="${escapeAttr(t('shareCardBtn') || '')}"><i class="fas fa-share-nodes"></i></button><button class="hm-icon-btn" onclick="Router.go('studio/video')" aria-label="${escapeAttr(t('vsEntry') || 'Estudio de vídeo')}" title="${escapeAttr(t('vsEntry') || 'Estudio de vídeo')}"><i class="fas fa-clapperboard"></i></button>
         </div>
         <div class="card-gradient hm-verse-body">
           <div class="verse-arabic" dir="rtl">${escapeHtml(verse.arabic || '')}</div>

@@ -43,7 +43,7 @@ const API = {
       if (cached._source !== 'muslimpro' && navigator.onLine) {
         this._refreshTimingsInBackground(lat, lng, date, method, cacheKey);
       }
-      return _withDelta(this._applyTimeShift(cached));
+      return _withDelta(this._applyTimeShift(cached, lat, lng, date));
     }
 
     // v21: sin red ni caché → cálculo astronómico local.
@@ -53,7 +53,7 @@ const API = {
 
     try {
       const fresh = await this._fetchFreshTimings(lat, lng, date, method, cacheKey);
-      return _withDelta(this._applyTimeShift(fresh));
+      return _withDelta(this._applyTimeShift(fresh, lat, lng, date));
     } catch (e) {
       // Red inestable/caída a mitad: nunca dejar al usuario sin nada
       console.warn('Prayer API offline, calculando localmente:', e.message);
@@ -128,7 +128,7 @@ const API = {
 
   // v26: aplica el ajuste manual verano/invierno (±1h) sobre los horarios
   // devueltos (por API o por caché). No toca el objeto original.
-  _applyTimeShift(data) {
+  _applyTimeShift(data, lat, lng, date) {
     try {
       if (!data || !data.timings) return data;
       let t = data.timings;
@@ -138,8 +138,9 @@ const API = {
       if (typeof PrayerCalc !== 'undefined') {
         t = PrayerCalc.applyPrayerOffsets(t);
       }
-      // v1.0.128: كوبا — توقيت صيفي دائم حتى 2027-11-07 (ساعة ناقصة في بيانات التوقيت)
-      if (typeof CubaTime !== 'undefined' && CubaTime.applies()) t = CubaTime.shiftTimings(t);
+      // v1.0.142: كوبا — توحيد إلى UTC−4 بمعايرة ذاتية (تقرأ منطقة البيانات نفسها،
+      // فلا تُضاف ساعة لبيانات صحيحة ولا تبقى بيانات -5 متأخرة).
+      if (typeof CubaTime !== 'undefined') t = CubaTime.normalize(t, lat, lng, date || new Date());
       const mode = (typeof AppState !== 'undefined' && AppState.settings && AppState.settings.timeShift) || 'auto';
       if (mode === 'auto' || typeof PrayerCalc === 'undefined') return t === data.timings ? data : Object.assign({}, data, { timings: t });
       const delta = mode === 'summer' ? 1 : (mode === 'winter' ? -1 : 0);
@@ -233,6 +234,11 @@ const API = {
     // _estimated se duplica DENTRO de timings porque varias pantallas hacen
     // `AppState.timings = resultado.timings` (pierden el nivel exterior).
     timings._estimated = true;
+    // v1.0.142: نفس تطبيع كوبا للمسار المحلي (يعمل مع أي منطقة يراها الجهاز)
+    if (typeof CubaTime !== 'undefined') {
+      const _n = CubaTime.normalize(timings, lat, lng, date);
+      if (_n !== timings) try { Object.assign(timings, _n); } catch (e) { /* صامت */ }
+    }
     return {
       timings,
       date: {
@@ -1411,3 +1417,32 @@ function getPrayerEmoji(name) {
   };
   return map[name] || '<i class="fas fa-mosque"></i>';
 }
+
+
+/* ==========================================================================
+   v1.0.142 — جدول الشهر: تطبيع كل يوم إلى توقيت كوبا الصيفي (UTC−4)
+   ========================================================================== */
+(function () {
+  if (typeof API === 'undefined' || !API.getPrayerTimesMonth) return;
+  const _origMonth = API.getPrayerTimesMonth.bind(API);
+  API.getPrayerTimesMonth = async function (lat, lon, month, year, method) {
+    const days = await _origMonth(lat, lon, month, year, method);
+    try {
+      if (typeof CubaTime === 'undefined' || !Array.isArray(days)) return days;
+      const cuba = CubaTime._inBox(lat, lon) || CubaTime.isCubaLocation();
+      if (!cuba) return days;
+      return days.map(function (day) {
+        const tm = day && day.timings;
+        if (!tm) return day;
+        const g = day.date && day.date.gregorian && day.date.gregorian.date; // DD-MM-YYYY
+        let dt = new Date();
+        if (g) {
+          const p = String(g).split('-').map(Number);
+          if (p.length === 3 && isFinite(p[2])) dt = new Date(p[2], p[1] - 1, p[0], 12, 0, 0);
+        }
+        const fixed = CubaTime.normalize(tm, lat, lon, dt, true);
+        return fixed === tm ? day : Object.assign({}, day, { timings: fixed });
+      });
+    } catch (e) { return days; }
+  };
+})();

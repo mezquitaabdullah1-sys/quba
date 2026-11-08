@@ -1,0 +1,54 @@
+/* v1.0.145 — ربط الختمة بالقارئ المترجم + شريط الورد الموحّد */
+/* ---------- شريط الختمة داخل القارئ ---------- */
+.qr-kstrip{
+  margin:0 12px 8px; padding:8px 11px 7px; border-radius:14px;
+  background:linear-gradient(135deg, rgba(31,111,80,.10), rgba(31,111,80,.04));
+  border:1px solid rgba(31,111,80,.22);
+  font-size:11px; color:var(--text,#1f2937);
+}
+.qr-kstrip[hidden]{display:none!important}
+.qr-kstrip.is-ward{border-color:rgba(31,111,80,.38);background:linear-gradient(135deg,rgba(31,111,80,.15),rgba(31,111,80,.05))}
+.qr-ks-top{display:flex;align-items:center;gap:7px;font-weight:800;font-size:11.5px;cursor:pointer}
+.qr-ks-top i{color:#1f6f50;font-size:11px;flex:0 0 auto}
+.qr-ks-name{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qr-ks-pill{font-size:10px;font-weight:800;background:rgba(31,111,80,.14);color:#1f6f50;
+  padding:2px 7px;border-radius:8px;font-variant-numeric:tabular-nums;flex:0 0 auto}
+.qr-ks-bar{height:5px;border-radius:99px;background:rgba(31,111,80,.16);overflow:hidden;margin-top:6px}
+.qr-ks-bar i{display:block;height:100%;border-radius:99px;
+  background:linear-gradient(90deg,#1f6f50,#3fb98c);transition:width .3s ease}
+.qr-ks-sub{margin-top:5px;font-size:9.8px;line-height:1.5;opacity:.92;
+  display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.qr-ks-sub>span:first-child{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qr-ks-note{border-radius:7px;padding:1px 6px;font-weight:800;flex:0 0 auto;border:1px solid transparent}
+.qr-ks-note.is-in{background:rgba(31,111,80,.14);border-color:rgba(31,111,80,.3);color:#1f6f50}
+.qr-ks-note.is-out{background:rgba(212,175,55,.16);border-color:rgba(212,175,55,.4);color:#8A6D1F}
+.qr-ks-more{border:none;background:rgba(31,111,80,.12);color:#1f6f50;width:24px;height:22px;
+  border-radius:7px;font-size:10px;display:inline-flex;align-items:center;justify-content:center;
+  flex:0 0 auto;padding:0}
+.qr-kstrip.is-collapsed .qr-ks-bar,.qr-kstrip.is-collapsed .qr-ks-sub{display:none}
+
+/* ---------- شريط الورد في المصحف: صفوف متراكبة بدل صف واحد ---------- */
+.msh-ward{display:block!important;align-items:stretch;cursor:pointer}
+.msh-ward .msh-ward-top{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:800}
+.msh-ward .msh-ward-top>i{flex:0 0 auto}
+.msh-ward .msh-ward-bar{margin-top:6px}
+.msh-ward .msh-ward-sub{display:flex;flex-wrap:wrap;gap:4px}
+.msh-ward.is-idle{background:rgba(120,120,120,.10);border-color:rgba(120,120,120,.26);color:var(--muted,#777)}
+.msh-ward.is-collapsed .msh-ward-bar,.msh-ward.is-collapsed .msh-ward-sub{display:none}
+.msh-ward-edges{pointer-events:none}
+.msh-ward-note{pointer-events:auto;backdrop-filter:blur(2px)}
+
+/* ---------- اسم الختمة في بطاقة ورد اليوم ---------- */
+.kht-today-name{font-weight:800;color:#1f6f50;font-size:11px}
+[data-theme="dark"] .kht-today-name{color:#7fd3ac}
+
+/* ---------- الوضع الليلي ---------- */
+[data-theme="dark"] .qr-kstrip{background:linear-gradient(135deg,rgba(127,211,172,.13),rgba(127,211,172,.04));
+  border-color:rgba(127,211,172,.3);color:#e6f5ee}
+[data-theme="dark"] .qr-ks-top i,[data-theme="dark"] .qr-ks-more{color:#7fd3ac}
+[data-theme="dark"] .qr-ks-pill{background:rgba(127,211,172,.16);color:#7fd3ac}
+[data-theme="dark"] .qr-ks-bar{background:rgba(127,211,172,.18)}
+[data-theme="dark"] .qr-ks-bar i{background:linear-gradient(90deg,#3fb98c,#7fd3ac)}
+[data-theme="dark"] .qr-ks-note.is-in{background:rgba(127,211,172,.16);border-color:rgba(127,211,172,.32);color:#7fd3ac}
+[data-theme="dark"] .qr-ks-note.is-out{background:rgba(212,175,55,.18);border-color:rgba(212,175,55,.4);color:#F0C761}
+[data-theme="dark"] .qr-ks-more{background:rgba(127,211,172,.14)}

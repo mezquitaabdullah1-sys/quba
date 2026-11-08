@@ -15,6 +15,7 @@ const RadioPage = {
     { id: 'main', key: 'tabMain', icon: 'fa-tower-broadcast' },
     { id: 'reciters', key: 'tabReciters', icon: 'fa-microphone-lines' },
     { id: 'translated', key: 'tabTranslated', icon: 'fa-language' },
+    { id: 'stories', key: 'tabStories', icon: 'fa-book-open-reader' },
     { id: 'extra', key: 'tabExtra', icon: 'fa-moon' },
     { id: 'sleep', key: 'tabSleep', icon: 'fa-bed' },
   ],
@@ -258,7 +259,8 @@ const RadioPage = {
     if (this.tab === 'translated') { this._renderTranslated(body); return; }
     if (this.tab === 'sleep') { this._renderSleep(body); return; }
     if (this.tab === 'reciters') { this._renderReciters(body); return; }
-    const list = this.tab === 'extra' ? RadioData.EXTRA : RadioData.MAIN;
+    const list = this.tab === 'extra' ? RadioData.EXTRA
+      : (this.tab === 'stories' ? RadioData.STORIES : RadioData.MAIN);
     body.innerHTML = list.map(st => {
       const cur = RadioService.station && RadioService.station.id === st.id && RadioService.state !== 'idle';
       return `
@@ -267,7 +269,7 @@ const RadioPage = {
           <button class="st-fav ${RadioLib.isFav({ t: 'station', stId: st.id }) ? 'on' : ''}" onclick="event.stopPropagation();RadioPage.favStation('${st.id}')" aria-label="${RadioData.L('favAdd')}"><i class="fas fa-heart"></i></button>
           <div class="station-info">
             <div class="station-name">${st.badge ? st.badge + ' ' : ''}${escapeHtml(RadioData.name(st))}</div>
-            <div class="station-desc">${st.descKey ? RadioData.L(st.descKey) : (cur ? RadioData.L('nowPlaying') : RadioData.L('tapToListen'))}</div>
+            <div class="station-desc">${st.descKey ? RadioData.L(st.descKey) : (st.desc ? RadioData.desc(st) : (cur ? RadioData.L('nowPlaying') : RadioData.L('tapToListen')))}</div>
           </div>
           <div class="station-eq ${cur && RadioService.state === 'playing' ? 'on' : ''}"><i></i><i></i><i></i></div>
         </div>`;
@@ -275,7 +277,7 @@ const RadioPage = {
   },
 
   playStation(id) {
-    const st = RadioData.MAIN.concat(RadioData.EXTRA).find(s => s.id === id);
+    const st = RadioData.MAIN.concat(RadioData.EXTRA, RadioData.STORIES || []).find(s => s.id === id);
     if (!st) return;
     if (RadioService.station && RadioService.station.id === st.id && RadioService.mode === 'stream' && RadioService.state !== 'error') {
       RadioService.toggle();
@@ -502,24 +504,44 @@ const RadioPage = {
   },
 
   // ---------- تحميل ملف السورة الجارية ----------
+  // v1.0.139 — التحميل عبر RadioLib (IndexedDB) أولًا: يعمل داخل WebView بلا مدير
+  // تنزيلات، ويُشغَّل بعدها من blob محليًا. التنزيل المباشر بديلٌ أخير فقط.
   async downloadCurrent() {
     const q = RadioService.quran;
     if (!q) return;
-    const r = RadioData.reciter(q.rid);
-    const url = RadioData.surahFileUrl(r, q.surah);
-    if (!url) return;
-    if (typeof showToast === 'function') showToast('⏳ ' + RadioData.L('downloadingAudio'), 2500);
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('http ' + res.status);
-      const blob = await res.blob();
-      const info = RadioData.surahInfo(q.surah);
-      const name = `${String(q.surah).padStart(3, '0')}_${info.en.replace(/[^A-Za-z0-9-]+/g, '_')}_${r.id}.mp3`;
-      if (typeof QuranOfflineService !== 'undefined' && QuranOfflineService._triggerBlobDownload) QuranOfflineService._triggerBlobDownload(blob, name);
-      if (typeof showToast === 'function') showToast('💾 ' + RadioData.L('downloadDone'), 2500);
-    } catch (e) {
-      if (typeof showToast === 'function') showToast('⚠️ ' + RadioData.L('downloadFail'), 2500);
+    const rid = q.rid, n = Number(q.surah);
+    const r = RadioData.reciter(rid);
+    const url = RadioData.surahFileUrl(r, n);
+    if (!url) { if (typeof showToast === 'function') showToast('⚠️ ' + RadioData.L('downloadFail'), 2500); return; }
+    if (typeof RadioLib !== 'undefined' && RadioLib.has(rid, n)) {
+      if (typeof showToast === 'function') showToast('✔ ' + RadioData.L('dlAlready'), 1800);
+      return;
     }
+    if (this._dlBusy) return;
+    this._dlBusy = true;
+    const btn = document.getElementById('rtb-dl');
+    if (btn) btn.classList.add('busy');
+    if (typeof showToast === 'function') showToast('⏳ ' + RadioData.L('downloadingAudio'), 3000);
+    let how = 'fail';
+    try { how = await RadioLib.download(rid, n); } catch (e) { how = 'fail'; }
+    if (how === 'fail') {
+      try {
+        const res = await fetch(url, { cache: 'force-cache' });
+        if (res && res.ok) {
+          const blob = await res.blob();
+          if (blob && blob.size && typeof QuranOfflineService !== 'undefined' && QuranOfflineService._triggerBlobDownload) {
+            const info = RadioData.surahInfo(n) || { en: 'surah' };
+            QuranOfflineService._triggerBlobDownload(blob, `${String(n).padStart(3, '0')}_${String(info.en || 'surah').replace(/[^A-Za-z0-9-]+/g, '_')}_${r.id}.mp3`);
+            how = 'db';
+          }
+        }
+      } catch (e) { ok = false; }
+    }
+    this._dlBusy = false;
+    if (btn) btn.classList.remove('busy');
+    const ok = how !== 'fail';
+    if (typeof showToast === 'function') showToast((ok ? (how === 'device' ? '📱 ' : '💾 ') : '⚠️ ') + RadioData.L(ok ? (how === 'device' ? 'deviceSaved' : 'downloadDone') : 'downloadFail'), 2800);
+    try { this._renderHero(); this._renderBody(); this._updateTopBadges(); } catch (e) {}
   },
 
   // ---------- تبويب قرآن قبل النوم (مع أصوات خلفية لطيفة) ----------
@@ -672,8 +694,9 @@ const RadioPage = {
       return;
     }
     if (typeof showToast === 'function') showToast('⏳ ' + RadioData.L('downloadingAudio'), 2500);
-    const bytes = await RadioLib.save(rid, n);
-    if (typeof showToast === 'function') showToast(bytes ? '💾 ' + RadioData.L('downloadDone') : '⚠️ ' + RadioData.L('downloadFail'), 2500);
+    const how = await RadioLib.download(rid, n);
+    const ok = how !== 'fail';
+    if (typeof showToast === 'function') showToast((ok ? (how === 'device' ? '📱 ' : '💾 ') : '⚠️ ') + RadioData.L(ok ? (how === 'device' ? 'deviceSaved' : 'downloadDone') : 'downloadFail'), 2500);
     this._renderBody(); this._updateTopBadges();
   },
 
@@ -709,8 +732,15 @@ const RadioPage = {
     let done = 0, failed = 0;
     for (let i = 0; i < list.length; i++) {
       if (this._dlAll.cancel) break;
-      const bytes = await RadioLib.save(rid, list[i]);
-      if (bytes) { this._dlAll.bytes += bytes; done++; } else failed++;
+      const how = await RadioLib.download(rid, list[i]);
+      if (how === 'fail') failed++;
+      else {
+        done++;
+        if (how === 'db') {
+          const rec = RadioLib.list().find(d => d.rid === rid && d.surah === Number(list[i]));
+          if (rec && rec.bytes) this._dlAll.bytes += rec.bytes;
+        }
+      }
       this._dlAll.i = i + 1;
       this._dlAllPaint(rid);
       if (i % 5 === 0) this._updateTopBadges();
@@ -760,6 +790,16 @@ const RadioPage = {
         ${isDl && items.length ? `<button class="rl-head-act" onclick="RadioPage.dlAllToDevice()" title="${RadioData.L('saveAllDevice')}" aria-label="${RadioData.L('saveAllDevice')}"><i class="fas fa-mobile-screen-button"></i></button>` : ''}
         <button class="rl-x" onclick="RadioPage.closeSheet()" aria-label="close">×</button>
       </div>
+      ${isDl ? `<div class="rl-opts">
+        <label class="rl-opt">
+          <input type="checkbox" ${RadioLib.autoSaveOn() ? 'checked' : ''} onchange="RadioPage.toggleAutoSave(this.checked)">
+          <span>${RadioData.L('autoSaveDevice')}</span>
+        </label>
+        <div class="rl-opt-row">
+          <button class="rl-optbtn" onclick="RadioPage.dlAllToDevice()"><i class="fas fa-mobile-screen-button"></i> ${RadioData.L('saveAllDevice')}</button>
+          <small class="rl-opt-hint">${RadioData.L('devFolderHint')}</small>
+        </div>
+      </div>` : ''}
       <div class="rl-list">${rows || `<div class="rl-empty"><i class="fas ${isDl ? 'fa-box-open' : 'fa-heart-crack'}"></i><div>${RadioData.L(isDl ? 'dlEmpty' : 'favEmpty')}</div></div>`}</div>
     </div>`;
     document.body.appendChild(ov);
@@ -800,6 +840,11 @@ const RadioPage = {
       <button class="rl-btn play" onclick="RadioPage.favPlayAt(${i})" aria-label="${RadioData.L('playNow')}"><i class="fas fa-play"></i></button>
       <button class="rl-btn del" onclick="RadioPage.delFavAt(${i})" aria-label="delete"><i class="fas fa-trash"></i></button>
     </div>`;
+  },
+
+  toggleAutoSave(v) {
+    RadioLib.setAutoSave(!!v);
+    if (typeof showToast === 'function') showToast((v ? '✅ ' : '⭕ ') + RadioData.L(v ? 'autoSaveOn' : 'autoSaveOff'), 2200);
   },
 
   // v1.0.130: نسخ صوت منزَّل إلى ملف على الجهاز

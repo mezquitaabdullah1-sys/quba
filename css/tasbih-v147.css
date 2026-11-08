@@ -1,0 +1,450 @@
+/* =====================================================================
+   v1.0.147 — مسابح حقيقية + تبديل فوري + شريط جانبي + بطاقة تأكيد واضحة
+   ---------------------------------------------------------------------
+   يُحمَّل بعد beads-v131.css و prayer-v135.css ليحلّ محلّهما.
+   1) خرزات بخامات مطابقة للمسابح الحقيقية (عنبر · كوكا · صندل · عقيق ·
+      فيروز · لازورد · مرجان · يشب · هيماتيت · كريستال · لؤلؤ …)
+   2) انتقال ناعم عند تغيير الخامة أو الشكل (بلا حاجة لتغييرين)
+   3) شريط التبديل (ضغط ⇄ سحب) على جانب الصفحة الأيمن
+   4) بطاقة التأكيد: ألوان ونصوص واضحة
+   ===================================================================== */
+
+/* ================= 1) محرّك الخرزة ================= */
+.bead-skin {
+  --bk1: #8d949c;
+  --bk2: #2a2f36;
+  --bk3: #080a0d;
+  --bk-pat: none;
+  --bk-ps: 100% 100%;
+  --bk-spec: .85;
+  --bk-glow: 0 0 0 rgba(0, 0, 0, 0);
+  position: relative;
+  background-color: var(--bk3);
+  background-image:
+    /* لمعة عليا */
+    radial-gradient(ellipse 30% 20% at 30% 19%, rgba(255, 255, 255, .95) 0%, rgba(255, 255, 255, .34) 46%, rgba(255, 255, 255, 0) 74%),
+    /* نقش الخامة */
+    var(--bk-pat),
+    /* ظل كروي داخلي */
+    radial-gradient(circle at 66% 78%, rgba(0, 0, 0, .42) 0%, rgba(0, 0, 0, .12) 40%, rgba(0, 0, 0, 0) 66%),
+    /* جسم الخرزة */
+    radial-gradient(circle at 33% 26%, var(--bk1) 0%, var(--bk2) 50%, var(--bk3) 100%);
+  background-size: 100% 100%, var(--bk-ps), 100% 100%, 100% 100%;
+  background-repeat: no-repeat, repeat, no-repeat, no-repeat;
+  box-shadow:
+    inset -2px -5px 9px rgba(0, 0, 0, .42),
+    inset 2px 2px 6px rgba(255, 255, 255, .14),
+    var(--bk-glow),
+    0 4px 10px rgba(0, 0, 0, .34);
+  border: 0;
+  overflow: hidden;
+  transition: box-shadow .24s ease, filter .24s ease;
+}
+.bead-skin::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: var(--bk-spec);
+  background:
+    radial-gradient(ellipse 23% 13% at 30% 18%, rgba(255, 255, 255, .99) 0%, rgba(255, 255, 255, .28) 54%, rgba(255, 255, 255, 0) 76%),
+    radial-gradient(ellipse 58% 20% at 64% 91%, rgba(255, 255, 255, .18) 0%, rgba(255, 255, 255, 0) 72%);
+}
+
+/* ================= 2) الخامات الحقيقية ================= */
+
+/* عنبر بلطيقي — عسلي شفّاف بدواخل مضيئة */
+[data-design="amber"] {
+  --bk1: #FFDA92; --bk2: #E29B27; --bk3: #7A3C03;
+  --bk-pat:
+    radial-gradient(circle at 22% 63%, rgba(255, 255, 255, .60) 0 .8px, rgba(255, 255, 255, 0) 1.9px),
+    radial-gradient(circle at 69% 33%, rgba(255, 255, 255, .48) 0 .7px, rgba(255, 255, 255, 0) 1.7px),
+    conic-gradient(from 212deg at 46% 39%,
+      rgba(255, 255, 255, .32) 0deg, rgba(255, 255, 255, 0) 68deg,
+      rgba(255, 220, 150, .30) 138deg, rgba(255, 255, 255, 0) 220deg,
+      rgba(255, 255, 255, .18) 300deg, rgba(255, 255, 255, 0) 360deg);
+  --bk-ps: 9px 9px, 13px 13px, 100% 100%;
+  --bk-spec: 1;
+  --bk-glow: inset 0 0 13px rgba(255, 190, 80, .46), 0 5px 12px rgba(120, 60, 0, .34);
+}
+
+/* عنبر زبدة (Butterscotch) — معتم حليبي */
+[data-design="butterscotch"] {
+  --bk1: #FFF2D4; --bk2: #E7B45E; --bk3: #8E5A14;
+  --bk-pat:
+    repeating-conic-gradient(from 40deg at 44% 40%, rgba(255, 255, 255, .16) 0deg 22deg, rgba(150, 90, 20, .10) 22deg 48deg),
+    radial-gradient(circle at 62% 68%, rgba(255, 255, 255, .30) 0 .9px, rgba(255, 255, 255, 0) 2px);
+  --bk-ps: 100% 100%, 11px 11px;
+  --bk-spec: .72;
+  --bk-glow: inset 0 0 10px rgba(255, 226, 168, .48);
+}
+
+/* خشب الكوكا — بنّي داكن بعروق فاتحة (الأشهر في الخليج) */
+[data-design="kuka"], [data-design="wood"] {
+  --bk1: #9A6634; --bk2: #4C2B10; --bk3: #180B03;
+  --bk-pat:
+    repeating-linear-gradient(76deg, rgba(232, 190, 132, .40) 0 .7px, rgba(232, 190, 132, 0) .7px 3.4px),
+    repeating-linear-gradient(112deg, rgba(0, 0, 0, .34) 0 1.1px, rgba(0, 0, 0, 0) 1.1px 6px),
+    radial-gradient(ellipse 15% 8% at 60% 66%, rgba(20, 8, 0, .55), rgba(20, 8, 0, 0) 72%);
+  --bk-ps: 100% 100%, 100% 100%, 100% 100%;
+  --bk-spec: .68;
+}
+
+/* صندل — عروق مستقيمة دقيقة */
+[data-design="sandalwood"] {
+  --bk1: #E6BC82; --bk2: #AE7633; --bk3: #5A320C;
+  --bk-pat:
+    repeating-linear-gradient(88deg, rgba(120, 72, 24, .34) 0 .6px, rgba(120, 72, 24, 0) .6px 2.8px),
+    repeating-linear-gradient(4deg, rgba(255, 244, 216, .20) 0 1.4px, rgba(255, 244, 216, 0) 1.4px 8px);
+  --bk-spec: .66;
+}
+
+/* خشب زيتون — عروق متموّجة */
+[data-design="olivewood"] {
+  --bk1: #DCC08A; --bk2: #A5793A; --bk3: #3C2708;
+  --bk-pat:
+    radial-gradient(ellipse 46% 8% at 40% 36%, rgba(58, 36, 10, .42), rgba(58, 36, 10, 0) 70%),
+    radial-gradient(ellipse 40% 7% at 66% 66%, rgba(58, 36, 10, .34), rgba(58, 36, 10, 0) 70%),
+    repeating-linear-gradient(84deg, rgba(255, 242, 208, .18) 0 1.2px, rgba(255, 242, 208, 0) 1.2px 6px);
+  --bk-spec: .6;
+}
+
+/* أبنوس — أسود عميق لامع */
+[data-design="ebony"], [data-design="black"] {
+  --bk1: #6A5A4C; --bk2: #241B14; --bk3: #060403;
+  --bk-pat:
+    repeating-linear-gradient(104deg, rgba(255, 226, 190, .16) 0 .55px, rgba(255, 226, 190, 0) .55px 3.6px);
+  --bk-spec: .95;
+  --bk-glow: inset -2px -5px 9px rgba(0, 0, 0, .5);
+}
+
+/* أونيكس مطفي — سطح ناعم بلمعة خفيفة */
+[data-design="onyx"] {
+  --bk1: #454D54; --bk2: #14171A; --bk3: #000;
+  --bk-pat:
+    radial-gradient(ellipse 40% 26% at 34% 30%, rgba(255, 255, 255, .09), rgba(255, 255, 255, 0) 66%),
+    repeating-linear-gradient(118deg, rgba(255, 255, 255, .07) 0 .7px, rgba(255, 255, 255, 0) .7px 5px);
+  --bk-spec: .40;
+}
+
+/* عقيق يماني مخطّط — أشرطة متحدة المركز */
+[data-design="agate"], [data-design="banded"] {
+  --bk1: #F6E7D0; --bk2: #BE7C42; --bk3: #4A2410;
+  --bk-pat:
+    repeating-radial-gradient(circle at 27% 31%,
+      rgba(118, 58, 18, .55) 0 1.8px,
+      rgba(255, 242, 222, .55) 1.8px 4.2px,
+      rgba(255, 255, 255, 0) 4.2px 8.5px);
+  --bk-ps: 100% 100%;
+  --bk-spec: .78;
+}
+
+/* عقيق أحمر (كرنيليان) — أحمر دموي شفّاف */
+[data-design="carnelian"] {
+  --bk1: #FFB183; --bk2: #C4400F; --bk3: #470B01;
+  --bk-pat:
+    radial-gradient(ellipse 42% 26% at 62% 70%, rgba(255, 226, 180, .55), rgba(255, 226, 180, 0) 64%),
+    repeating-linear-gradient(72deg, rgba(255, 255, 255, .14) 0 1.2px, rgba(255, 255, 255, 0) 1.2px 9px);
+  --bk-spec: .95;
+  --bk-glow: inset 0 0 12px rgba(255, 110, 50, .40);
+}
+
+/* فيروز نيسابور — عروق داكنة */
+[data-design="turquoise"] {
+  --bk1: #9BE9E1; --bk2: #23A79E; --bk3: #064A46;
+  --bk-pat:
+    linear-gradient(126deg, rgba(4, 46, 44, 0) 24%, rgba(4, 46, 44, .74) 26%, rgba(4, 46, 44, 0) 29%,
+      rgba(4, 46, 44, 0) 52%, rgba(4, 46, 44, .60) 54%, rgba(4, 46, 44, 0) 57%,
+      rgba(4, 46, 44, 0) 74%, rgba(4, 46, 44, .45) 75.5%, rgba(4, 46, 44, 0) 78%),
+    radial-gradient(circle at 26% 68%, rgba(4, 40, 38, .60) 0 1px, rgba(4, 40, 38, 0) 1.9px),
+    radial-gradient(circle at 70% 30%, rgba(4, 40, 38, .45) 0 .8px, rgba(4, 40, 38, 0) 1.7px);
+  --bk-ps: 100% 100%, 7px 7px, 9px 9px;
+  --bk-spec: .80;
+}
+
+/* لازورد — أزرق ملكي بذرات ذهبية */
+[data-design="lapis"] {
+  --bk1: #6B84E2; --bk2: #1A2A7C; --bk3: #050A2B;
+  --bk-pat:
+    radial-gradient(circle at 26% 70%, rgba(247, 208, 96, .95) 0 .9px, rgba(247, 208, 96, 0) 1.8px),
+    radial-gradient(circle at 64% 32%, rgba(247, 208, 96, .80) 0 1.1px, rgba(247, 208, 96, 0) 2.1px),
+    radial-gradient(circle at 46% 84%, rgba(247, 208, 96, .70) 0 .8px, rgba(247, 208, 96, 0) 1.7px),
+    repeating-linear-gradient(140deg, rgba(255, 255, 255, .09) 0 .9px, rgba(255, 255, 255, 0) .9px 6px);
+  --bk-ps: 11px 11px, 13px 13px, 9px 9px, 100% 100%;
+  --bk-spec: .78;
+}
+
+/* مرجان — برتقالي محمرّ معتم بحُبيبات */
+[data-design="coral"] {
+  --bk1: #FFB6A0; --bk2: #EF6C4E; --bk3: #8C2A14;
+  --bk-pat:
+    radial-gradient(circle at 32% 34%, rgba(140, 40, 20, .45) 0 .7px, rgba(140, 40, 20, 0) 1.5px),
+    radial-gradient(circle at 68% 62%, rgba(140, 40, 20, .35) 0 .6px, rgba(140, 40, 20, 0) 1.4px),
+    repeating-linear-gradient(52deg, rgba(255, 235, 225, .16) 0 1px, rgba(255, 235, 225, 0) 1px 5px);
+  --bk-ps: 6px 6px, 8px 8px, 100% 100%;
+  --bk-spec: .55;
+}
+
+/* يشب أخضر (جاد) — سحب داخلية */
+[data-design="jade"], [data-design="emerald"] {
+  --bk1: #B2EBC8; --bk2: #3E9A6C; --bk3: #0A3A25;
+  --bk-pat:
+    radial-gradient(ellipse 40% 30% at 36% 62%, rgba(255, 255, 255, .30), rgba(255, 255, 255, 0) 64%),
+    radial-gradient(ellipse 34% 24% at 70% 34%, rgba(6, 60, 38, .42), rgba(6, 60, 38, 0) 66%);
+  --bk-spec: .82;
+  --bk-glow: inset 0 0 11px rgba(150, 255, 200, .34);
+}
+
+/* هيماتيت — معدن فضي فولاذي */
+[data-design="hematite"], [data-design="iron"] {
+  --bk1: #D2DAE3; --bk2: #59626C; --bk3: #0D1217;
+  --bk-pat:
+    linear-gradient(135deg, rgba(255, 255, 255, .55) 0%, rgba(255, 255, 255, 0) 34%,
+      rgba(180, 195, 210, .40) 52%, rgba(0, 0, 0, .30) 68%, rgba(255, 255, 255, .28) 88%);
+  --bk-spec: 1;
+}
+
+/* كريستال — شفّاف بأوجه وقيزح (كما في الصورة المرجعية) */
+[data-design="crystal"] {
+  --bk1: #FFFFFF; --bk2: #EAE4CC; --bk3: #8B8266;
+  --bk-pat:
+    conic-gradient(from 200deg at 50% 50%,
+      rgba(255, 210, 225, .22) 0deg, rgba(205, 235, 255, .22) 52deg,
+      rgba(215, 255, 230, .22) 104deg, rgba(255, 250, 205, .20) 156deg,
+      rgba(255, 215, 240, .22) 210deg, rgba(210, 235, 255, .20) 264deg,
+      rgba(255, 255, 255, .26) 318deg, rgba(255, 210, 225, .22) 360deg),
+    linear-gradient(128deg, rgba(255, 255, 255, .60) 0%, rgba(255, 255, 255, 0) 32%,
+      rgba(255, 255, 255, .38) 48%, rgba(255, 255, 255, 0) 62%,
+      rgba(255, 255, 255, .45) 78%, rgba(255, 255, 255, 0) 100%);
+  --bk-ps: 100% 100%, 100% 100%;
+  --bk-spec: 1;
+}
+
+/* لؤلؤ — طبقات صدفية */
+[data-design="pearl"] {
+  --bk1: #FFFFFF; --bk2: #F1E7D3; --bk3: #A4987F;
+  --bk-pat:
+    conic-gradient(from 198deg at 38% 33%,
+      rgba(255, 255, 255, .92) 0 11%, rgba(226, 214, 190, .26) 31%,
+      rgba(255, 255, 255, .74) 53%, rgba(206, 194, 168, .28) 75%, rgba(255, 255, 255, .92) 100%);
+  --bk-spec: 1;
+}
+
+/* ذهب مصقول */
+[data-design="gold"] {
+  --bk1: #FFF9DC; --bk2: #D4AF37; --bk3: #6B4A03;
+  --bk-pat:
+    linear-gradient(136deg, rgba(255, 252, 232, .92) 0%, rgba(232, 193, 90, .70) 26%,
+      rgba(158, 114, 16, .88) 50%, rgba(255, 233, 168, .96) 72%,
+      rgba(198, 152, 44, .90) 100%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, .08) 0 .8px, rgba(0, 0, 0, .05) .8px 2.6px);
+  --bk-spec: 1;
+}
+
+/* فضة مصقولة */
+[data-design="silver"] {
+  --bk1: #FFFFFF; --bk2: #AAB0BA; --bk3: #3F454E;
+  --bk-pat:
+    linear-gradient(136deg, #ffffff 0%, #C9CED6 24%, #79818D 46%, #EEF2F8 66%, #98A0AB 100%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .12) 0 .8px, rgba(0, 0, 0, .04) .8px 3.4px);
+  --bk-spec: 1;
+}
+
+/* رخام — أبيض بعروق رمادية */
+[data-design="marble"] {
+  --bk1: #FFFDF9; --bk2: #DFD7CB; --bk3: #8C8377;
+  --bk-pat:
+    linear-gradient(118deg, rgba(96, 88, 76, 0) 30%, rgba(96, 88, 76, .55) 32%, rgba(96, 88, 76, 0) 35%,
+      rgba(96, 88, 76, 0) 58%, rgba(96, 88, 76, .40) 60%, rgba(96, 88, 76, 0) 63%),
+    repeating-linear-gradient(62deg, rgba(128, 118, 104, .22) 0 .5px, rgba(128, 118, 104, 0) .5px 12px);
+  --bk-spec: .62;
+}
+
+/* ================= 3) الأشكال ================= */
+.misbaha-bead {
+  will-change: transform;
+  transition: border-radius .24s ease, clip-path .24s ease, width .24s ease, height .24s ease, filter .2s ease;
+}
+.shape-round, .shape-pearl { border-radius: 50%; }
+.shape-oval { border-radius: 50% / 46%; }
+.shape-barrel { border-radius: 44% / 32%; }
+.shape-disc { border-radius: 46% / 34%; }
+.shape-square { border-radius: 24%; }
+.shape-diamond, .shape-facet { border-radius: 10%; }
+.shape-diamond { clip-path: polygon(50% 2%, 98% 50%, 50% 98%, 2% 50%); }
+.shape-facet { clip-path: polygon(50% 1%, 90% 24%, 99% 50%, 90% 76%, 50% 99%, 10% 76%, 1% 50%, 10% 24%); }
+.shape-hex { border-radius: 10%; clip-path: polygon(26% 5%, 74% 5%, 97% 50%, 74% 95%, 26% 95%, 3% 50%); }
+.shape-octagon { border-radius: 10%; clip-path: polygon(30% 2%, 70% 2%, 98% 30%, 98% 70%, 70% 98%, 30% 98%, 2% 70%, 2% 30%); }
+.shape-star {
+  border-radius: 8%;
+  clip-path: polygon(50% 0%, 61% 34%, 98% 35%, 68% 57%, 79% 92%, 50% 71%, 21% 92%, 32% 57%, 2% 35%, 39% 34%);
+}
+.shape-ring {
+  -webkit-mask: radial-gradient(circle, transparent 0 32%, #000 34% 100%);
+  mask: radial-gradient(circle, transparent 0 32%, #000 34% 100%);
+}
+/* وميض خفيف عند تبديل الخامة */
+@keyframes beadPop {
+  0% { filter: brightness(1); }
+  40% { filter: brightness(1.35) saturate(1.15); }
+  100% { filter: brightness(1); }
+}
+.misbaha-bead.skin-pop { animation: beadPop .34s ease-out; }
+.misbaha-string-path { stroke: rgba(20, 24, 22, .5); stroke-width: 2; opacity: .9; }
+[data-theme="dark"] .misbaha-string-path { stroke: rgba(255, 255, 255, .2); }
+
+/* صفحة الخامات: شبكة أوسع + تسمية أوضح */
+.qs-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.qs-tile .bd-prev { width: 44px; height: 44px; }
+.qs-shapes { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; justify-items: center; }
+.qs-shape { width: 44px; height: 44px; }
+.qs-shape .shape-preview { width: 26px; height: 26px; }
+
+/* ================= 4) شريط التبديل الجانبي (يمين الصفحة) ================= */
+.tasbih-side {
+  position: fixed;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  align-items: center;
+  padding: 7px 6px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(15, 76, 58, .14);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .18);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+[data-theme="dark"] .tasbih-side,
+[data-theme="emerald"] .tasbih-side,
+[data-theme="maroon"] .tasbih-side,
+[data-theme="brown"] .tasbih-side {
+  background: rgba(18, 30, 26, .92);
+  border-color: rgba(212, 175, 55, .26);
+}
+.tsb-mode {
+  width: 48px;
+  min-height: 62px;
+  padding: 7px 3px;
+  border: 0;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #0F4C3A, #17705A);
+  color: #fff;
+  font-family: inherit;
+  font-size: 8.5px;
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 5px 14px rgba(15, 76, 58, .34);
+  transition: transform .14s ease, box-shadow .2s ease;
+}
+.tsb-mode i { font-size: 17px; }
+.tsb-mode:active { transform: scale(.93); }
+.tsb-side-btn {
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(15, 76, 58, .16);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text, #1F2937);
+  font-family: inherit;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1.1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  -webkit-tap-highlight-color: transparent;
+}
+.tsb-side-btn i { font-size: 14px; color: #0F4C3A; }
+[data-theme="dark"] .tsb-side-btn,
+[data-theme="emerald"] .tsb-side-btn,
+[data-theme="maroon"] .tsb-side-btn,
+[data-theme="brown"] .tsb-side-btn { color: #EAF6EF; border-color: rgba(255, 255, 255, .18); }
+[data-theme="dark"] .tsb-side-btn i,
+[data-theme="emerald"] .tsb-side-btn i,
+[data-theme="maroon"] .tsb-side-btn i,
+[data-theme="brown"] .tsb-side-btn i { color: #EBD08A; }
+.tsb-side-btn:active { transform: scale(.93); }
+
+/* لا تتكدّس الأدوات تحت الشريط */
+.tasbih-container { padding-right: 58px; }
+.tasbih-rail-row { display: none !important; }
+
+/* ================= 5) بطاقة التأكيد — وضوح كامل ================= */
+.qs-card.qs-dialog {
+  background: #FFFFFF;
+  color: #16211E;
+  border: 1px solid rgba(15, 76, 58, .10);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .30);
+}
+.qs-dialog .qs-dtitle { color: #0F3A2C; font-size: 1rem; font-weight: 900; }
+.qs-dialog .qs-dmsg { color: #35403C; font-size: .78rem; line-height: 1.65; }
+.qs-dialog .qs-note {
+  background: rgba(15, 76, 58, .07);
+  color: #2E4038;
+  border: 1px solid rgba(15, 76, 58, .12);
+  font-size: .7rem;
+}
+.qs-dialog .qs-note i { color: #0F4C3A; margin-top: 2px; }
+.qs-dialog .qs-ic { background: rgba(15, 76, 58, .10); color: #0F4C3A; }
+.qs-dialog.is-danger .qs-ic { background: rgba(180, 55, 44, .12); color: #B4372C; }
+
+.qs-dialog .qs-actions { gap: 10px; margin-top: 16px; }
+.qs-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+.qs-dialog .qs-btn i { font-size: .78rem; }
+
+/* زر الرجوع/الإلغاء: إطار أخضر واضح على خلفية بيضاء — كان رماديًا باهتًا */
+.qs-dialog .qs-cancel {
+  background: #F6F9F7;
+  border: 1.6px solid rgba(15, 76, 58, .45);
+  color: #0F4C3A;
+  font-weight: 900;
+}
+.qs-dialog .qs-cancel:active { background: #E7F1EB; }
+.qs-dialog .qs-ok {
+  background: linear-gradient(135deg, #0F4C3A, #17705A);
+  color: #fff;
+  border: 1.6px solid transparent;
+}
+.qs-dialog.is-danger .qs-ok { background: linear-gradient(135deg, #A5302A, #D9543F); }
+
+/* الوضع الليلي: نفس التباين معكوسًا */
+[data-theme="dark"] .qs-card.qs-dialog,
+[data-theme="emerald"] .qs-card.qs-dialog { background: #132420; color: #EAF6EF; border-color: rgba(255, 255, 255, .10); }
+[data-theme="maroon"] .qs-card.qs-dialog { background: #2B0F16; color: #F6E6E0; }
+[data-theme="brown"] .qs-card.qs-dialog { background: #2A1C12; color: #F4E8DC; }
+[data-theme="dark"] .qs-dialog .qs-dtitle,
+[data-theme="emerald"] .qs-dialog .qs-dtitle { color: #EBD08A; }
+[data-theme="dark"] .qs-dialog .qs-dmsg,
+[data-theme="emerald"] .qs-dialog .qs-dmsg { color: #D6E4DC; }
+[data-theme="dark"] .qs-dialog .qs-note,
+[data-theme="emerald"] .qs-dialog .qs-note { background: rgba(255, 255, 255, .07); color: #CFE0D7; border-color: rgba(255, 255, 255, .12); }
+[data-theme="dark"] .qs-dialog .qs-cancel,
+[data-theme="emerald"] .qs-dialog .qs-cancel {
+  background: rgba(255, 255, 255, .08);
+  border-color: rgba(235, 208, 138, .55);
+  color: #F2FBF6;
+}
+[data-theme="dark"] .qs-dialog .qs-cancel i,
+[data-theme="emerald"] .qs-dialog .qs-cancel i { color: #EBD08A; }
+
+@media (max-width: 360px) {
+  .qs-grid { grid-template-columns: repeat(3, 1fr); }
+  .qs-shapes { grid-template-columns: repeat(5, 1fr); }
+  .tasbih-container { padding-right: 52px; }
+  .tsb-mode { width: 44px; min-height: 56px; font-size: 8px; }
+}

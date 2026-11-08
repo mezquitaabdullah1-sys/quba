@@ -1,0 +1,258 @@
+/* ==========================================================================
+   v1.0.136 — الرئيسية: صورة الرأس تملأ البطاقة · صفّ (ورد اليوم + آخر آية)
+   · بطاقة موحّدة للمناسبات · إعادة تصميم مهام اليوم (تختفي عند الإتمام)
+   ========================================================================== */
+
+/* ---------- ١) خلفية الرأس: الصورة تشمل البطاقة كاملة حتى آخر بكسل ---------- */
+#home-hero {
+  background-image: none !important;
+  background-color: #08211b;
+}
+#home-hero > .hsx-bg {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background-size: cover !important;
+  background-position: center 42% !important;
+  background-repeat: no-repeat !important;
+}
+#home-hero > .hsx-photo {
+  background: transparent !important;
+  background-image: none !important;
+}
+/* اللوح السفلي (الصلوات + المدينة الثانية) شفّاف فلا يقطع الصورة */
+#home-hero .hsx-inner-foot {
+  background: transparent !important;
+  padding-bottom: 12px;
+}
+#home-hero { padding-bottom: 0 !important; }
+#home-hero > .hsx-photo::after {
+  background: linear-gradient(168deg,
+    var(--hsx-glass-top) 0%,
+    rgba(0, 0, 0, 0) 38%,
+    rgba(0, 0, 0, .10) 72%,
+    var(--hsx-glass-bot) 100%) !important;
+  opacity: .72 !important;
+}
+
+/* ---------- ٢) صفّ مزدوج: ورد اليوم + آخر آية ---------- */
+.tw-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 2px 14px 10px;
+}
+.tw-row.tw-one { grid-template-columns: 1fr; }
+.tw-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 104px;
+  padding: 11px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--line, #E7E0D0);
+  background: var(--card, #fff);
+  color: var(--ink, #26251F);
+  text-align: start;
+  font-family: inherit;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 10px 22px -20px rgba(0, 0, 0, .55);
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+.tw-card:active { transform: scale(.98); }
+.tw-card::after {
+  content: '';
+  position: absolute;
+  inset-inline-end: -22px;
+  top: -22px;
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--tw-glow, rgba(27, 122, 90, .16)), transparent 70%);
+  pointer-events: none;
+}
+.tw-ward { --tw-glow: rgba(27, 122, 90, .22); }
+.tw-last { --tw-glow: rgba(212, 175, 55, .30); }
+.tw-ic {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 12.5px;
+  margin-bottom: 5px;
+}
+.tw-ic-green { background: rgba(27, 122, 90, .13); color: #1B7A5A; }
+.tw-ic-amber { background: rgba(212, 175, 55, .20); color: #8A6D1F; }
+.tw-k {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  color: var(--muted, #8A8577);
+}
+.tw-t {
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tw-m {
+  font-size: 10px;
+  color: var(--muted, #8A8577);
+  margin-top: auto;
+  padding-top: 4px;
+}
+[data-theme="dark"] .tw-ic-green { background: rgba(155, 224, 196, .13); color: #9BE0C4; }
+[data-theme="dark"] .tw-ic-amber { background: rgba(212, 175, 55, .22); color: #F0C761; }
+[data-theme="dark"] .tw-card,
+[data-theme="brown"] .tw-card,
+[data-theme="maroon"] .tw-card,
+[data-theme="emerald"] .tw-card { border-color: rgba(255, 255, 255, .10); }
+
+/* ---------- ٣) بطاقة موحّدة: الصيام + المناسبة + فضل اليوم ---------- */
+.hm-occ-uni {
+  padding: 12px 14px 6px;
+  border-radius: 18px;
+  background: var(--card, #fff);
+  border: 1px solid var(--line, #E7E0D0);
+  box-shadow: 0 10px 26px -24px rgba(0, 0, 0, .45);
+}
+.hm-occ-uni .hm-card-head { margin-bottom: 4px; }
+.occ-uni-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line, #EFE9DA);
+}
+.occ-uni-row:first-of-type { border-top: none; padding-top: 6px; }
+.occ-uni-ic {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+}
+.occ-uni-ic.i-fast { background: rgba(14, 116, 144, .14); color: #0E7490; }
+.occ-uni-ic.i-event { background: rgba(124, 58, 237, .14); color: #7C3AED; }
+.occ-uni-ic.i-virtue { background: rgba(180, 83, 9, .15); color: #B45309; }
+.occ-uni-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.occ-uni-k { font-size: 9.5px; font-weight: 800; color: var(--muted, #8A8577); }
+.occ-uni-m {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--ink, #26251F);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.occ-uni-meta { font-size: 10.5px; line-height: 1.45; color: var(--muted, #8A8577); }
+[data-theme="dark"] .occ-uni-ic.i-fast { background: rgba(34, 211, 238, .14); color: #67E8F9; }
+[data-theme="dark"] .occ-uni-ic.i-event { background: rgba(167, 139, 250, .16); color: #C4B5FD; }
+[data-theme="dark"] .occ-uni-ic.i-virtue { background: rgba(251, 191, 36, .16); color: #FCD34D; }
+[data-theme="dark"] .hm-occ-uni,
+[data-theme="brown"] .hm-occ-uni,
+[data-theme="maroon"] .hm-occ-uni,
+[data-theme="emerald"] .hm-occ-uni { border-color: rgba(255, 255, 255, .10); }
+
+/* ---------- ٤) مهام اليوم — تصميم أدقّ + اختفاء كامل عند الإتمام ---------- */
+.ht-card {
+  margin: 0 14px 12px;
+  padding: 12px 14px 10px;
+  border-radius: 18px;
+  background: var(--card, #fff);
+  border: 1px solid var(--line, #E7E0D0);
+  box-shadow: 0 12px 26px -24px rgba(0, 0, 0, .55);
+  position: relative;
+  overflow: hidden;
+}
+.ht-card::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  height: 3px;
+  width: 100%;
+  background: linear-gradient(90deg, var(--accent, #1B7A5A), rgba(212, 175, 55, .85));
+  opacity: .55;
+}
+.ht-card .ht-head { margin-bottom: 4px; }
+.ht-card .ht-t { font-size: 13px; letter-spacing: .01em; }
+.ht-card .ht-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.ht-ring {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent, #1B7A5A) calc(var(--p, 0) * 1%), rgba(128, 128, 128, .18) 0);
+  -webkit-mask: radial-gradient(circle, transparent 56%, #000 58%);
+  mask: radial-gradient(circle, transparent 56%, #000 58%);
+}
+.ht-card .ht-rows { margin-top: 2px; }
+.ht-card .ht-row {
+  gap: 11px;
+  padding: 10px 2px;
+  border-radius: 12px;
+  transition: background .15s ease;
+}
+.ht-card .ht-row:active { background: var(--chip, rgba(0, 0, 0, .05)); }
+.ht-card .ht-ic {
+  width: 32px;
+  height: 32px;
+  border-radius: 11px;
+  font-size: 13px;
+  box-shadow: inset 0 0 0 1px rgba(27, 122, 90, .10);
+}
+.ht-card .ht-txt b { font-size: 12.5px; font-weight: 800; }
+.ht-card .ht-txt em { font-size: 10px; letter-spacing: .01em; }
+.ht-bar {
+  display: block;
+  height: 3px;
+  border-radius: 3px;
+  margin-top: 5px;
+  background: rgba(128, 128, 128, .16);
+  overflow: hidden;
+}
+.ht-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent, #1B7A5A), #3FB98C);
+  transition: width .3s ease;
+}
+.ht-cbox {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1.5px dashed var(--line, #D8D2C2);
+  color: transparent;
+  font-size: 9px;
+  transition: all .2s ease;
+}
+.ht-card .ht-row:active .ht-cbox {
+  border-style: solid;
+  border-color: var(--accent, #1B7A5A);
+  background: rgba(27, 122, 90, .12);
+  color: var(--accent, #1B7A5A);
+}

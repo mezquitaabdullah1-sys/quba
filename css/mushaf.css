@@ -212,3 +212,64 @@ body.msh-immersive .msh-audio { opacity: 1; }
   background: var(--brand, #0F4C3A); color: #fff; font-size: 14px; font-weight: 800;
 }
 .msh-empty { padding: 40px; text-align: center; opacity: .5; }
+
+
+/* ==========================================================================
+   v1.0.141 — إصلاحات صفحة المصحف
+   ١) المصحف فوق شريط التبويبات السفلي (كان يغطّي شريط التنقل ويبتلع اللمس)
+   ٢) touch-action: none على مسرح الصفحة → السحب الأفقي موثوق
+   ٣) تباعد الأسطر يعمل فعليًا (.lh-* على الورقة لا على السطور)
+   ٤) شريط صوت كامل: تقدّم/سحب + وقت + مستوى الصوت
+   ========================================================================== */
+
+.msh-wrap { z-index: 300; }
+.msh-vp { touch-action: none; }
+.msh-sheetmenu { z-index: 350; }
+.msh-set-scrim { z-index: 400; }
+
+.msh-sheet.lh-tight  .msh-lines { line-height: 1.40; }
+.msh-sheet.lh-normal .msh-lines { line-height: 1.55; }
+.msh-sheet.lh-wide   .msh-lines { line-height: 1.80; }
+
+/* لا تجعل ضغطة واحدة تُخفي الأشرطة: أُلغي وضع القراءة المجرّد */
+body.msh-immersive .msh-topbar,
+body.msh-immersive .msh-bar,
+body.msh-immersive .msh-prog { opacity: 1; transform: none; pointer-events: auto; }
+
+/* ---------- شريط التلاوة ---------- */
+.msh-audio {
+  flex-direction: column; align-items: stretch; gap: 7px;
+  padding: 9px 10px 10px; margin: 0 10px 10px;
+}
+.msh-a-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.msh-a-row2 { gap: 7px; }
+.msh-a-info { flex: 1; min-width: 0; }
+.msh-a-time {
+  font-size: 9.5px; color: #B9D6C9; min-width: 28px; text-align: center;
+  font-variant-numeric: tabular-nums; letter-spacing: .2px;
+}
+.msh-a-seek, .msh-a-vol {
+  -webkit-appearance: none; appearance: none;
+  height: 3px; border-radius: 4px; background: rgba(255,255,255,.26);
+  outline: none; margin: 0;
+}
+.msh-a-seek { flex: 1; min-width: 0; }
+.msh-a-seek::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%;
+  background: #7FD3AC; border: none; box-shadow: 0 1px 4px rgba(0,0,0,.4);
+}
+.msh-a-vol { flex: 0 0 58px; }
+.msh-a-vol::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 11px; height: 11px; border-radius: 50%;
+  background: #fff; border: none;
+}
+.msh-a-vol-btn {
+  width: 24px; height: 24px; border: none; background: transparent;
+  color: #DCEFE5; font-size: 10.5px; display: grid; place-items: center; padding: 0;
+}
+.msh-audio { animation: none; }
+
+/* ورقة الإعدادات: أزرار أوضح وضغطة تعمل */
+.msh-chip { min-height: 40px; }
+.msh-chip.on { box-shadow: 0 3px 10px -4px rgba(15,76,58,.6); }
+.msh-set-card { max-height: 86vh; overflow-y: auto; }

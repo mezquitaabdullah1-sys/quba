@@ -1274,18 +1274,30 @@ const ProfilePage = {
     });
   },
 
-  _doExportData() {
+  async _doExportData() {
     try {
       const data = { version: (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '1.0.0'), exportedAt: new Date().toISOString(), storage: {} };
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
         if (k && k.startsWith('quba_')) data.storage[k] = localStorage.getItem(k);
       }
+      const name = `quba-backup-${new Date().toISOString().slice(0,10)}.json`;
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      // v1.0.161: في تطبيق أندرويد لا يعمل a.download داخل WebView، فكان زر
+      // «تصدير البيانات» لا يحفظ شيئًا ويُظهر «تم التصدير» — نسخة وهمية.
+      // نمرّ عبر جسر الحفظ الأصلي حين توفّر.
+      const native = (typeof window !== 'undefined' && window.__qubaSendBlobToNative && typeof Android !== 'undefined');
+      if (native) {
+        try {
+          await window.__qubaSendBlobToNative(blob, name, 'application/json', 'save');
+          showToast(t('exportOk') || 'Backup descargado');
+          return;
+        } catch (e) {}
+      }
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `quba-backup-${new Date().toISOString().slice(0,10)}.json`;
+      a.download = name;
       document.body.appendChild(a);
       a.click();
       setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 100);

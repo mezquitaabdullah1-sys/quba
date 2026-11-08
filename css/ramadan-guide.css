@@ -1,0 +1,51 @@
+/* 🌙 v1.0.162 — دليل رمضان التعليمي */
+.rmd-gcard{background:linear-gradient(180deg,#FFFDF6,#FBF8EE)}
+.rmd-gintro{font-size:12px;line-height:1.75;color:#6A6A5C;margin:0 0 12px}
+.rmd-glist{display:grid;gap:8px}
+.rmd-grow{border:1.2px solid #E2DCC8;border-radius:14px;background:#fff;overflow:hidden}
+.rmd-grow.is-open{border-color:#C9BE9A;background:#FFFDF6;box-shadow:0 2px 12px rgba(14,75,60,.06)}
+.rmd-ghead{width:100%;display:flex;align-items:center;gap:10px;padding:12px;border:0;background:transparent;font:inherit;font-size:12.8px;font-weight:800;color:#22372E;cursor:pointer;text-align:start}
+.rmd-gico{width:27px;height:27px;border-radius:9px;background:#F3E6C4;color:#6B5214;display:grid;place-items:center;font-size:11px;flex:0 0 auto}
+.rmd-grow.is-open .rmd-gico{background:#0E4B3C;color:#E4CE8E}
+.rmd-gtt{flex:1;line-height:1.45}
+.rmd-gchev{color:#B8912F;font-size:10px;flex:0 0 auto}
+.rmd-gbody{padding:0 12px 13px}
+.rmd-glead{font-size:12.3px;line-height:1.85;color:#41544A;margin:0 0 11px;padding:10px 11px;border-radius:11px;background:#F4F7F3;border-inline-start:3px solid #B8912F}
+.rmd-gtext{margin:0 0 10px;padding:10px 11px;border-radius:12px;background:#FBF7EC;border:1px solid #EFE6CE}
+.rmd-gar{font-family:"Amiri","Noto Naskh Arabic",serif;font-size:16.5px;line-height:2;color:#14352A}
+.rmd-gtr{font-size:11.8px;line-height:1.8;color:#5A6A60;margin-top:6px}
+.rmd-gsrc{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;color:#8A6A1C;margin-top:7px}
+.rmd-gsrc>i{font-size:9px}
+.rmd-gplan{display:grid;gap:6px;margin:4px 0 11px}
+.rmd-gprow{display:grid;grid-template-columns:92px 1fr;gap:8px;padding:8px 10px;border-radius:10px;background:#F7F6EF;border:1px solid #ECE7D6}
+.rmd-gpt{font-size:11px;font-weight:800;color:#0E4B3C;line-height:1.5}
+.rmd-gpa{font-size:11.5px;line-height:1.65;color:#5A5A50}
+.rmd-gpts{display:grid;gap:10px;margin-top:4px}
+.rmd-gpt-i{padding-inline-start:10px;border-inline-start:2px solid #DCC48A}
+.rmd-gpt-i>b{display:block;font-size:12.3px;color:#0E4B3C;margin-bottom:4px}
+.rmd-gpt-i>span{font-size:11.8px;line-height:1.8;color:#5A5A50}
+.rmd-gduas{display:grid;gap:8px;margin-top:11px}
+.rmd-gd{padding:11px 12px;border-radius:12px;background:#FBF7EC;border:1px solid #EFE6CE}
+.rmd-gd.is-key{background:#F3E6C4;border-color:#DCC48A;box-shadow:0 2px 12px rgba(184,145,47,.18)}
+.rmd-gd-ar{font-family:"Amiri","Noto Naskh Arabic",serif;font-size:16px;line-height:1.95;color:#14352A}
+.rmd-gd-tr{font-size:11.5px;line-height:1.7;color:#5A6A60;margin-top:5px}
+.rmd-gd-f{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
+.rmd-gd-f .rmd-gsrc{margin-top:0}
+.rmd-gcopy{width:30px;height:30px;border-radius:9px;border:1px solid #DCC48A;background:#fff;color:#6B5214;font-size:11px;cursor:pointer;display:grid;place-items:center;flex:0 0 auto}
+.rmd-gcopy:active{transform:scale(.94)}
+[data-theme="dark"] .rmd-gcard{background:linear-gradient(180deg,#16211D,#131C18)}
+[data-theme="dark"] .rmd-grow{background:#1B2A24;border-color:#2C3B33}
+[data-theme="dark"] .rmd-grow.is-open{background:#1B2A24;border-color:#3A4C42}
+[data-theme="dark"] .rmd-ghead{color:#D6E2DB}
+[data-theme="dark"] .rmd-gico{background:#3A3115;color:#E4CE8E}
+[data-theme="dark"] .rmd-grow.is-open .rmd-gico{background:#E4CE8E;color:#12301F}
+[data-theme="dark"] .rmd-gintro,[data-theme="dark"] .rmd-gpa,[data-theme="dark"] .rmd-gpt-i>span,[data-theme="dark"] .rmd-gtr,[data-theme="dark"] .rmd-gd-tr{color:#AFC0B7}
+[data-theme="dark"] .rmd-glead{background:#20302A;color:#BFCFC6}
+[data-theme="dark"] .rmd-gtext,[data-theme="dark"] .rmd-gd{background:#1F2A20;border-color:#3D3F2A}
+[data-theme="dark"] .rmd-gd.is-key{background:#3A3115;border-color:#B8912F}
+[data-theme="dark"] .rmd-gar,[data-theme="dark"] .rmd-gd-ar{color:#E4CE8E}
+[data-theme="dark"] .rmd-gprow{background:#20302A;border-color:#2C3B33}
+[data-theme="dark"] .rmd-gpt{color:#E4CE8E}
+[data-theme="dark"] .rmd-gsrc{color:#D8BE7A}
+[data-theme="dark"] .rmd-gcopy{background:#20302A;border-color:#4A3C18;color:#E4CE8E}
+@media (max-width:380px){.rmd-gprow{grid-template-columns:1fr}}
