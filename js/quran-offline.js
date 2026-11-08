@@ -636,7 +636,7 @@ const QuranOfflineService = {
 
   // Tercera fuente por aleya (everyayah.com) — carpeta por recitador
   EVERYAYAH_FOLDERS: {
-    'ar.mahermuaiqly':       'MaherAlMuaiqly_128kbps',
+    'ar.mahermuaiqly':       'MaherAlMuaiqly128kbps',
     'ar.abdurrahmaansudais': 'Abdurrahmaan_As-Sudais_192kbps',
     'ar.husary':             'Husary_128kbps',
     'ar.saadalghamdi':       'Ghamadi_40kbps',

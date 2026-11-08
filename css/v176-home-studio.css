@@ -1,0 +1,126 @@
+/* ==========================================================================
+   v1.0.176 — بطاقة الاستوديو في الصفحة الرئيسية (تصميم جديد)
+   --------------------------------------------------------------------------
+   ملاحظة: هذه البطاقة فقط. صفحة الاستوديو الداخلية أُعيدت إلى تصميمها
+   الأصلي (v167-studio.css) كما كانت.
+   التصميم: لوحة سينمائية — شريط أفلام ذهبي مثقوب + هالة ذهبية + وميض عبور.
+   ========================================================================== */
+
+.hm-studio {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  border-radius: 18px;
+  padding: 0;
+  margin-bottom: 12px;
+  border: 1px solid rgba(242, 215, 146, .42);
+  background:
+    radial-gradient(120% 150% at 88% -20%, rgba(242, 215, 146, .30), transparent 58%),
+    radial-gradient(90% 120% at 6% 120%, rgba(46, 138, 106, .34), transparent 62%),
+    linear-gradient(135deg, #0B3B2D 0%, #072A20 55%, #051E17 100%);
+  box-shadow:
+    0 14px 34px rgba(4, 26, 19, .38),
+    0 0 0 1px rgba(242, 215, 146, .10) inset;
+  min-height: 92px;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.hm-studio:active { transform: scale(.985); box-shadow: 0 8px 20px rgba(4, 26, 19, .34); }
+.hm-studio:focus-visible { outline: 2px solid #F2D792; outline-offset: 3px; }
+
+/* شريط الأفلام المثقوب على الحاشية */
+.hm-studio::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 22px;
+  background:
+    radial-gradient(circle at 50% 8px, #051E17 3.2px, transparent 3.6px) 0 0 / 22px 26px repeat-y,
+    linear-gradient(180deg, #E4CE8E, #B8912F);
+  opacity: .95;
+}
+html[dir="ltr"] .hm-studio::before { inset-inline-start: 0; }
+
+/* وميض عبور بطيء */
+.hm-studio::after {
+  content: "";
+  position: absolute;
+  top: -40%;
+  inset-inline-start: -60%;
+  width: 45%;
+  height: 180%;
+  background: linear-gradient(100deg, transparent, rgba(255, 247, 224, .16), transparent);
+  transform: skewX(-18deg);
+  animation: hmStudioSheen 6.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes hmStudioSheen {
+  0%, 62% { inset-inline-start: -60%; opacity: 0; }
+  70% { opacity: 1; }
+  92%, 100% { inset-inline-start: 130%; opacity: 0; }
+}
+
+.hm-studio-bg { display: none; }  /* استُبدل بتدرّجات البطاقة نفسها */
+
+.hm-studio-in {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 15px 16px;
+  padding-inline-start: 30px;
+  position: relative;
+  z-index: 1;
+}
+
+.hm-studio-ic {
+  width: 50px; height: 50px; flex: 0 0 50px;
+  border-radius: 15px;
+  display: grid; place-items: center;
+  font-size: 1.18rem;
+  color: #08251B;
+  background: linear-gradient(140deg, #FFF3CF 0%, #E4CE8E 42%, #B8912F 100%);
+  box-shadow: 0 8px 20px rgba(184, 145, 47, .46), 0 0 0 1px rgba(255, 247, 224, .5) inset;
+}
+
+.hm-studio-txt { flex: 1; min-width: 0; }
+.hm-studio-txt h2 {
+  font-size: 1rem; font-weight: 800; margin: 0 0 4px;
+  color: #FFF9EC;
+  letter-spacing: -.01em;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, .35);
+}
+.hm-studio-txt p {
+  font-size: .735rem; line-height: 1.5; margin: 0;
+  color: rgba(240, 249, 243, .82);
+}
+
+.hm-studio-go {
+  width: 32px; height: 32px; flex: 0 0 32px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  color: #F2D792;
+  font-size: .82rem;
+  background: rgba(242, 215, 146, .12);
+  border: 1px solid rgba(242, 215, 146, .42);
+}
+html[dir="rtl"] .hm-studio-go i { transform: scaleX(-1); }
+
+.hm-studio-badge {
+  position: absolute;
+  top: 0;
+  inset-inline-end: 0;
+  z-index: 2;
+  font-size: .6rem;
+  font-weight: 900;
+  letter-spacing: .05em;
+  padding: 4px 10px;
+  border-end-start-radius: 12px;
+  background: linear-gradient(135deg, #FFF3CF, #D4AF37);
+  color: #06251B;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .3);
+}
+
+/* الثيم الفاتح: تبقى البطاقة داكنة لتبقى نقطة الجذب البصرية */
+[data-theme="light"] .hm-studio {
+  box-shadow: 0 12px 28px rgba(9, 45, 33, .26), 0 0 0 1px rgba(242, 215, 146, .12) inset;
+}

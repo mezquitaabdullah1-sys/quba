@@ -75,6 +75,16 @@ const VideoLayout = {
       : (s => `700 ${s}px "Noto Naskh Arabic", "Amiri", serif`);
     const uiFont = (s) => `600 ${s}px "Inter", "Segoe UI", sans-serif`;
 
+    // v1.0.175: لا تُرسم كل الآيات معًا — تُعرض الآية التي تُتلى الآن فقط
+    if (o.onlyActive !== false && Array.isArray(o.timings) && o.timings.length && typeof o.t === 'number') {
+      let ai = 0;
+      for (let i = 0; i < o.timings.length; i++) {
+        if (o.t >= (o.timings[i].start || 0) - 0.001) ai = i;
+      }
+      const pick = (o.ayahs || [])[ai];
+      if (pick) o = Object.assign({}, o, { ayahs: [pick], timings: [o.timings[ai]] });
+    }
+
     // مقاسات أساسية مشتقة من مقياس المستخدم — ٤ = «متوسط» كما في quran.com
     const baseAr = (34 + arScale * 15) * sc;   //  ٤ → 94px عند 1080
     const baseTr = (18 + trScale * 9) * sc;    //  ٣ → 45px
@@ -270,14 +280,36 @@ const VideoLayout = {
     const arFont = (s) => `700 ${s}px "Noto Naskh Arabic", "Amiri", serif`;
     const uiFont = (s) => `600 ${s}px "Inter", "Segoe UI", sans-serif`;
 
-    // ١) قياس: نصغّر حتى تدخل كل الآيات في ٦٦٪ من الارتفاع
+    // ═══ v1.0.180: وضع «آية واحدة في كل مرة» ═══
+    // بدل عرض النطاق كاملًا وتظليل الآية الجارية، تُعرض الآية الجارية وحدها،
+    // وعند انتهاء تلاوتها تُستبدل بالتي بعدها بظهور متدرّج (٠.٣٥ ثانية).
+    const allAyahs = o.ayahs || [];
+    const tmAll = o.timings || [];
+    let ayahs = allAyahs;
+    let act = -1, prog = 0, fade = 1;
+    let translation = o.translation;
+    if (o.single && allAyahs.length) {
+      let ai = 0;
+      for (let i = 0; i < tmAll.length; i++) if (o.t >= tmAll[i].start) ai = i;
+      if (ai > allAyahs.length - 1) ai = allAyahs.length - 1;
+      const my = tmAll[ai] || { start: 0, dur: Math.max(0.001, (o.dur || 8) / allAyahs.length) };
+      ayahs = [allAyahs[ai]];
+      if (o.translations && o.translations[ai]) translation = o.translations[ai];
+      if (o.highlight && o.t >= my.start) {
+        act = 0;
+        prog = Math.min(1, (o.t - my.start) / Math.max(0.001, my.dur));
+      }
+      fade = Math.min(1, Math.max(0, (o.t - my.start) / 0.35));
+    }
+
+    // ١) قياس: نصغّر حتى تدخل الآية (أو الآيات) في ٦٦٪ من الارتفاع
     const areaH = H * 0.66;
     let size = (34 + arScale * 15) * sc;
     const minSize = 24 * sc;
     let lay = null;
     for (let k = 0; k < 60; k++) {
       ctx.font = arFont(size);
-      lay = this._layoutAyahs(ctx, o.ayahs, maxW, size, lineH);
+      lay = this._layoutAyahs(ctx, ayahs, maxW, size, lineH);
       if (lay.height <= areaH || size <= minSize) break;
       size -= 2;
     }
@@ -285,10 +317,9 @@ const VideoLayout = {
     const nGaps = lay.lines.filter(l => l.gapBefore).length;
     const totalH = lay.height + gapAyah * nGaps;
 
-    // ٢) الآية الجارية والتقدّم داخلها
-    let act = -1, prog = 0;
+    // ٢) الآية الجارية والتقدّم داخلها (وضع الآية الواحدة حسبها مسبقًا)
     const tm = o.timings || [];
-    if (o.highlight && tm.length) {
+    if (!o.single && o.highlight && tm.length) {
       for (let i = 0; i < tm.length; i++) {
         const s0 = tm[i].start, s1 = s0 + tm[i].dur;
         if (o.t >= s0 && o.t <= s1) { act = i; prog = (o.t - s0) / Math.max(0.001, tm[i].dur); break; }
@@ -303,6 +334,7 @@ const VideoLayout = {
     // ٣) الرسم من اليمين لليسار كلمة بكلمة (الحروف العربية تتصل داخل الكلمة فقط)
     let y = (o.centerY || H / 2) - totalH / 2 + size * lineH / 2;
     ctx.save();
+    ctx.globalAlpha = fade;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
     ctx.direction = 'rtl';
@@ -334,9 +366,9 @@ const VideoLayout = {
     ctx.shadowColor = 'rgba(0,0,0,0.62)';
     ctx.shadowBlur = 16 * sc;
     const trScale = Math.max(0, Math.min(6, o.trScale == null ? 3 : o.trScale));
-    if (o.translation && trScale > 0 && bodyH > 40 * sc) {
+    if (translation && trScale > 0 && bodyH > 40 * sc) {
       const baseTr = (18 + trScale * 9) * sc;
-      const tr = this.fit(ctx, '“' + o.translation + '”', maxW * 0.94, Math.min(bodyH * 0.7, H * 0.2), baseTr, 15 * sc, 1.4, uiFont);
+      const tr = this.fit(ctx, '“' + translation + '”', maxW * 0.94, Math.min(bodyH * 0.7, H * 0.2), baseTr, 15 * sc, 1.4, uiFont);
       ctx.fillStyle = fontColor;
       for (const line of tr.lines) {
         ctx.font = uiFont(tr.size);

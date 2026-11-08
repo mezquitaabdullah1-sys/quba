@@ -16,7 +16,7 @@
 const VideoStudioPage = {
   st: {
     surah: 1, from: 1, to: 1,
-    reciter: 'ar.alafasy',
+    reciter: 'ar.husary',
     tr: '',
     arScale: 4, trScale: 3,
     ratio: 'portrait',         // portrait | square | landscape
@@ -145,7 +145,6 @@ const VideoStudioPage = {
     const urls = [];
     let folder = null;
     try { folder = (window.QuranOffline && QuranOffline.EVERYAYAH_FOLDERS) ? QuranOffline.EVERYAYAH_FOLDERS[reciter] : null; } catch (e) {}
-    if (!folder && reciter === 'ar.alafasy') folder = 'Alafasy_128kbps';
     const s3 = String(surah).padStart(3, '0');
     const a3 = String(ayah).padStart(3, '0');
     if (folder) urls.push(`https://everyayah.com/data/${folder}/${s3}${a3}.mp3`);
@@ -263,10 +262,13 @@ const VideoStudioPage = {
         ayahs: media.ayahs,
         timings: media.timings,
         t: t,
-        translation: media.translation,
-        source: media.source,
-        highlight: st.highlight,
-      }));
+      translation: media.translation,
+      translations: media.translations || [],
+      single: true,               // v1.0.180: آية واحدة في كل مرة
+      dur: dur,
+      source: media.source,
+      highlight: st.highlight,
+    }));
     } else {
       VideoLayout.drawVerse(cx, Object.assign({}, common, {
         arabic: media.arabic,
@@ -284,12 +286,226 @@ const VideoStudioPage = {
   },
 
   /* ================= الواجهة ================= */
-  reciters() {
-    const base = ((window.CONFIG && CONFIG.RECITERS) || []).slice();
-    if (!base.some(r => r.id === 'ar.alafasy')) {
-      base.unshift({ id: 'ar.alafasy', name: 'Mishary Alafasy', nameAr: 'مشاري راشد العفاسي', nameEn: 'Mishary Alafasy' });
+  // v1.0.177: معاينة التلاوة كاملة (نطاق الآيات) قبل إنشاء الفيديو
+  _listen: null,
+  listen() {
+    const st = this.st;
+    const ic = () => document.getElementById('vs-listen-ic');
+    const tx = () => document.getElementById('vs-listen-tx');
+    const btn = () => document.getElementById('vs-listen');
+    const L = (a, b, c) => this.L(a, b, c);
+    const DEF = () => L('اسمع التلاوة قبل الإنشاء', 'Escucha antes de crear', 'Listen before creating');
+    if (this._listen) { this.stopListen(); return; }
+    const setState = (on) => {
+      const b = btn(), i = ic();
+      if (b) b.classList.toggle('playing', on);
+      if (i) i.className = on ? 'fas fa-stop' : 'fas fa-play';
+    };
+    const setLabel = (t) => { const e = tx(); if (e) e.textContent = t; };
+    const a = new Audio();
+    a.crossOrigin = 'anonymous';
+    a.preload = 'auto';
+    this._listen = a;
+    setState(true);
+
+    const fail = () => {
+      this.stopListen();
+      if (typeof showToast === 'function')
+        showToast(L('تعذّر جلب التلاوة — تحقّق من الاتصال بهذا القارئ',
+                   'No se pudo cargar la recitación: comprueba la conexión',
+                   'Could not load recitation — check the connection'), 3200);
+    };
+
+    // القارئ الذي لا يوفّر ملفًا لكل آية: تلاوة السورة كاملة
+    if (this._needsSurahAudio(st.reciter)) {
+      const su = this.surahAudioUrl(st.reciter, st.surah);
+      if (!su) { fail(); return; }
+      a.onended = () => this.stopListen();
+      a.onerror = fail;
+      setLabel(L('تلاوة السورة كاملة — اضغط للإيقاف', 'Sura completa — pulsa para detener', 'Full surah — tap to stop'));
+      a.src = su;
+      a.play().catch(() => fail());
+      return;
     }
-    return base;
+
+    // تشغيل آية بعد آية بالتتابع مع تجاوز المصدر الفاشل
+    let n = st.from;
+    const playAyah = () => {
+      if (n > st.to) { this.stopListen(); return; }
+      const cur = n++;
+      const urls = this.audioUrls(st.surah, cur, st.reciter) || [];
+      let k = 0;
+      const tryUrl = () => {
+        if (k >= urls.length) { playAyah(); return; }
+        a.src = urls[k++];
+        a.play().catch(() => {});
+      };
+      a.onerror = tryUrl;
+      a.onended = playAyah;
+      setLabel(L('تلاوة الآية ' + cur + ' من ' + st.to,
+                 'Recitando ' + cur + ' de ' + st.to,
+                 'Ayah ' + cur + ' of ' + st.to));
+      tryUrl();
+    };
+    if (!(this.audioUrls(st.surah, st.from, st.reciter) || []).length) { fail(); return; }
+    playAyah();
+  },
+
+  stopListen() {
+    try { if (this._listen) { this._listen.onended = null; this._listen.onerror = null; this._listen.pause(); this._listen.removeAttribute('src'); } } catch (e) {}
+    this._listen = null;
+    const b = document.getElementById('vs-listen');
+    if (b) b.classList.remove('playing');
+    const i = document.getElementById('vs-listen-ic');
+    if (i) i.className = 'fas fa-play';
+    const t = document.getElementById('vs-listen-tx');
+    if (t) t.textContent = this.L('اسمع التلاوة قبل الإنشاء', 'Escucha antes de crear', 'Listen before creating');
+  },
+
+  reciters() {
+    // v1.0.176 — الجذر: config.js يعرّف `const CONFIG` لا `window.CONFIG`
+    let list = [];
+    try {
+      if (typeof CONFIG !== 'undefined' && Array.isArray(CONFIG.RECITERS) && CONFIG.RECITERS.length) list = CONFIG.RECITERS.slice();
+      else if (window.CONFIG && Array.isArray(window.CONFIG.RECITERS)) list = window.CONFIG.RECITERS.slice();
+    } catch (e) {}
+    if (!list.length) {
+      list = [
+        { id: 'ar.husary',             nameAr: 'محمود خليل الحصري', name: 'Mahmoud Khalil Al-Husary' },
+        { id: 'ar.abdurrahmaansudais', nameAr: 'عبد الرحمن السديس', name: 'Abdurrahman As-Sudais' },
+        { id: 'ar.mahermuaiqly',       nameAr: 'ماهر المعيقلي',     name: 'Maher Al-Muaiqly' },
+        { id: 'ar.saadalghamdi',       nameAr: 'سعد الغامدي',       name: 'Saad Al-Ghamdi' },
+        { id: 'ar.minshawi',           nameAr: 'محمد صديق المنشاوي', name: 'Mohamed Siddiq El-Minshawi' },
+        { id: 'ar.abdulbasitmurattal', nameAr: 'عبد الباسط عبد الصمد (مرتل)', name: 'Abdul Basit (Murattal)' },
+        { id: 'ar.hudhaify',           nameAr: 'علي الحذيفي',       name: 'Ali Al-Hudhaify' },
+      ];
+    }
+    // v1.0.177: محمد اللحيدان — تلاوة السورة كاملة من mp3quran (مُتحقَّق منها)
+    if (!list.some(r => r.id === 'ar.muhammadalluhaidan')) {
+      list.push({ id: 'ar.muhammadalluhaidan', nameAr: 'محمد اللحيدان', name: 'Muhammad Al-Luhaidan', surahOnly: true });
+    }
+    return list;
+  },
+
+  /* ================= المصادر الصوتية ================= */
+  /**
+   * v1.0.177 — الجذر الحقيقي لانعدام الصوت:
+   * الكود كان يقرأ `window.QuranOffline.EVERYAYAH_FOLDERS`، والوحدة تُسمّى
+   * في المشروع `QuranOfflineService` (const لا تُضاف إلى window) ⇒ الخريطة
+   * لم تُقرأ أبدًا، فلم يبقَ إلا cdn.islamic.network وهو **لا يرسل
+   * access-control-allow-origin** ⇒ fetch يفشل ⇒ فيديو بلا صوت.
+   * everyayah يرسل ACAO: * (مُتحقَّق) لذا هو المصدر الأول دائمًا.
+   */
+  _folderMap() {
+    const pick = (o) => (o && o.EVERYAYAH_FOLDERS) || null;
+    try { if (typeof QuranOfflineService !== 'undefined') { const m = pick(QuranOfflineService); if (m) return m; } } catch (e) {}
+    try { if (typeof QuranOffline !== 'undefined') { const m = pick(QuranOffline); if (m) return m; } } catch (e) {}
+    try { if (window.QuranOfflineService) { const m = pick(window.QuranOfflineService); if (m) return m; } } catch (e) {}
+    // احتياط مضمّن — كل مجلد مُختبَر بتنزيل فعلي
+    return {
+      'ar.husary':             'Husary_128kbps',
+      'ar.abdurrahmaansudais': 'Abdurrahmaan_As-Sudais_192kbps',
+      'ar.mahermuaiqly':       'MaherAlMuaiqly128kbps',
+      'ar.saadalghamdi':       'Ghamadi_40kbps',
+      'ar.minshawi':           'Minshawy_Murattal_128kbps',
+      'ar.abdulbasitmurattal': 'Abdul_Basit_Murattal_192kbps',
+      'ar.hudhaify':           'Hudhaify_128kbps',
+    };
+  },
+
+  _needsSurahAudio(reciter) { return reciter === 'ar.muhammadalluhaidan'; },
+
+  surahAudioUrl(reciter, surah) {
+    const s3 = String(surah).padStart(3, '0');
+    if (reciter === 'ar.muhammadalluhaidan') return 'https://cdn.mp3quran.net/audio/muhammad-luhaidan/r1/' + s3 + '.mp3';
+    return '';
+  },
+
+  /**
+   * قائمة روابط الآية بالترتيب: everyayah (CORS *) ثم islamic.network (بلا CORS،
+   * للتشغيل المباشر فقط). fetchAudioBuffer يتجاوز الفاشل تلقائيًا.
+   */
+  audioUrls(surah, ayah, reciter) {
+    const urls = [];
+    const map = this._folderMap() || {};
+    const folder = map[reciter];
+    const s3 = String(surah).padStart(3, '0');
+    const a3 = String(ayah).padStart(3, '0');
+    if (folder) urls.push('https://everyayah.com/data/' + folder + '/' + s3 + a3 + '.mp3');
+    const g = this.globalAyah(surah, ayah);
+    if (g) {
+      urls.push('https://cdn.islamic.network/quran/audio/64/' + reciter + '/' + g + '.mp3');
+      urls.push('https://cdn.islamic.network/quran/audio/128/' + reciter + '/' + g + '.mp3');
+    }
+    return urls;
+  },
+
+  /**
+   * تقطيع تلاوة السورة إلى مقاطع آيات بكشف الصمت (طاقة RMS كل 20ms).
+   * يُختار أقرب فاصل صامت (≥120ms) إلى الموضع النسبي المتوقّع لكل آية،
+   * وإذا لم تكفِ الفواصل نعود إلى التقسيم النسبي. (مُختبَر على تلاوة اللحيدان)
+   */
+  _splitBySilence(buf, n) {
+    try {
+      if (!buf || !n || n < 2) return [buf];
+      const sr = buf.sampleRate, ch = buf.numberOfChannels;
+      const d0 = buf.getChannelData(0);
+      const d1 = ch > 1 ? buf.getChannelData(1) : null;
+      const frame = Math.max(1, Math.round(sr * 0.02));
+      const frames = Math.floor(d0.length / frame);
+      if (frames < n * 4) return null;
+      const rms = new Float32Array(frames);
+      let peak = 0;
+      for (let f = 0; f < frames; f++) {
+        let sum = 0; const st = f * frame, en = st + frame;
+        for (let i = st; i < en; i++) { const v = d1 ? (d0[i] + d1[i]) * 0.5 : d0[i]; sum += v * v; }
+        const r = Math.sqrt(sum / frame);
+        rms[f] = r; if (r > peak) peak = r;
+      }
+      if (!(peak > 0)) return null;
+      const thr = peak * 0.06, minRun = Math.round(0.12 / 0.02);
+      const bnds = [];
+      let run = 0;
+      for (let f = 0; f < frames; f++) {
+        if (rms[f] < thr) { run++; }
+        else { if (run >= minRun) bnds.push((f - run / 2) * 0.02); run = 0; }
+      }
+      if (run >= minRun) bnds.push((frames - run / 2) * 0.02);
+
+      const dur = buf.duration;
+      const cuts = [];
+      for (let k = 1; k < n; k++) {
+        const expect = dur * k / n;
+        let best = null, bd = 1e9;
+        for (let bi = 0; bi < bnds.length; bi++) {
+          const b = bnds[bi];
+          if (cuts.some(c => Math.abs(c - b) < 0.35)) continue;
+          const d = Math.abs(b - expect);
+          if (d < bd) { bd = d; best = b; }
+        }
+        cuts.push(best === null ? expect : best);
+      }
+      cuts.sort((x, y) => x - y);
+      const edges = [0].concat(cuts, [dur]);
+
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const ctx = window.__vsSplitAC || (window.__vsSplitAC = new AC());
+      const out = [];
+      for (let k = 0; k < n; k++) {
+        const s0 = Math.max(0, Math.floor(edges[k] * sr));
+        const e0 = Math.min(buf.length, Math.floor(edges[k + 1] * sr));
+        const len = Math.max(1, e0 - s0);
+        const nb = ctx.createBuffer(ch, len, sr);
+        for (let c = 0; c < ch; c++) nb.getChannelData(c).set(buf.getChannelData(c).subarray(s0, e0));
+        const fd = Math.min(Math.round(sr * 0.012), Math.floor(len / 4));
+        for (let c = 0; c < ch; c++) {
+          const dd = nb.getChannelData(c);
+          for (let i = 0; i < fd; i++) { const g = i / fd; dd[i] *= g; dd[len - 1 - i] *= g; }
+        }
+        out.push(nb);
+      }
+      return out;
+    } catch (e) { console.warn('splitBySilence failed', e && e.message); return null; }
   },
 
   async render(container) {
@@ -335,8 +551,14 @@ const VideoStudioPage = {
           <div class="vs-row">
             <label class="vs-lbl">${this.L('القارئ', 'Recitador', 'Reciter')}</label>
             <select class="vs-sel" id="vs-reciter">
-              ${reciters.map(r => `<option value="${r.id}" ${r.id === st.reciter ? 'selected' : ''}>${escapeHtml((CONFIG.reciterName ? CONFIG.reciterName(r) : '') || r.nameAr || r.name || r.id)}</option>`).join('')}
+              ${reciters.map(r => `<option value="${r.id}" ${r.id === st.reciter ? 'selected' : ''}>${escapeHtml(r.nameAr || (typeof CONFIG !== 'undefined' && CONFIG.reciterName ? CONFIG.reciterName(r) : '') || r.name || r.id)}</option>`).join('')}
             </select>
+          </div>
+          <div class="vs-row">
+            <button class="vs-listen" id="vs-listen" type="button" onclick="VideoStudioPage.listen()">
+              <i class="fas fa-play" id="vs-listen-ic"></i>
+              <span id="vs-listen-tx">${this.L('اسمع التلاوة قبل الإنشاء', 'Escucha antes de crear', 'Listen before creating')}</span>
+            </button>
           </div>
           <div class="vs-row">
             <label class="vs-lbl">${this.L('الترجمة', 'Traducción', 'Translation')}</label>
@@ -644,9 +866,13 @@ const VideoStudioPage = {
     }
 
     const ayahs = this.rangeAyahs(st.surah, st.from, st.to);
-    let translation = '';
+    let translation = '', translations = [];
     if (st.tr) {
-      try { translation = await this.fetchTranslation(st.surah, st.from, st.to); } catch (e) { translation = this._trCache.has('miss') ? '' : ''; }
+      try {
+        translation = await this.fetchTranslation(st.surah, st.from, st.to);
+        // v1.0.180: ترجمة كل آية على حدة — تُعرض مع آيتها وحدها
+        for (let n = st.from; n <= st.to; n++) translations.push(await this.fetchTranslation(st.surah, n, n));
+      } catch (e) { translation = ''; translations = []; }
     }
     const val = {
       img, video, ayahs,
@@ -703,19 +929,39 @@ const VideoStudioPage = {
       setP(0.02, this.L('قراءة النص…', 'Leyendo el texto…', 'Reading the text…'));
       const media = await this._previewMedia();
       if (!media.ayahs.length) throw new Error('no_text');
+      // v1.0.180: الحد الأعلى ٢٠ آية لكل فيديو
+      if (media.ayahs.length > this.MAX_AYAHS) {
+        media.ayahs = media.ayahs.slice(0, this.MAX_AYAHS);
+        if (media.translations) media.translations = media.translations.slice(0, this.MAX_AYAHS);
+      }
 
-      // ٢) التلاوة (everyayah أولًا — CORS)
+      // ٢) التلاوة — everyayah لكل آية (CORS *) واللحيدان من ملف السورة بتقطيع بالصمت
       let audio = null, bufs = [];
       setP(0.05, this.L('جلب التلاوة…', 'Descargando la recitación…', 'Fetching recitation…'));
       try {
         const total = st.to - st.from + 1;
-        for (let n = st.from; n <= st.to; n++) {
-          const urls = this.audioUrls(st.surah, n, st.reciter);
-          const b = await VideoEncode.fetchAudioBuffer(urls, (p) => {
-            setP(0.05 + 0.25 * ((n - st.from + p) / total),
-              this.L('جلب التلاوة…', 'Descargando la recitación…', 'Fetching recitation…'));
+        if (this._needsSurahAudio(st.reciter)) {
+          const su = this.surahAudioUrl(st.reciter, st.surah);
+          const full = await VideoEncode.fetchAudioBuffer([su], (p) => {
+            setP(0.05 + 0.25 * p, this.L('جلب التلاوة…', 'Descargando la recitación…', 'Fetching recitation…'));
           });
-          bufs.push(b);
+          const all = this.ayahCount(st.surah) || total;
+          const segs = (total === all) ? this._splitBySilence(full, all) : null;
+          if (segs && segs.length >= all) bufs = segs.slice(st.from - 1, st.to);
+          if (!bufs.length) {
+            // نطاق جزئي: نحتفظ بالسورة كاملة ونسقط النص على التوقيت الكامل
+            bufs = [full];
+            this._surahWhole = true;
+          }
+        } else {
+          for (let n = st.from; n <= st.to; n++) {
+            const urls = this.audioUrls(st.surah, n, st.reciter);
+            const buf = await VideoEncode.fetchAudioBuffer(urls, (p) => {
+              setP(0.05 + 0.25 * ((n - st.from + p) / total),
+                this.L('جلب التلاوة…', 'Descargando la recitación…', 'Fetching recitation…'));
+            });
+            bufs.push(buf);
+          }
         }
         audio = VideoEncode.concatBuffers(bufs, this.GAP_AYAH);
         audio = this._padAudio(audio, this.LEAD, this.TAIL);
@@ -729,6 +975,7 @@ const VideoStudioPage = {
             'Recitation unavailable — video will have no audio'), 3200);
         }
       }
+      this._surahWhole = false;
 
       const dur = audio ? audio.duration : 10;
       const timings = audio && bufs.length

@@ -1360,6 +1360,19 @@ const QuranPage = {
 
   setFontSize(size, btn) {
     this.readerSettings.fontSize = size;
+    // v1.0.176 — الجذر: كان التغيير يُطبَّق كصنف على عنصر واحد فيُفقد عند
+    // إعادة الرسم، وكان الحجم مثبَّتًا بـpx داخل قواعد أقدم. الآن مقياس
+    // واحد على <html> يقود الحجم والفراغ معًا ويبقى بعد أي إعادة رسم.
+    try { document.documentElement.setAttribute('data-qfs', size); } catch (e) {}
+    // v1.0.175: تطبيق مضمون على كل نسخة معروضة (كان يبقى على بعض الأجهزة بلا أثر)
+    try {
+      document.querySelectorAll('.mushaf-page').forEach(el => {
+        ['small','medium','large','xlarge'].forEach(k => el.classList.remove('font-' + k));
+        el.classList.add('font-' + size);
+      });
+      Storage.set('mushaf_font', size);
+      this._applyReaderSpace && this._applyReaderSpace();
+    } catch (e) {}
     this.saveReaderSettings();
     // v1.0.141: حجم الخط مشترك مع المصحف الكامل
     try { Storage.set('mushaf_font', size); if (typeof QuranMushafPage !== 'undefined') QuranMushafPage.fontSize = size; } catch (e) {}
@@ -3006,3 +3019,11 @@ const QuranPage = {
     }
   },
 };
+
+/* v1.0.176: استعادة مقياس الخط المحفوظ قبل أول رسم */
+try {
+  const _mfs = (typeof Storage !== 'undefined' && Storage.get('mushaf_font')) ||
+               (() => { try { return (Storage.get('reader_settings') || {}).fontSize; } catch (e) { return null; } })() ||
+               'medium';
+  if (['small','medium','large','xlarge'].includes(_mfs)) document.documentElement.setAttribute('data-qfs', _mfs);
+} catch (e) {}

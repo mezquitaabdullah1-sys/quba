@@ -264,54 +264,91 @@ const QuranMushafPage = {
     setTimeout(() => vp.classList.remove('msh-in'), 320);
   },
 
-  /* ---------- ملاءمة حجم الخط: لا قصّ ولا التفاف ---------- */
+  /* ---------- v1.0.179: قياس حقيقي — الحجم يقود، والقصّ ممنوع ---------- */
   _fit() {
     const vp = document.getElementById('msh-vp');
-    const lines = vp && vp.querySelector('.msh-lines');
-    if (!vp || !lines) return;
+    if (!vp) return;
+    const lines = vp.querySelector('.msh-lines');
+    if (!lines) return;
+    const rowsEls = Array.from(lines.querySelectorAll('.msh-ln'));
+    if (!rowsEls.length) return;
 
+    const rows = rowsEls.length;
+    const lhMap = { tight: 1.30, normal: 1.55, wide: 1.88 };
+    const lh = lhMap[this.lineHeight] || 1.55;
+    const multMap = { small: 0.84, medium: 1.0, large: 1.16, xlarge: 1.34 };
+    const mult = multMap[this.fontSize] || 1;
+
+    // في وضع التمرير يقيس العميل عرض المحتوى لا المسرح ⇒ نستخدم آخر قياس حقيقي
+    let availW, availH;
+    if (this._pan && this._availW) { availW = this._availW; availH = this._availH; }
+    else {
+      availW = Math.max(100, lines.clientWidth || 100);
+      availH = Math.max(100, lines.clientHeight || 100);
+      this._availW = availW; this._availH = availH;
+    }
+
+    // أعرض سطر عند حجم مرجعي 20px بنفس الخط الفعلي
     let m = document.getElementById('msh-measure');
     if (!m) {
       m = document.createElement('div');
       m.id = 'msh-measure';
-      m.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;left:-9999px;top:0;';
+      m.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;left:-99999px;top:0;';
       document.body.appendChild(m);
     }
     const cs = getComputedStyle(lines);
     m.style.fontFamily = cs.fontFamily;
     m.style.fontWeight = cs.fontWeight;
+    m.style.fontSize = '20px';
+    let widest = 1;
+    rowsEls.forEach(el => {
+      const t = el.querySelector('.msh-ln-t') || el;
+      m.textContent = t.textContent || '';
+      if (m.scrollWidth > widest) widest = m.scrollWidth;
+    });
 
-    const texts = Array.from(lines.querySelectorAll('.msh-ln')).map(ln => ln.textContent);
-    const availW = lines.clientWidth - 4;
-    const availH = lines.clientHeight - 2;
+    const fitW = (20 * availW / widest) * 0.985;   // هامش أمان ١.٥٪
+    const fitH = availH / (rows * lh);
+    const base = Math.max(8, Math.min(fitW, fitH));
+    const size = Math.max(8, Math.min(base * mult, 96));
 
-    const levels = { small: .9, medium: 1, large: 1.08, xlarge: 1.16 };
-    const scale = levels[this.fontSize] || 1;
+    lines.style.setProperty('--msh-fs', size.toFixed(2) + 'px');
+    lines.style.setProperty('--msh-lh', String(lh));
+    lines.style.fontSize = size.toFixed(2) + 'px';
+    this._fs = size.toFixed(2) + 'px';
+    this._mirrorFit(this._fs);
 
-    // v1.0.141: نسبة تباعد الأسطر من CSS الفعلي بدل رقم ثابت
-    let lhr = 1.55;
-    try { lhr = (parseFloat(cs.lineHeight) || 0) / (parseFloat(cs.fontSize) || 1) || 1.55; } catch (e) {}
+    // يتجاوز العرض أو الارتفاع؟ ⇒ تمرير بدل قصّ
+    const needW = (widest * size / 20) > availW + 1;
+    const needH = rows * size * lh > availH + 1;
+    const pan = needW || needH;
+    vp.classList.toggle('msh-pan', pan);
+    this._pan = pan;
+    if (pan && !this._panHintShown) { this._panHintShown = true; this._showPanHint(); }
+  },
 
-    let best = 9;
-    for (let fs = 27; fs >= 8.5; fs -= 0.25) {
-      const test = fs * scale;
-      // ١٥ سطرًا يجب أن تدخل في الارتفاع المتاح
-      if (texts.length * test * lhr > availH + 4) continue;
-      m.style.fontSize = test + 'px';
-      let ok = true;
-      for (const t of texts) {
-        m.textContent = t;
-        if (m.scrollWidth > availW) { ok = false; break; }
-      }
-      if (ok) { best = test; break; }
-    }
-    lines.style.fontSize = best.toFixed(2) + 'px';
-    this._mirrorFit(lines.style.fontSize);
+  _showPanHint() {
+    const vp = document.getElementById('msh-vp');
+    if (!vp) return;
+    const old = vp.querySelector('.msh-panhint');
+    if (old) old.remove();
+    const d = document.createElement('div');
+    d.className = 'msh-panhint';
+    d.innerHTML = '<span>اسحب أفقيًا لرؤية بقية السطر</span>';
+    vp.appendChild(d);
+    setTimeout(() => { try { d.remove(); } catch (e) {} }, 5200);
   },
 
   /* v1.0.141: الطبقة الاحتياطية تُرسم بنفس حجم الطبقة الظاهرة حتى لا «تقفز» */
   _mirrorFit(fs) {
-    document.querySelectorAll('#msh-lay-b .msh-lines').forEach(el => { if (fs) el.style.fontSize = fs; });
+    document.querySelectorAll('#msh-lay-b .msh-lines').forEach(el => {
+      if (fs) {
+        el.style.fontSize = fs;
+        el.style.setProperty('--msh-fs', fs);
+        const lhMap = { tight: 1.30, normal: 1.55, wide: 1.88 };
+        el.style.setProperty('--msh-lh', String(lhMap[this.lineHeight] || 1.55));
+      }
+    });
   },
 
   /* ---------------- حركة التقليب ---------------- */
@@ -374,8 +411,12 @@ const QuranMushafPage = {
       }
     }, { passive: false });
 
+    // v1.0.179: في وضع التمرير يمرّر السحب المحتوى بدل تقليب الصفحة
+    const panning = () => vp.classList.contains('msh-pan');
+
     vp.addEventListener('touchmove', e => {
       if (this._animating) return;
+      if (panning()) return;
       const p0 = e.touches[0];
       dx = p0.clientX - sx;
       const dy = p0.clientY - sy;
@@ -407,6 +448,7 @@ const QuranMushafPage = {
 
     vp.addEventListener('touchend', e => {
       clearLp();
+      if (panning()) { this._dragging = false; return; }
       const b = document.getElementById('msh-lay-b');
       const w = vp.clientWidth;
       const dt = Date.now() - t0;
@@ -779,7 +821,15 @@ const QuranMushafPage = {
         </div>
         <button class="msh-set-close" onclick="QuranMushafPage.closeSettings()">${t('done') || 'تم'}</button>
       </div>`;
-    sh.addEventListener('click', e => { if (e.target === sh) this.closeSettings(); });
+    // v1.0.179: كانت اللمسة تُشترط أن تقع على الاطار نفسه بالضبط، وأي لمسة
+    // داخل فراغ البطاقة لا تُغلق شيئًا. الآن أي لمسة خارج البطاقة تُغلقه فورًا.
+    const onScrim = (e) => {
+      const card = sh.querySelector('.msh-set-card');
+      if (card && card.contains(e.target)) return;
+      this.closeSettings();
+    };
+    sh.addEventListener('pointerdown', onScrim, { passive: true });
+    sh.addEventListener('touchstart', onScrim, { passive: true });
     document.body.appendChild(sh);
   },
 

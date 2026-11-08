@@ -172,3 +172,28 @@ html[dir="rtl"] .hm-studio-go i { transform: scaleX(-1); }
 .vs-switch input:checked + span { background: rgba(212,175,55,.85); border-color: #D4AF37; }
 .vs-switch input:checked + span::after { transform: translateX(20px); }
 html[dir="rtl"] .vs-switch input:checked + span::after { transform: translateX(-20px); }
+
+/* ═══ v1.0.180: وضوح نصوص أسفل صفحة الاستوديو (بجانب زر التوليد) ═══ */
+.vs-hint {
+  color: #FFF7E0 !important;
+  background: rgba(255,247,224,.09);
+  border: 1px solid rgba(228,206,142,.34);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin: 8px 0 10px;
+  font-size: .78rem;
+  font-weight: 600;
+  line-height: 1.6;
+  text-align: center;
+  opacity: 1 !important;
+}
+.vs-hint:empty { display: none; }
+.vs-progtxt { color: #FFF7E0 !important; font-weight: 700; }
+.vs-sub { color: rgba(255,247,224,.86); }
+html[data-theme="light"] .vs-hint {
+  color: #0B3B2C !important;
+  background: rgba(14,75,60,.06);
+  border-color: rgba(14,75,60,.28);
+}
+html[data-theme="light"] .vs-progtxt { color: #0B3B2C !important; }
+html[data-theme="light"] .vs-sub { color: rgba(14,75,60,.82); }

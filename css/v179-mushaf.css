@@ -1,0 +1,94 @@
+/* ==========================================================================
+   v1.0.179 — المصحف الكامل: قصّ النص من اليسار / حجم الخط / تباعد الأسطر / التمرير
+   --------------------------------------------------------------------------
+   الجذور الثلاثة (كلها في css/mushaf.css + pages/quran-mushaf.js):
+   ١) `.msh-ln-t { white-space:nowrap; overflow:hidden }` — السطر إن تجاوز العرض
+      يُقصّ صامتًا، وفي RTL ينسكب إلى اليسار ⇒ «النص مقطوع من ناحية اليسار».
+   ٢) `_fit()` كان يحسب أكبر حجم يدخل في العرض **والارتفاع** ثم يضربه بنسبة
+      المستخدم — والقيود تُعيده إلى الحجم نفسه؛ وعلى الهاتف **العرض** هو القيد
+      الحاكم (١٥ سطرًا ثابتة) ⇒ الأربعة أزرار تتقارب في الحجم نفسه.
+   ٣) `.lh-*` كان يضبط line-height على `.msh-lines`، لكن الصفوف `flex:1` تملأ
+      الارتفاع فتتوزّع بالتساوي ⇒ تباعد الأسطر بلا أثر فعلي.
+   الحل: الحجم يصبح متغيّرًا حاكمًا (`--msh-fs`)، والصف يشتق ارتفاعه منه
+   (`--msh-lh`)، وعند تجاوز العرض/الارتفاع يُفعَّل وضع «التمرير» (.msh-pan)
+   فلا يُقصّ حرف أبدًا، ويمكن السحب أفقيًا ورأسيًا لرؤية بقية السطر.
+   ========================================================================== */
+
+/* ---------- ١) الحجم والتباعد: متغيّران يقودان التخطيط ---------- */
+.msh-lines {
+  font-size: var(--msh-fs, 19px) !important;
+}
+.msh-ln {
+  flex: 0 0 auto !important;
+  height: calc(var(--msh-fs, 19px) * var(--msh-lh, 1.55));
+  min-height: 0;
+  overflow: visible !important;
+}
+/* ٢) لا قصّ: السطر يظهر كاملًا بعرضه الطبيعي */
+.msh-ln-t {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  width: auto !important;
+  min-width: 100%;
+}
+/* ترويسة السورة والبسملة تبقى محصورة داخل الإطار */
+.msh-ln-h .msh-surah-band, .msh-ln-b .msh-basmala {
+  max-width: 100%;
+}
+.msh-sb-name {
+  overflow: visible !important;
+}
+
+/* ---------- ٣) وضع التمرير: يُفعَّل تلقائيًا حين يتجاوز النص المسرح ---------- */
+.msh-vp.msh-pan {
+  overflow: auto !important;
+  touch-action: pan-x pan-y !important;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px 10px 4px;
+}
+.msh-vp.msh-pan::-webkit-scrollbar { width: 0; height: 0; display: none; }
+.msh-vp.msh-pan .msh-layer {
+  position: relative !important;
+  inset: auto !important;
+  display: block !important;
+  width: max-content;
+  min-width: 100%;
+}
+.msh-vp.msh-pan .msh-sheet {
+  display: flex;
+  flex: 0 0 auto !important;
+  width: max-content;
+  min-width: 100%;
+}
+.msh-vp.msh-pan .msh-frame {
+  width: max-content;
+  min-width: 100%;
+}
+.msh-vp.msh-pan .msh-lines {
+  width: max-content;
+  min-width: 100%;
+}
+/* في وضع التمرير يبقى الوجه مقروءًا بلا ظلّ يقطعه */
+.msh-vp.msh-pan .msh-sheet { border-radius: 14px; }
+
+/* شارة صغيرة تُذكّر بالسحب الأفقي (تظهر مرة واحدة) */
+.msh-panhint {
+  position: absolute; inset-inline: 0; bottom: 6px;
+  display: flex; justify-content: center; pointer-events: none;
+  z-index: 5;
+}
+.msh-panhint span {
+  font-size: 10.5px; font-weight: 700; padding: 5px 12px; border-radius: 999px;
+  background: rgba(8, 48, 31, .82); color: #FFF9EC;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .28);
+  animation: mshHint 1.6s ease 3;
+}
+@keyframes mshHint {
+  0%, 100% { transform: translateX(0); opacity: .95; }
+  50% { transform: translateX(-8px); opacity: 1; }
+}
+
+/* ---------- ٤) ورقة الإعدادات: إغلاق بلمسة واحدة في أي مكان خارج البطاقة ---------- */
+.msh-set-scrim { -webkit-tap-highlight-color: transparent; }
+.msh-set-card { will-change: transform; }
